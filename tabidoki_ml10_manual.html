@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>旅刻mk10 使い方ガイド</title>
+<style>
+:root{
+  --bg:#0d0d0d;--bg2:#1a1a1a;--bg3:#222;
+  --text:#f0ece0;--text2:#ccc;--text3:#888;
+  --amber:#ffb800;--green:#39e07a;--red:#ff5a5a;--blue:#4da6ff;
+  --border:#333;--r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Hiragino Sans','Noto Sans JP',sans-serif;font-size:15px;line-height:1.7;max-width:480px;margin:0 auto;padding-bottom:60px}
+
+/* ヘッダー */
+.manual-header{background:#111;border-bottom:1px solid #2a2a2a;padding:24px 20px 20px;text-align:center;position:sticky;top:0;z-index:100}
+.manual-logo{font-size:40px;font-weight:900;color:var(--amber);letter-spacing:-.02em;font-family:'Hiragino Mincho ProN','Yu Mincho',serif}
+.manual-subtitle{font-size:13px;color:var(--text3);margin-top:4px;letter-spacing:.1em}
+
+/* 目次 */
+.toc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin:16px 14px;overflow:hidden}
+.toc-title{background:#1e1e1e;padding:12px 16px;font-size:13px;font-weight:700;color:var(--text3);letter-spacing:.1em}
+.toc a{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);color:var(--text2);text-decoration:none;font-size:14px;transition:background .1s}
+.toc a:last-child{border-bottom:none}
+.toc a:active{background:var(--bg3)}
+.toc-num{color:var(--amber);font-weight:700;font-size:12px;min-width:22px}
+
+/* セクション */
+.section{margin:0 0 8px}
+.section-header{background:#111;border-top:3px solid var(--amber);padding:20px 20px 4px;display:flex;align-items:baseline;gap:10px}
+.section-num{font-size:11px;color:var(--amber);font-weight:700;letter-spacing:.1em}
+.section-title{font-size:20px;font-weight:800;color:var(--text)}
+.section-body{padding:0 14px}
+
+/* カード */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin:12px 0;overflow:hidden}
+.card-inner{padding:14px 16px}
+.card-title{font-size:14px;font-weight:700;color:var(--amber);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.card-body{font-size:14px;color:var(--text2);line-height:1.8}
+
+/* ポイントリスト */
+.point-list{list-style:none;margin-top:8px}
+.point-list li{padding:6px 0 6px 20px;position:relative;font-size:14px;color:var(--text2);border-bottom:1px solid #222}
+.point-list li:last-child{border-bottom:none}
+.point-list li::before{content:'▶';position:absolute;left:0;color:var(--amber);font-size:10px;top:9px}
+
+/* 画面イメージ */
+.screen-wrap{margin:14px 0;display:flex;justify-content:center}
+.screen-frame{width:240px;background:#111;border-radius:32px;border:2px solid #333;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.6);position:relative}
+.screen-frame::before{content:'';display:block;width:80px;height:6px;background:#2a2a2a;border-radius:3px;margin:10px auto 0}
+.screen-inner{background:#0d0d0d;min-height:160px;overflow:hidden}
+.screen-caption{text-align:center;font-size:11px;color:var(--text3);margin-top:8px;letter-spacing:.05em}
+
+/* バッジ */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.badge-amber{background:rgba(255,184,0,.15);color:var(--amber);border:1px solid rgba(255,184,0,.3)}
+.badge-green{background:rgba(57,224,122,.1);color:var(--green);border:1px solid rgba(57,224,122,.2)}
+.badge-blue{background:rgba(77,166,255,.1);color:var(--blue);border:1px solid rgba(77,166,255,.2)}
+
+/* ステップ */
+.steps{counter-reset:step;margin:10px 0}
+.step{counter-increment:step;display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #1e1e1e}
+.step:last-child{border-bottom:none}
+.step-num{background:var(--amber);color:#000;font-weight:800;font-size:12px;min-width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-content{font-size:14px;color:var(--text2);line-height:1.7}
+.step-content strong{color:var(--text)}
+
+/* ヒント */
+.hint{background:#1a1800;border:1px solid rgba(255,184,0,.25);border-radius:10px;padding:12px 14px;margin:10px 0;font-size:13px;color:#d4b800;display:flex;gap:8px}
+.hint-icon{flex-shrink:0;font-size:16px}
+
+/* ボタン表示 */
+.btn-demo{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:var(--bg3);border:1.5px solid #444;border-radius:8px;font-size:13px;color:var(--text);font-weight:700;margin:2px}
+.btn-amber{background:rgba(255,184,0,.15);border-color:rgba(255,184,0,.4);color:var(--amber)}
+.btn-red{background:rgba(255,90,90,.08);border-color:rgba(255,90,90,.3);color:var(--red)}
+.btn-green{background:rgba(57,224,122,.08);border-color:rgba(57,224,122,.3);color:var(--green)}
+
+/* 区切り */
+.divider{height:1px;background:linear-gradient(to right,transparent,#333,transparent);margin:4px 0}
+
+/* フッター */
+.footer{text-align:center;padding:32px 20px;color:var(--text3);font-size:12px;border-top:1px solid var(--border);margin-top:16px}
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<div class="manual-header">
+  <div class="manual-logo">旅刻</div>
+  <div class="manual-subtitle">mk10 · 使い方ガイド</div>
+</div>
+
+<!-- 目次 -->
+<div class="toc">
+  <div class="toc-title">📋 もくじ</div>
+  <a href="#s1"><span class="toc-num">01</span>アプリの起動と基本画面</a>
+  <a href="#s2"><span class="toc-num">02</span>行程の作成（編集モード）</a>
+  <a href="#s3"><span class="toc-num">03</span>地点の追加・編集</a>
+  <a href="#s4"><span class="toc-num">04</span>高速SA・道の駅・GS</a>
+  <a href="#s5"><span class="toc-num">05</span>走行モード</a>
+  <a href="#s6"><span class="toc-num">06</span>天気情報</a>
+  <a href="#s7"><span class="toc-num">07</span>給油ポイント管理</a>
+  <a href="#s8"><span class="toc-num">08</span>保存・読込・共有</a>
+  <a href="#s9"><span class="toc-num">09</span>タイトル画面の設定</a>
+</div>
+
+<!-- 01 起動と基本画面 -->
+<div class="section" id="s1">
+  <div class="section-header">
+    <span class="section-num">01</span>
+    <span class="section-title">起動と基本画面</span>
+  </div>
+  <div class="section-body">
+
+    <div class="screen-wrap">
+      <div>
+        <div class="screen-frame">
+          <div class="screen-inner">
+            <!-- スプラッシュ画面 -->
+            <svg viewBox="0 0 240 400" xmlns="http://www.w3.org/2000/svg" width="240">
+              <rect width="240" height="400" fill="#0d0d0d"/>
+              <!-- 背景イメージ風 -->
+              <rect width="240" height="400" fill="url(#bg-grad)" opacity=".5"/>
+              <defs>
+                <linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#2a1a0a"/>
+                  <stop offset="100%" stop-color="#0d0d0d"/>
+                </linearGradient>
+              </defs>
+              <!-- 旅刻タイトル -->
+              <text x="160" y="240" font-size="90" fill="#C0280A" font-family="serif" font-weight="bold" writing-mode="vertical-rl" opacity="1">旅刻</text>
+              <!-- 出演 -->
+              <text x="50" y="120" font-size="12" fill="rgba(240,235,215,.7)" font-family="serif" writing-mode="vertical-rl">出演：あなた　友情出演：鴨吉</text>
+              <!-- サブタイトル -->
+              <text x="95" y="100" font-size="11" fill="rgba(240,235,215,.75)" font-family="serif" writing-mode="vertical-rl" letter-spacing="3">ツーリング行程支援ツール</text>
+              <!-- 線 -->
+              <line x1="110" y1="60" x2="110" y2="320" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
+              <!-- 話数 -->
+              <text x="195" y="90" font-size="11" fill="rgba(235,230,215,.6)" font-family="serif" writing-mode="vertical-rl">第七話</text>
+              <!-- タイトル -->
+              <text x="175" y="100" font-size="16" fill="rgba(235,230,215,.9)" font-family="serif" writing-mode="vertical-rl">峠の向こうに嘘があった</text>
+            </svg>
+          </div>
+        </div>
+        <div class="screen-caption">起動時のタイトル画面（約4秒）</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-title">🎬 タイトル画面</div>
+        <div class="card-body">起動すると映画風タイトルが約4秒表示されます。話数・タイトルは毎回ランダムで変わります（カスタマイズ可能）。</div>
+      </div>
+    </div>
+
+    <div class="screen-wrap">
+      <div>
+        <div class="screen-frame">
+          <div class="screen-inner">
+            <svg viewBox="0 0 240 420" xmlns="http://www.w3.org/2000/svg" width="240">
+              <rect width="240" height="420" fill="#0d0d0d"/>
+              <!-- 時刻行 -->
+              <rect width="240" height="72" fill="#111"/>
+              <text x="120" y="58" font-size="54" fill="#39e07a" font-family="'Courier New',monospace" font-weight="700" text-anchor="middle" letter-spacing="2">12:34</text>
+              <!-- ボタン行 -->
+              <rect y="72" width="240" height="38" fill="#111"/>
+              <rect x="2" y="74" width="32" height="32" rx="8" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+              <text x="18" y="96" font-size="18" text-anchor="middle">🏍️</text>
+              <rect x="37" y="74" width="32" height="32" rx="8" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+              <text x="53" y="96" font-size="18" text-anchor="middle">✏️</text>
+              <rect x="72" y="74" width="32" height="32" rx="8" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+              <text x="88" y="96" font-size="18" text-anchor="middle">💾</text>
+              <rect x="107" y="74" width="32" height="32" rx="8" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+              <text x="123" y="96" font-size="18" text-anchor="middle">📂</text>
+              <rect x="142" y="74" width="32" height="32" rx="8" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+              <text x="158" y="96" font-size="18" text-anchor="middle">📋</text>
+              <rect x="177" y="74" width="32" height="32" rx="8" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+              <text x="193" y="96" font-size="18" text-anchor="middle">📜</text>
+              <!-- ボーダー -->
+              <rect y="110" width="240" height="2" fill="#333"/>
+              <!-- タブ -->
+              <rect y="112" width="240" height="38" fill="#111"/>
+              <text x="60" y="136" font-size="12" fill="#ffb800" text-anchor="middle" font-weight="700">1日目</text>
+              <rect x="0" y="148" width="120" height="2" fill="#ffb800"/>
+              <text x="180" y="136" font-size="12" fill="#666" text-anchor="middle" font-weight="700">2日目</text>
+              <!-- 地点カード -->
+              <rect y="152" width="240" height="2" fill="#222"/>
+              <rect x="10" y="162" width="220" height="80" rx="10" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+              <circle cx="26" cy="180" r="6" fill="#ff5a5a"/>
+              <text x="38" y="184" font-size="13" fill="#f0ece0" font-weight="700">道の駅 しもべ</text>
+              <text x="26" y="200" font-size="11" fill="#888">着 10:00　発 11:30</text>
+              <rect x="16" y="210" width="208" height="24" rx="6" fill="#222"/>
+              <text x="26" y="226" font-size="10" fill="#888">⛅ 曇り　↑24°　↓16°　💧20%</text>
+              <!-- 追加ボタン -->
+              <rect x="10" y="254" width="220" height="36" rx="10" fill="#1e1e1e" stroke="#333" stroke-width="1"/>
+              <text x="120" y="277" font-size="12" fill="#666" text-anchor="middle">＋ 地点をタップして追加</text>
+            </svg>
+          </div>
+        </div>
+        <div class="screen-caption">メイン画面（行程ビュー）</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-title">🖥 メイン画面の構成</div>
+        <ul class="point-list">
+          <li><strong>1行目（時刻）</strong> — 現在時刻を大きく表示</li>
+          <li><strong>2行目（ボタン）</strong> — 🏍️走行 ✏️編集 💾保存 📂読込 📋共有 📜設定</li>
+          <li><strong>日程タブ</strong> — 最大7日間の切り替え</li>
+          <li><strong>地点カード</strong> — 登録した地点・時刻・天気を表示</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 02 編集モード -->
+<div class="section" id="s2">
+  <div class="section-header">
+    <span class="section-num">02</span>
+    <span class="section-title">行程の作成（編集モード）</span>
+  </div>
+  <div class="section-body">
+
+    <div class="screen-wrap">
+      <div>
+        <div class="screen-frame">
+          <div class="screen-inner">
+            <svg viewBox="0 0 240 380" xmlns="http://www.w3.org/2000/svg" width="240">
+              <rect width="240" height="380" fill="#0d0d0d"/>
+              <rect width="240" height="72" fill="#111"/>
+              <text x="120" y="58" font-size="54" fill="#39e07a" font-family="'Courier New',monospace" font-weight="700" text-anchor="middle">12:34</text>
+              <rect y="72" width="240" height="38" fill="#111"/>
+              <rect x="37" y="74" width="32" height="32" rx="8" fill="#ffb800"/>
+              <text x="53" y="96" font-size="18" text-anchor="middle">✅</text>
+              <rect x="2" y="74" width="32" height="32" rx="8" fill="transparent"/>
+              <text x="18" y="96" font-size="18" text-anchor="middle">🏍️</text>
+              <text x="88" y="96" font-size="18" text-anchor="middle">💾</text>
+              <text x="123" y="96" font-size="18" text-anchor="middle">📂</text>
+              <text x="158" y="96" font-size="18" text-anchor="middle">📋</text>
+              <text x="193" y="96" font-size="18" text-anchor="middle">📜</text>
+              <rect y="110" width="240" height="2" fill="#333"/>
+              <!-- 日程管理行 -->
+              <rect y="112" width="240" height="44" fill="#111"/>
+              <rect x="8" y="118" width="108" height="30" rx="8" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+              <text x="62" y="138" font-size="12" fill="#f0ece0" text-anchor="middle" font-weight="700">＋ 日程追加</text>
+              <rect x="122" y="118" width="110" height="30" rx="8" fill="rgba(255,90,90,.08)" stroke="rgba(255,90,90,.3)" stroke-width="1"/>
+              <text x="177" y="138" font-size="12" fill="#ff5a5a" text-anchor="middle" font-weight="700">🗑️ 削除</text>
+              <!-- ルートURL行 -->
+              <rect y="156" width="240" height="38" fill="#111"/>
+              <rect x="8" y="162" width="60" height="26" rx="6" fill="#1a1a1a" stroke="#333"/>
+              <text x="38" y="179" font-size="10" fill="#888" text-anchor="middle">日付</text>
+              <rect x="74" y="162" width="158" height="26" rx="6" fill="#1a1a1a" stroke="#333"/>
+              <text x="153" y="179" font-size="10" fill="#555" text-anchor="middle">🗺 ルートURL</text>
+              <rect y="194" width="240" height="2" fill="#333"/>
+              <!-- タブ -->
+              <rect y="196" width="240" height="36" fill="#111"/>
+              <text x="60" y="218" font-size="12" fill="#ffb800" text-anchor="middle" font-weight="700">1日目</text>
+              <rect x="0" y="230" width="120" height="2" fill="#ffb800"/>
+              <text x="180" y="218" font-size="12" fill="#555" text-anchor="middle">2日目</text>
+              <!-- 地点フォーム -->
+              <rect x="10" y="240" width="220" height="130" rx="10" fill="#1a1a1a" stroke="#444" stroke-width="1.5"/>
+              <text x="22" y="260" font-size="12" fill="#888" font-weight="700">地点を追加</text>
+              <rect x="16" y="266" width="130" height="28" rx="7" fill="#222" stroke="#ffb800" stroke-width="1.5"/>
+              <text x="26" y="284" font-size="11" fill="#aaa">地点名を入力…</text>
+              <rect x="152" y="266" width="34" height="28" rx="7" fill="#1e1e1e" stroke="#4da6ff" stroke-width="1"/>
+              <text x="169" y="285" font-size="9" fill="#4da6ff" text-anchor="middle">🛣️高速</text>
+              <rect x="190" y="266" width="34" height="28" rx="7" fill="#1e1e1e" stroke="#ffb800" stroke-width="1"/>
+              <text x="207" y="285" font-size="9" fill="#ffb800" text-anchor="middle">🏪道の駅</text>
+              <!-- 時刻 -->
+              <text x="22" y="314" font-size="10" fill="#666">到着時刻</text>
+              <text x="130" y="314" font-size="10" fill="#666">出発時刻</text>
+              <rect x="16" y="318" width="100" height="24" rx="6" fill="#222" stroke="#333"/>
+              <text x="66" y="334" font-size="10" fill="#888" text-anchor="middle">-- : --</text>
+              <rect x="124" y="318" width="100" height="24" rx="6" fill="#222" stroke="#333"/>
+              <text x="174" y="334" font-size="10" fill="#888" text-anchor="middle">-- : --</text>
+              <!-- 追加ボタン -->
+              <rect x="16" y="350" width="208" height="24" rx="6" fill="#ffb800"/>
+              <text x="120" y="366" font-size="11" fill="#000" text-anchor="middle" font-weight="800">＋ 追加</text>
+            </svg>
+          </div>
+        </div>
+        <div class="screen-caption">編集モード画面</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-title">✏️ 編集モードの開始</div>
+        <div class="steps">
+          <div class="step"><div class="step-num">1</div><div class="step-content"><strong>✏️ ボタン</strong>をタップして編集モードに切り替え</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-content">ヘッダーに<strong>日程追加・削除・日付・ルートURL</strong>の管理行が現れる</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-content">画面下部に地点入力フォームが表示される</div></div>
+          <div class="step"><div class="step-num">4</div><div class="step-content"><strong>✅ ボタン</strong>で編集モードを終了</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-title">📅 日程管理</div>
+        <ul class="point-list">
+          <li><strong>＋ 日程追加</strong> — 最大7日間まで追加可能</li>
+          <li><strong>🗑️ 削除</strong> — 現在選択中の日程を削除</li>
+          <li><strong>日付入力</strong> — 日付を設定すると天気予報を取得</li>
+          <li><strong>ルートURL</strong> — Googleマップ等のルートURLを登録</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="hint">
+      <span class="hint-icon">💡</span>
+      <span>地点カードを長押し＆ドラッグで順序を並び替えできます</span>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 03 地点の追加・編集 -->
+<div class="section" id="s3">
+  <div class="section-header">
+    <span class="section-num">03</span>
+    <span class="section-title">地点の追加・編集</span>
+  </div>
+  <div class="section-body">
+
+    <div class="screen-wrap">
+      <div>
+        <div class="screen-frame">
+          <div class="screen-inner">
+            <svg viewBox="0 0 240 400" xmlns="http://www.w3.org/2000/svg" width="240">
+              <rect width="240" height="400" fill="#0d0d0d"/>
+              <rect x="10" y="10" width="220" height="380" rx="12" fill="#1a1a1a" stroke="#444" stroke-width="1.5"/>
+              <text x="22" y="34" font-size="13" fill="#888" font-weight="700">地点を追加</text>
+              <!-- 地点名 + ボタン -->
+              <rect x="16" y="42" width="128" height="30" rx="8" fill="#222" stroke="#ffb800" stroke-width="1.5"/>
+              <text x="26" y="61" font-size="11" fill="#aaa">地点名</text>
+              <rect x="150" y="42" width="32" height="30" rx="7" fill="#1e1e1e" stroke="#4da6ff" stroke-width="1"/>
+              <text x="166" y="62" font-size="8" fill="#4da6ff" text-anchor="middle">🛣️高速</text>
+              <rect x="186" y="42" width="30" height="30" rx="7" fill="#1e1e1e" stroke="#ffb800" stroke-width="1"/>
+              <text x="201" y="58" font-size="7" fill="#ffb800" text-anchor="middle">🏪</text>
+              <text x="201" y="68" font-size="7" fill="#ffb800" text-anchor="middle">道の駅</text>
+              <!-- GS行 -->
+              <text x="16" y="92" font-size="9" fill="#666">（左端に）</text>
+              <rect x="16" y="98" width="28" height="28" rx="7" fill="#1e1e1e" stroke="#39e07a" stroke-width="1"/>
+              <text x="30" y="117" font-size="9" fill="#39e07a" text-anchor="middle">⛽GS</text>
+              <!-- 住所 -->
+              <text x="22" y="144" font-size="10" fill="#666">📍 住所（任意）</text>
+              <rect x="16" y="150" width="208" height="28" rx="7" fill="#222" stroke="#333"/>
+              <text x="26" y="168" font-size="10" fill="#555">例：神奈川県横浜市...</text>
+              <!-- 時刻 -->
+              <text x="22" y="196" font-size="10" fill="#666">到着時刻</text>
+              <text x="136" y="196" font-size="10" fill="#666">出発時刻</text>
+              <rect x="16" y="200" width="108" height="28" rx="7" fill="#222" stroke="#333"/>
+              <text x="70" y="219" font-size="11" fill="#888" text-anchor="middle">10:00 ▾</text>
+              <rect x="130" y="200" width="94" height="28" rx="7" fill="#222" stroke="#333"/>
+              <text x="177" y="219" font-size="11" fill="#888" text-anchor="middle">11:30 ▾</text>
+              <!-- メモ -->
+              <text x="22" y="246" font-size="10" fill="#666">メモ</text>
+              <rect x="16" y="250" width="208" height="28" rx="7" fill="#222" stroke="#333"/>
+              <text x="26" y="268" font-size="10" fill="#555">食事・注意点など...</text>
+              <!-- 給油チェック -->
+              <rect x="16" y="286" width="208" height="32" rx="8" fill="#222" stroke="#333"/>
+              <rect x="24" y="295" width="18" height="18" rx="5" fill="#ffb800"/>
+              <text x="33" y="308" font-size="10" fill="#000" text-anchor="middle" font-weight="700">⛽</text>
+              <text x="52" y="307" font-size="12" fill="#f0ece0" font-weight="700">⛽ 給油ポイント</text>
+              <!-- ボタン -->
+              <rect x="16" y="328" width="100" height="30" rx="8" fill="#ffb800"/>
+              <text x="66" y="347" font-size="11" fill="#000" text-anchor="middle" font-weight="800">＋ 追加</text>
+              <rect x="124" y="328" width="100" height="30" rx="8" fill="#1a1a1a" stroke="#333"/>
+              <text x="174" y="347" font-size="11" fill="#888" text-anchor="middle">キャンセル</text>
+            </svg>
+          </div>
+        </div>
+        <div class="screen-caption">地点入力フォーム</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-title">📋 入力項目</div>
+        <ul class="point-list">
+          <li><strong>地点名</strong>（必須） — 立ち寄り場所の名前</li>
+          <li><strong>住所</strong>（任意） — 都道府県・市区町村まで入力すると天気を取得</li>
+          <li><strong>到着時刻 / 出発時刻</strong> — プルダウンで選択</li>
+          <li><strong>メモ</strong> — 食事・注意点など自由記入</li>
+          <li><strong>⛽ 給油ポイント</strong> — タップでON/OFF切り替え</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-title">⏱ 時刻カスケード機能</div>
+        <div class="card-body">出発時刻を変更すると、後続地点の時刻を自動で同じ時間差だけずらします。ツーリング計画の見直しが素早くできます。</div>
+      </div>
+    </div>
+
+    <div class="hint">
+      <span class="hint-icon">💡</span>
+      <span>既存の地点カードをタップすると編集フォームが開きます</span>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 04 高速・道の駅・GS -->
+<div class="section" id="s4">
+  <div class="section-header">
+    <span class="section-num">04</span>
+    <span class="section-title">高速SA・道の駅・GS</span>
+  </div>
+  <div class="section-body">
+
+    <div class="screen-wrap">
+      <div>
+        <div class="screen-frame">
+          <div class="screen-inner">
+            <svg viewBox="0 0 240 380" xmlns="http://www.w3.org/2000/svg" width="240">
+              <rect width="240" height="380" fill="#0d0d0d"/>
+              <!-- 暗い背景オーバーレイ -->
+              <rect width="240" height="380" fill="rgba(0,0,0,.8)"/>
+              <!-- モーダルシート -->
+              <rect x="0" y="80" width="240" height="300" rx="16" fill="#1a1a1a"/>
+              <!-- ヘッダー -->
+              <rect x="0" y="80" width="240" height="48" rx="16" fill="#1a1a1a"/>
+              <rect x="0" y="112" width="240" height="16" fill="#1a1a1a"/>
+              <text x="20" y="110" font-size="13" fill="#f0ece0" font-weight="700">⛽ ガソリンスタンドを選択</text>
+              <text x="218" y="110" font-size="16" fill="#666" text-anchor="middle">✕</text>
+              <line x1="0" y1="128" x2="240" y2="128" stroke="#333" stroke-width="1"/>
+              <!-- 検索 -->
+              <rect x="12" y="136" width="216" height="30" rx="8" fill="#222" stroke="#444"/>
+              <text x="24" y="155" font-size="11" fill="#555">チェーン名で検索…</text>
+              <line x1="0" y1="172" x2="240" y2="172" stroke="#333" stroke-width="1"/>
+              <!-- 説明 -->
+              <text x="12" y="188" font-size="10" fill="#666">選択すると給油ポイントが自動でONになります</text>
+              <!-- リスト -->
+              <line x1="12" y1="196" x2="228" y2="196" stroke="#333" stroke-width=".5"/>
+              <text x="16" y="216" font-size="14" fill="#f0ece0" font-weight="700">⛽ ENEOS</text>
+              <text x="16" y="232" font-size="10" fill="#888">ENEOSホールディングス系列</text>
+              <line x1="12" y1="240" x2="228" y2="240" stroke="#333" stroke-width=".5"/>
+              <text x="16" y="260" font-size="14" fill="#f0ece0" font-weight="700">⛽ apollostation</text>
+              <text x="16" y="276" font-size="10" fill="#888">出光・昭和シェル統合ブランド</text>
+              <line x1="12" y1="284" x2="228" y2="284" stroke="#333" stroke-width=".5"/>
+              <text x="16" y="304" font-size="14" fill="#f0ece0" font-weight="700">⛽ 出光</text>
+              <text x="16" y="320" font-size="10" fill="#888">出光興産系列</text>
+              <line x1="12" y1="328" x2="228" y2="328" stroke="#333" stroke-width=".5"/>
+              <text x="16" y="348" font-size="14" fill="#f0ece0" font-weight="700">⛽ コスモ石油</text>
+            </svg>
+          </div>
+        </div>
+        <div class="screen-caption">GSセレクター画面</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-title">🛣️ 高速SA / 🏪 道の駅 / ⛽ GS ボタン</div>
+        <div class="card-body">地点入力フォームの地点名欄右側に3つのボタンがあります。タップするとリスト選択画面が開き、選択すると地点名・住所が自動入力されます。</div>
+        <ul class="point-list" style="margin-top:10px">
+          <li><span class="badge badge-blue">🛣️ 高速</span>　高速道路のSA・PAを検索して選択</li>
+          <li><span class="badge badge-amber">🏪 道の駅</span>　全国の道の駅をリストから選択</li>
+          <li><span class="badge badge-green">⛽ GS</span>　チェーン名を選択→給油ポイントが自動ON</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="hint">
+      <span class="hint-icon">💡</span>
+      <span>高速SA・道の駅はネット接続時に最新データを取得します。オフライン時はキャッシュデータで動作します</span>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 05 走行モード -->
+<div class="section" id="s5">
+  <div class="section-header">
+    <span class="section-num">05</span>
+    <span class="section-title">走行モード</span>
+  </div>
+  <div class="section-body">
+
+    <div class="screen-wrap">
+      <div>
+        <div class="screen-frame">
+          <div class="screen-inner">
+            <svg viewBox="0 0 240 400" xmlns="http://www.w3.org/2000/svg" width="240">
+              <rect width="240" height="400" fill="#0d0d0d"/>
+              <rect width="240" height="72" fill="#111"/>
+              <text x="120" y="58" font-size="54" fill="#39e07a" font-family="'Courier New',monospace" font-weight="700" text-anchor="middle">12:34</text>
+              <rect y="72" width="240" height="38" fill="#111"/>
+              <text x="18" y="97" font-size="18" text-anchor="middle">🏍️</text>
+              <rect x="37" y="74" width="32" height="32" rx="8" fill="rgba(255,90,90,.15)" stroke="rgba(255,90,90,.4)"/>
+              <text x="53" y="96" font-size="14" fill="#ff5a5a" text-anchor="middle" font-weight="700">✖ 戻る</text>
+              <rect y="110" width="240" height="2" fill="#333"/>
+              <!-- 現在地カード -->
+              <rect x="10" y="120" width="220" height="140" rx="12" fill="#1a1a1a" stroke="#39e07a" stroke-width="1.5"/>
+              <text x="24" y="142" font-size="11" fill="#39e07a" font-weight="700">◎ 現在地</text>
+              <text x="24" y="168" font-size="20" fill="#f0ece0" font-weight="800">道の駅 しもべ</text>
+              <rect x="18" y="176" width="80" height="24" rx="6" fill="#222"/>
+              <text x="34" y="192" font-size="10" fill="#888">着</text>
+              <text x="46" y="192" font-size="12" fill="#ffb800" font-weight="700">10:00</text>
+              <rect x="106" y="176" width="80" height="24" rx="6" fill="#222"/>
+              <text x="120" y="192" font-size="10" fill="#888">発</text>
+              <text x="134" y="192" font-size="12" fill="#ffb800" font-weight="700">11:30</text>
+              <!-- 天気 -->
+              <rect x="18" y="208" width="198" height="28" rx="7" fill="#222"/>
+              <text x="30" y="226" font-size="11" fill="#888">⛅ 曇り　24°↑26° ↓16°　💧2%</text>
+              <!-- マップボタン -->
+              <rect x="18" y="242" width="198" height="28" rx="8" fill="#1a2a4a" stroke="#4da6ff" stroke-width="1"/>
+              <text x="116" y="261" font-size="11" fill="#4da6ff" text-anchor="middle">🗺 マップで確認</text>
+              <!-- 次の地点 -->
+              <rect x="10" y="270" width="220" height="100" rx="12" fill="#1a1a1a" stroke="#333"/>
+              <text x="24" y="292" font-size="11" fill="#888" font-weight="700">▷ 次の地点</text>
+              <text x="24" y="316" font-size="17" fill="#ccc" font-weight="700">富士山本宮浅間大社</text>
+              <rect x="18" y="324" width="80" height="22" rx="6" fill="#222"/>
+              <text x="58" y="339" font-size="11" fill="#ffb800" text-anchor="middle">13:00着</text>
+              <!-- ドット -->
+              <circle cx="100" cy="385" r="5" fill="#ffb800"/>
+              <circle cx="120" cy="385" r="4" fill="#333"/>
+              <circle cx="138" cy="385" r="4" fill="#333"/>
+              <circle cx="156" cy="385" r="4" fill="#333"/>
+            </svg>
+          </div>
+        </div>
+        <div class="screen-caption">走行モード画面</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-title">🏍️ 走行モードの使い方</div>
+        <div class="steps">
+          <div class="step"><div class="step-num">1</div><div class="step-content"><strong>🏍️ ボタン</strong>をタップして走行モード開始</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-content">現在地カードと次の地点カードが大きく表示される</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-content">左右スワイプで前後の地点を確認</div></div>
+          <div class="step"><div class="step-num">4</div><div class="step-content"><strong>「📍 ここを現在地にする」</strong>で位置を手動更新</div></div>
+          <div class="step"><div class="step-num">5</div><div class="step-content"><strong>✖ 戻る</strong>で通常画面に戻る</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-title">📋 走行モードで確認できること</div>
+        <ul class="point-list">
+          <li>現在地の到着・出発時刻</li>
+          <li>現在地の天気・気温・降水確率</li>
+          <li>マップで確認ボタン（Googleマップ連携）</li>
+          <li>⛽ 給油ポイントバッジの表示</li>
+          <li>次の目的地の情報</li>
+          <li>全行程完了メッセージ（最終地点）</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 06 天気情報 -->
+<div class="section" id="s6">
+  <div class="section-header">
+    <span class="section-num">06</span>
+    <span class="section-title">天気情報</span>
+  </div>
+  <div class="section-body">
+
+    <div class="screen-wrap">
+      <div>
+        <div class="screen-frame">
+          <div class="screen-inner">
+            <svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" width="240">
+              <rect width="240" height="160" fill="#0d0d0d"/>
+              <rect x="10" y="10" width="220" height="140" rx="10" fill="#1a1a1a" stroke="#333"/>
+              <circle cx="36" cy="50" r="18" fill="#2a2a2a"/>
+              <text x="36" y="57" font-size="20" text-anchor="middle">⛅</text>
+              <text x="64" y="42" font-size="13" fill="#f0ece0" font-weight="700">曇り</text>
+              <text x="64" y="60" font-size="12" fill="#ffb800">24°</text>
+              <text x="88" y="60" font-size="11" fill="#ff5a5a">↑26°</text>
+              <text x="118" y="60" font-size="11" fill="#4da6ff">↓16°</text>
+              <rect x="165" y="34" width="54" height="34" rx="8" fill="#1e2a1e" stroke="#39e07a" stroke-width="1"/>
+              <text x="192" y="57" font-size="16" fill="#39e07a" text-anchor="middle">💧2%</text>
+              <!-- 説明 -->
+              <text x="20" y="90" font-size="10" fill="#666">住所設定済みの地点で取得</text>
+              <rect x="16" y="100" width="208" height="24" rx="7" fill="#1e1e1e" stroke="#333"/>
+              <text x="28" y="116" font-size="10" fill="#888">📍 神奈川県南巨摩郡身延町</text>
+              <text x="20" y="142" font-size="10" fill="#555">最大7日先まで予報取得・30分キャッシュ</text>
+            </svg>
+          </div>
+        </div>
+        <div class="screen-caption">天気バッジの表示例</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-title">🌤 天気情報の仕組み</div>
+        <ul class="point-list">
+          <li>住所欄に<strong>都道府県・市区町村</strong>を入力すると自動取得</li>
+          <li>到着時刻が設定されている場合は<strong>その時間帯の天気</strong>を表示</li>
+          <li>最大<strong>7日先まで</strong>の予報に対応</li>
+          <li>取得結果は<strong>30分キャッシュ</strong>して無駄なAPI通信を削減</li>
+          <li>オフライン時・圏外でもキャッシュがあれば表示</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 07 給油ポイント -->
+<div class="section" id="s7">
+  <div class="section-header">
+    <span class="section-num">07</span>
+    <span class="section-title">給油ポイント管理</span>
+  </div>
+  <div class="section-body">
+
+    <div class="screen-wrap">
+      <div>
+        <div class="screen-frame">
+          <div class="screen-inner">
+            <svg viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg" width="240">
+              <rect width="240" height="200" fill="#0d0d0d"/>
+              <!-- 通常地点 -->
+              <rect x="10" y="10" width="220" height="60" rx="10" fill="#1a1a1a" stroke="#333"/>
+              <circle cx="26" cy="30" r="6" fill="#ff5a5a"/>
+              <text x="40" y="34" font-size="13" fill="#f0ece0" font-weight="700">道の駅 しもべ</text>
+              <text x="26" y="54" font-size="10" fill="#888">10:00 着　11:30 発</text>
+              <!-- 給油地点 -->
+              <rect x="10" y="78" width="220" height="72" rx="10" fill="#1a1a1a" stroke="#333"/>
+              <circle cx="26" cy="98" r="6" fill="#ff5a5a"/>
+              <text x="40" y="102" font-size="13" fill="#f0ece0" font-weight="700">ENEOS SS</text>
+              <text x="26" y="120" font-size="10" fill="#888">12:00 着　12:20 発</text>
+              <!-- 給油バッジ -->
+              <rect x="20" y="130" width="96" height="14" rx="5" fill="rgba(255,184,0,.12)" stroke="rgba(255,184,0,.3)"/>
+              <text x="68" y="141" font-size="9" fill="#ffb800" text-anchor="middle">⛽ 給油ポイント</text>
+              <!-- 共有テキストイメージ -->
+              <rect x="10" y="158" width="220" height="36" rx="8" fill="#111" stroke="#2a2a2a"/>
+              <text x="20" y="172" font-size="9" fill="#666">共有テキスト例：</text>
+              <text x="20" y="186" font-size="10" fill="#888">▶ 道の駅　／　⛽ ENEOS SS</text>
+            </svg>
+          </div>
+        </div>
+        <div class="screen-caption">給油ポイントの表示</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-title">⛽ 給油ポイントの設定方法</div>
+        <div class="steps">
+          <div class="step"><div class="step-num">1</div><div class="step-content">地点フォームの<strong>「⛽ 給油ポイント」チェックボックス</strong>をタップ</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-content">または<strong>⛽ GSボタン</strong>でチェーンを選ぶと自動ON</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-content">行程ビューに<span class="badge badge-amber">⛽ 給油ポイント</span>バッジが表示</div></div>
+          <div class="step"><div class="step-num">4</div><div class="step-content">共有テキストでは地点名の前に <strong>⛽</strong> マークが付く</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 08 保存・読込・共有 -->
+<div class="section" id="s8">
+  <div class="section-header">
+    <span class="section-num">08</span>
+    <span class="section-title">保存・読込・共有</span>
+  </div>
+  <div class="section-body">
+
+    <div class="screen-wrap">
+      <div>
+        <div class="screen-frame">
+          <div class="screen-inner">
+            <svg viewBox="0 0 240 320" xmlns="http://www.w3.org/2000/svg" width="240">
+              <rect width="240" height="320" fill="#0d0d0d"/>
+              <rect width="240" height="320" fill="rgba(0,0,0,.75)"/>
+              <rect x="20" y="30" width="200" height="260" rx="16" fill="#1a1a1a" stroke="#444"/>
+              <text x="120" y="62" font-size="14" fill="#f0ece0" font-weight="700" text-anchor="middle">📋 行程を共有</text>
+              <line x1="20" y1="72" x2="220" y2="72" stroke="#333"/>
+              <!-- 共有テキストイメージ -->
+              <rect x="30" y="82" width="180" height="150" rx="8" fill="#111" stroke="#2a2a2a"/>
+              <text x="40" y="100" font-size="9" fill="#888">═══════════════</text>
+              <text x="40" y="116" font-size="10" fill="#f0ece0">  身延ツーリング</text>
+              <text x="40" y="132" font-size="9" fill="#888">═══════════════</text>
+              <text x="40" y="150" font-size="9" fill="#888">【1日目】5月3日（土）</text>
+              <text x="40" y="166" font-size="10" fill="#f0ece0">▶ 道の駅しもべ</text>
+              <text x="40" y="180" font-size="9" fill="#888">  着 10:00 | 発 11:30</text>
+              <text x="40" y="196" font-size="10" fill="#f0ece0">⛽ ENEOS SS</text>
+              <text x="40" y="210" font-size="9" fill="#888">  着 12:00 | 発 12:20</text>
+              <text x="40" y="226" font-size="9" fill="#555">───────────────</text>
+              <!-- ボタン -->
+              <rect x="30" y="244" width="180" height="32" rx="8" fill="#ffb800"/>
+              <text x="120" y="265" font-size="12" fill="#000" text-anchor="middle" font-weight="800">📋 クリップボードにコピー</text>
+            </svg>
+          </div>
+        </div>
+        <div class="screen-caption">共有テキスト画面</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-title">💾 保存（JSONファイル）</div>
+        <div class="card-body">💾ボタンをタップすると行程データをJSONファイルとしてダウンロード保存します。バックアップや別デバイスへの移行に使用します。</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-title">📂 読込（JSONファイル）</div>
+        <div class="card-body">📂ボタンをタップして保存済みのJSONファイルを読み込むと行程が復元されます。</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-title">📋 共有テキスト</div>
+        <div class="card-body">📋ボタンをタップすると行程をテキスト形式に変換してコピーします。LINEやメモアプリへ貼り付けて共有できます。</div>
+        <ul class="point-list" style="margin-top:8px">
+          <li>日付・地点名・時刻・メモを含む</li>
+          <li>給油ポイントは ⛽ マークで表示</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="hint">
+      <span class="hint-icon">⚠️</span>
+      <span>JSONファイルは行程データのみ保存されます。タイトル設定はこの端末に保存されます（設定→タイトル設定）</span>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 09 タイトル設定 -->
+<div class="section" id="s9">
+  <div class="section-header">
+    <span class="section-num">09</span>
+    <span class="section-title">タイトル画面の設定</span>
+  </div>
+  <div class="section-body">
+
+    <div class="screen-wrap">
+      <div>
+        <div class="screen-frame">
+          <div class="screen-inner">
+            <svg viewBox="0 0 240 360" xmlns="http://www.w3.org/2000/svg" width="240">
+              <rect width="240" height="360" fill="#0d0d0d"/>
+              <rect width="240" height="360" fill="rgba(0,0,0,.8)"/>
+              <rect x="0" y="50" width="240" height="310" rx="16" fill="#1a1a1a"/>
+              <!-- ヘッダー -->
+              <rect x="0" y="50" width="240" height="46" fill="#1e1e1e" rx="16"/>
+              <rect x="0" y="78" width="240" height="18" fill="#1e1e1e"/>
+              <text x="20" y="79" font-size="14" fill="#f0ece0" font-weight="700">📜 タイトル画面の設定</text>
+              <text x="220" y="79" font-size="16" fill="#666" text-anchor="middle">✕</text>
+              <line x1="0" y1="96" x2="240" y2="96" stroke="#333"/>
+              <!-- 主演 -->
+              <text x="16" y="118" font-size="11" fill="#888">主演（空欄で「あなた」を表示）</text>
+              <rect x="12" y="124" width="216" height="28" rx="7" fill="#222" stroke="#444"/>
+              <text x="22" y="142" font-size="12" fill="#f0ece0">田中太郎</text>
+              <!-- 第◯話 -->
+              <text x="16" y="170" font-size="11" fill="#888">第◯話（数字入力→漢数字変換）</text>
+              <rect x="12" y="176" width="216" height="28" rx="7" fill="#222" stroke="#444"/>
+              <text x="22" y="194" font-size="12" fill="#aaa">3</text>
+              <text x="218" y="194" font-size="11" fill="#ffb800" text-anchor="end">第三話</text>
+              <!-- タイトル -->
+              <text x="16" y="222" font-size="11" fill="#888">タイトル（空欄で紋次郎風ランダム）</text>
+              <rect x="12" y="228" width="216" height="28" rx="7" fill="#222" stroke="#444"/>
+              <text x="22" y="246" font-size="11" fill="#f0ece0">甲州街道に月を追う</text>
+              <!-- 説明 -->
+              <rect x="12" y="264" width="216" height="56" rx="8" fill="#1e1e1e" stroke="#2a2a2a"/>
+              <text x="22" y="280" font-size="9" fill="#666">• 数字（1〜99）を入力すると漢数字に変換</text>
+              <text x="22" y="294" font-size="9" fill="#666">• 空欄にすると一〜十をランダム表示</text>
+              <text x="22" y="308" font-size="9" fill="#666">• 起動するたびにランダム抽選されます</text>
+              <!-- ボタン -->
+              <rect x="12" y="328" width="216" height="28" rx="8" fill="#ffb800"/>
+              <text x="120" y="347" font-size="12" fill="#000" text-anchor="middle" font-weight="800">✅ 保存して閉じる</text>
+            </svg>
+          </div>
+        </div>
+        <div class="screen-caption">タイトル設定画面</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-title">📜 カスタマイズ項目</div>
+        <ul class="point-list">
+          <li><strong>主演</strong> — 自分の名前を入力。空欄で「あなた」と表示</li>
+          <li><strong>第◯話</strong> — 1〜99の数字を入力すると漢数字に自動変換（例：3→第三話）。空欄でランダム</li>
+          <li><strong>タイトル</strong> — 好きなタイトルを入力。空欄で木枯らし紋次郎風タイトルをランダム表示</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-title">🎲 ランダムタイトルについて</div>
+        <div class="card-body">空欄のまま起動するたびに、笹沢左保原作「木枯らし紋次郎」のサブタイトル30種類からランダムで表示します。毎回違う話で始まるツーリングを楽しめます。</div>
+      </div>
+    </div>
+
+    <div class="hint">
+      <span class="hint-icon">💡</span>
+      <span>設定は端末のlocalStorageに保存されます。ブラウザのデータを削除するとリセットされます</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- フッター -->
+<div class="footer">
+  <div style="font-size:24px;margin-bottom:8px">🏍️</div>
+  <div style="color:#ffb800;font-weight:700;margin-bottom:4px">旅刻 mk10</div>
+  <div>ツーリング行程支援ツール</div>
+  <div style="margin-top:8px;color:#444">Powered by 鴨吉</div>
+</div>
+
+</body>
+</html>
