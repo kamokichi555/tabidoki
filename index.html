@@ -288,6 +288,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
       <button id="load-btn" onclick="loadJSON()" title="読込">📂</button>
       <button id="share-btn" onclick="shareItinerary()" title="共有">📋</button>
       <button id="splash-settings-btn" onclick="openSplashSettings()" title="タイトル設定">📜</button>
+      <button id="theme-btn" onclick="_toggleTheme()" title="テーマ切替">☀️</button>
       <input type="file" id="load-file-input" accept=".json,application/json" style="display:none" onchange="onFileSelected(event)">
     </div>
   </div>
@@ -813,7 +814,12 @@ function _initTheme(){
   if(saved){_themeManual=true;_applyTheme(saved==='day');}
   else{_applyTheme(_isDayTime());}
 }
-// 毎分テーマ自動更新（手動設定がない場合のみ）
+function _toggleTheme(){
+  const isDay=document.body.classList.contains('day-mode');
+  _themeManual=true;
+  _applyTheme(!isDay);
+  localStorage.setItem('touring_theme',!isDay?'day':'night');
+}
 setInterval(()=>{if(!_themeManual)_applyTheme(_isDayTime());},60000);
 const DEFAULT={
   version:'mk8-v1',title:'',currentStopId:null,
