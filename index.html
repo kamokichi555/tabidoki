@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0d0d0d">
-<title>旅刻mk11</title>
+<title>旅刻mk12</title>
 <style>
 :root{--bg:#0d0d0d;--bg2:#1e1e1e;--bg3:#2c2c2c;--text:#ffffff;--text2:#e0e0e0;--text3:#aaaaaa;--border:rgba(255,255,255,.15);--border2:rgba(255,255,255,.30);--amber:#FFB800;--amber-bg:rgba(255,184,0,.10);--green:#39E07A;--red:#FF5A5A;--r:12px;--rl:16px}
 /* 屋外昼間モード */
@@ -27,7 +27,19 @@ body.day-mode .day-tab{color:#777}
 body.day-mode .day-tab.on{color:var(--amber)}
 body.day-mode input[type=text],body.day-mode input[type=time],body.day-mode input[type=date]{background:#f8f8f8;color:#0a0a0a;border-color:rgba(0,0,0,.25)}
 body.day-mode .ride-set-curr-btn{background:#e8e8e8;border-color:rgba(0,0,0,.2);color:#333}
-/* 給油ポイント */
+/* 実績時刻・走行ログ */
+.stop-act-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:5px;align-items:baseline}
+.stop-act-chip{display:flex;align-items:baseline;gap:4px}
+.stop-act-label{font-size:13px;color:var(--text3);font-weight:700;letter-spacing:.04em}
+.stop-act-value{font-size:20px;font-weight:700;font-family:'SF Mono','Menlo','Courier New',monospace;color:var(--text2);letter-spacing:.02em}
+.stop-act-diff{font-size:12px;font-weight:700;padding:1px 7px;border-radius:5px;margin-left:4px;align-self:center}
+.stop-act-diff.late{color:var(--red);background:rgba(255,90,90,.15)}
+.stop-act-diff.early{color:var(--green);background:rgba(57,224,122,.15)}
+.stop-act-diff.ontime{color:var(--text3);background:var(--bg3)}
+.stop-log{font-size:15px;color:var(--text2);background:rgba(77,166,255,.07);border-left:4px solid rgba(77,166,255,.5);border-radius:0 6px 6px 0;padding:7px 12px;margin-top:8px;line-height:1.7;word-break:break-word;overflow-wrap:anywhere}
+body.day-mode .stop-log{background:rgba(0,80,200,.06);border-left-color:rgba(0,80,200,.35)}
+.ride-log{font-size:16px;color:var(--text2);background:rgba(77,166,255,.08);border-left:4px solid rgba(77,166,255,.5);border-radius:0 8px 8px 0;padding:8px 12px;margin-top:8px;line-height:1.7;word-break:break-word}
+body.day-mode .ride-log{background:rgba(0,80,200,.07);border-left-color:rgba(0,80,200,.4)}
 .stop-fuel-badge{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:var(--amber);background:var(--amber-bg);border:1px solid rgba(255,184,0,.35);border-radius:6px;padding:3px 9px;margin-top:6px}
 .fuel-check-row{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg3);border:1.5px solid var(--border2);border-radius:var(--r);cursor:pointer;user-select:none;-webkit-user-select:none}
 .fuel-check-row:active{opacity:.7}
@@ -42,7 +54,6 @@ header{position:sticky;top:0;background:var(--bg);z-index:100000;border-bottom:2
 .header-clock{padding:0 4px;display:flex;align-items:center;justify-content:center;animation:header-appear .4s ease 5.3s both;line-height:1.05}
 .header-main{padding:2px 8px 4px;display:flex;align-items:center;justify-content:space-between;gap:4px;animation:header-appear .4s ease 5.3s both}
 @keyframes header-appear{from{opacity:0}to{opacity:1}}
-.header-left{flex-shrink:0}
 
 .header-actions{display:flex;gap:4px;width:100%;justify-content:space-around}
 .header-actions button{padding:4px 2px;font-size:20px;line-height:1;min-width:0;border-radius:8px;flex:1;justify-content:center;border-color:transparent;background:transparent}
@@ -58,14 +69,19 @@ button.amber-outline{color:var(--amber);border-color:var(--amber);background:rgb
 button.small{padding:6px 10px;font-size:13px}
 #ride-btn{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
 #ride-btn.on{background:var(--amber);color:#000;border-color:var(--amber)}
+#record-save-btn.has-record{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
 #normal-view{overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;padding:16px;height:calc(var(--nv-h, 100dvh) - var(--hh, 62px));touch-action:pan-y}
 
-.now-dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 .stop-row{display:flex;gap:14px}
 .stop-line-col{display:flex;flex-direction:column;align-items:center;width:20px;flex-shrink:0}
 .stop-dot{width:16px;height:16px;border-radius:50%;border:2.5px solid var(--border2);background:var(--bg);flex-shrink:0;margin-top:6px;transition:all .2s}
 .stop-connector{width:2px;background:var(--border);flex:1;min-height:28px;margin-top:5px}
+.move-dur-label{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:11px;font-weight:700;letter-spacing:.02em}
+.move-dur-label::before,.move-dur-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.move-dur-label.lv0{color:#4da6ff}
+.move-dur-label.lv1{color:var(--amber)}
+.move-dur-label.lv2{color:var(--red);animation:blink 1s ease-in-out infinite}
 .stop-body{flex:1;min-width:0;padding-bottom:22px}
 .stop-row:last-child .stop-body{padding-bottom:0}
 .stop-name-row{font-size:22px;font-weight:700;color:var(--text);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;line-height:1.5;min-width:0}
@@ -90,7 +106,6 @@ button.small{padding:6px 10px;font-size:13px}
 .stop-row.current .time-value{color:var(--amber)}
 .stop-row.current .stop-connector{background:var(--amber-bg)}
 .edit-panel{background:var(--bg2);border-radius:var(--rl);border:1.5px solid var(--border2);padding:18px;margin-bottom:14px}
-.edit-panel-title{font-size:14px;font-weight:700;color:var(--text3);margin-bottom:16px;text-transform:uppercase;letter-spacing:.08em}
 /* 編集パネル: シンプル化 */
 .edit-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px}
 .edit-panel-head>span{font-size:15px;font-weight:700;color:var(--text2);letter-spacing:.04em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -121,12 +136,9 @@ body.day-mode input[type=time]::-webkit-calendar-picker-indicator,
 body.day-mode input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0) opacity(.5)}
 input[type=date]{padding:11px 14px;font-size:16px}
 input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)}
-.input-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .input-group{display:flex;flex-direction:column;gap:6px}
 .input-label{font-size:15px;color:var(--text2);font-weight:700;letter-spacing:.04em}
 .form-gap{display:flex;flex-direction:column;gap:12px}
-.form-actions{display:flex;gap:10px}
-.form-actions button{flex:1;justify-content:center;font-size:17px;padding:13px}
 .cascade-hint{font-size:14px;color:var(--amber);background:rgba(255,184,0,.12);border:1px solid rgba(255,184,0,.3);border-radius:var(--r);padding:10px 14px;display:none}
 .drag-hint{font-size:14px;color:var(--text3);text-align:center;margin-bottom:16px}
 .stop-row[draggable=true]{cursor:grab}
@@ -139,8 +151,6 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
 @keyframes val-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 /* 地点住所表示 */
 .stop-addr{font-size:12px;color:var(--text3);margin-top:3px;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.addr-input-group{display:flex;flex-direction:column;gap:6px}
-.addr-opt{font-size:11px;color:var(--text3);margin-left:4px;font-weight:600}
 /* 地点ごと天気バッジ（行程ビュー） */
 .stop-wx{display:flex;align-items:center;gap:6px;margin-top:7px;padding:6px 10px;background:rgba(255,255,255,.04);border-radius:8px;border:1px solid var(--border)}
 .stop-wx-icon{font-size:18px;line-height:1;flex-shrink:0;align-self:center}
@@ -159,6 +169,12 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
 /* 走行モードの天気ブロック */
 .ride-wx{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;background:rgba(0,0,0,.18);border-radius:10px;border:1px solid var(--border2);min-height:52px}
 .ride-wx-na{border-style:dashed;opacity:.7}
+.ride-move-dur{display:flex;align-items:center;gap:10px;padding:6px 2px;color:var(--text3);font-family:'SF Mono','Menlo',monospace;font-size:22px;font-weight:700;letter-spacing:.02em;line-height:1}
+.ride-move-dur::before,.ride-move-dur::after{content:'';flex:1;height:1px;background:var(--border)}
+.ride-move-dur.lv0{color:#4da6ff}
+.ride-move-dur.lv1{color:var(--amber)}
+.ride-move-dur.lv2{color:var(--red);animation:blink 1s ease-in-out infinite}
+body.day-mode .ride-move-dur{color:var(--text3)}
 .ride-wx-icon{font-size:28px;line-height:1;flex-shrink:0;align-self:center}
 .ride-wx-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .ride-wx-row1{display:flex;align-items:center;gap:6px}
@@ -198,7 +214,6 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
 .splash-sub{writing-mode:vertical-rl;text-orientation:mixed;font-size:clamp(13px,4vw,20px);color:rgba(240,235,215,.85);letter-spacing:.35em;animation:splash-in .6s ease .5s both;font-family:"Yuji Boku","Kaisei HarunoUmi","Hiragino Mincho ProN","Yu Mincho",serif;text-shadow:1px 1px 4px rgba(0,0,0,.9)}
 .splash-line{width:2px;height:clamp(40px,10vw,70px);background:rgba(255,255,255,.5);margin:0 12px;animation:splash-in .6s ease .35s both}
 .splash-powered{font-size:clamp(28px,8vw,46px);color:rgba(240,235,215,.95);letter-spacing:.2em;animation:splash-in .6s ease .8s both;writing-mode:vertical-rl;font-family:"Yuji Boku","Kaisei HarunoUmi","Hiragino Mincho ProN","Yu Mincho",serif;text-shadow:2px 2px 0 rgba(0,0,0,.9),0 0 30px rgba(0,0,0,.8);font-weight:400}
-.splash-powered-name{color:var(--amber);font-weight:700}
 @keyframes splash-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 #splash::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,.18);z-index:0;pointer-events:none;animation:film-scratch 3s steps(1) infinite}
 #splash::after{content:'';position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.22'/%3E%3C/svg%3E");background-size:200px 200px;opacity:.75;z-index:0;pointer-events:none;mix-blend-mode:overlay;animation:film-grain .07s steps(1) infinite}
@@ -235,19 +250,15 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
 .ride-dep-cd.now    .ride-dep-cd-val{color:var(--amber);font-size:18px}
 .ride-note{font-size:14px;color:var(--text2);margin-top:10px;padding:8px 12px;background:rgba(0,0,0,.35);border-radius:8px;border-left:3px solid var(--amber);line-height:1.5;word-break:break-word;overflow-wrap:anywhere}
 .ride-note.dm-note{border-left-color:var(--red);color:#ffcccc}
-.ride-progress{display:flex;justify-content:center;gap:6px;margin-top:14px;flex-wrap:nowrap;align-items:center;overflow-x:auto;scrollbar-width:none;padding:4px 12px;-webkit-overflow-scrolling:touch}
+.ride-progress{display:flex;justify-content:center;gap:5px;margin-top:14px;flex-wrap:nowrap;align-items:center;overflow-x:auto;scrollbar-width:none;padding:4px 12px;-webkit-overflow-scrolling:touch}
 .ride-progress::-webkit-scrollbar{display:none}
 .ride-dot{width:9px;height:9px;border-radius:50%;background:var(--bg3);border:1.5px solid var(--border2);transition:all .3s;flex-shrink:0}
 .ride-dot.d-curr{background:var(--amber);border-color:var(--amber);box-shadow:0 0 8px var(--amber);width:12px;height:12px}
 .ride-dot.d-past{background:var(--bg3);border-color:var(--bg3)}
-.ride-day-chip{font-size:12px;font-weight:700;letter-spacing:.06em;background:var(--bg3);border-radius:6px;padding:3px 8px;display:inline-block;margin-bottom:8px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.ride-day-chip.curr{color:#000;background:var(--amber)}
 .ride-route-btn{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;width:100%;padding:11px;border-radius:12px;background:rgba(0,120,255,.15);border:1.5px solid rgba(0,120,255,.5);color:#6ab8ff;font-size:15px;font-weight:700;letter-spacing:.04em;text-decoration:none;-webkit-tap-highlight-color:transparent}
 .ride-route-btn:active{background:rgba(0,120,255,.28)}
 .ride-set-curr-btn{margin-top:10px;width:100%;justify-content:center;background:var(--bg3);border:1.5px solid var(--border2);color:var(--text2);font-size:14px;padding:10px;border-radius:10px;letter-spacing:.03em}
 .ride-set-curr-btn:active{background:rgba(255,184,0,.15);border-color:var(--amber);color:var(--amber)}
-.route-edit-row{display:flex;gap:8px;align-items:center}
-.route-edit-row input{flex:1}
 #ride-content{transition:transform .24s cubic-bezier(.4,0,.2,1),opacity .24s ease;will-change:transform,opacity}
 #ride-content.sw-exit-left{transform:translateX(-80px);opacity:0;pointer-events:none}
 #ride-content.sw-exit-right{transform:translateX(80px);opacity:0;pointer-events:none}
@@ -257,7 +268,6 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
 .ride-swipe-arr.dim{opacity:.15;pointer-events:none}
 .ride-swipe-arr:active{transform:scale(.85)}
 .ride-stop-ctr{font-family:'SF Mono','Menlo',monospace;font-size:14px;font-weight:700;color:var(--text2);letter-spacing:.08em}
-.ride-progress{display:flex;justify-content:center;gap:5px;flex-wrap:nowrap;align-items:center;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .ride-progress::-webkit-scrollbar{display:none}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -276,7 +286,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
     <div style="width:20px"></div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
       <div class="splash-title">旅刻</div>
-      <div style="font-size:clamp(11px,3vw,15px);color:rgba(240,235,215,.75);letter-spacing:.22em;font-family:-apple-system,'Hiragino Sans',sans-serif;font-weight:700;animation:splash-in .6s ease .65s both">mk11</div>
+      <div style="font-size:clamp(11px,3vw,15px);color:rgba(240,235,215,.75);letter-spacing:.22em;font-family:-apple-system,'Hiragino Sans',sans-serif;font-weight:700;animation:splash-in .6s ease .65s both">mk12</div>
     </div>
     <div style="width:28px"></div>
     <div style="writing-mode:vertical-rl;text-orientation:mixed;font-family:'Yuji Boku','Kaisei HarunoUmi','Hiragino Mincho ProN','Yu Mincho',serif;color:rgba(235,230,215,.88);text-shadow:2px 2px 4px rgba(0,0,0,.95),0 0 20px rgba(0,0,0,.8);animation:splash-in .6s ease .7s both;position:relative;z-index:1;line-height:1.6">
@@ -301,6 +311,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
       <button id="share-btn" onclick="shareItinerary()" title="共有">📋</button>
       <button id="splash-settings-btn" onclick="openSplashSettings()" title="タイトル設定">📜</button>
       <button id="theme-btn" onclick="_toggleTheme()" title="テーマ切替">☀️</button>
+      <button id="record-save-btn" onclick="saveRecord()" title="走行記録として保存">📝</button>
       <button id="sample-btn" onclick="loadSampleData()" title="サンプルを読み込む">🗺️</button>
       <input type="file" id="load-file-input" accept=".json,application/json" style="display:none" onchange="onFileSelected(event)">
     </div>
@@ -347,15 +358,28 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
         <div id="stay-dur-preview" style="font-size:13px;color:var(--text3);font-weight:600;text-align:right;display:none;margin-top:-4px"></div>
         <div id="time-order-error" style="display:none;font-size:13px;color:var(--red);margin-top:-4px">⚠ 出発時刻は到着時刻より後にしてください</div>
         <input id="inp-note" type="text" maxlength="200" placeholder="メモ（食事・注意点など）">
+        <input id="inp-log" type="text" maxlength="200" placeholder="📝 走行メモ" style="border-color:rgba(77,166,255,.5)">
         <button type="button" class="details-toggle" id="details-toggle" onclick="toggleDetails()">
           <span class="details-toggle-arrow">▼</span>
-          <span>詳細（住所・給油）</span>
+          <span>詳細（住所・給油・実績）</span>
         </button>
         <div class="details-body" id="details-body" style="display:none">
           <input id="inp-addr" type="text" maxlength="100" placeholder="📍 住所（天気取得用・任意）">
           <div class="fuel-check-row" onclick="toggleFuelCheck()">
             <div class="fuel-check-box" id="fuel-check-box"></div>
             <span class="fuel-check-label">⛽ 給油ポイント</span>
+          </div>
+          <div style="font-size:13px;color:rgba(77,166,255,.9);font-weight:700;margin-top:4px;letter-spacing:.04em">実績時刻</div>
+          <div class="time-inline-row">
+            <div class="time-inline-item">
+              <span class="time-inline-label" style="color:rgba(77,166,255,.9)">実着</span>
+              <input id="inp-act-arr" type="time" style="border-color:rgba(77,166,255,.45)">
+            </div>
+            <span class="time-inline-arrow">↓</span>
+            <div class="time-inline-item">
+              <span class="time-inline-label" style="color:rgba(77,166,255,.9)">実発</span>
+              <input id="inp-act-dep" type="time" style="border-color:rgba(77,166,255,.45)">
+            </div>
           </div>
         </div>
         <div class="cascade-hint" id="cascade-hint">⏱ 出発時刻を変えると以降の地点が自動でずれます</div>
@@ -836,7 +860,7 @@ function _toggleTheme(){
 }
 setInterval(()=>{if(!_themeManual)_applyTheme(_isDayTime());},60000);
 const DEFAULT={
-  version:'mk8-v1',title:'',currentStopId:null,
+  version:'mk12-v1',title:'',currentStopId:null,
   days:[
     {label:'1日目',date:'',routeUrl:'',stops:[]}
   ]
@@ -907,6 +931,7 @@ function shareItinerary(){
 
 function saveJSON(){
   _closeAllOverlays();
+  _dbgLog('saveJSON', _dbgSnapshot);
   try{
     // 空データチェック: 全日で地点が1件もない場合は保存させない
     const totalStops=(data.days||[]).reduce((sum,d)=>sum+(d.stops?.length||0),0);
@@ -952,9 +977,71 @@ function saveJSON(){
     }
   }catch(e){alert('保存に失敗しました: '+e.message);}
 }
-function loadJSON(){
+function saveRecord(){
   _closeAllOverlays();
-  if(_hasAnyStops()&&!confirm('現在の行程データが新しいデータで上書きされます。\n読み込みを続けますか？')) return;
+  _dbgLog('saveRecord', _dbgSnapshot);
+  try{
+    const totalStops=(data.days||[]).reduce((sum,d)=>sum+(d.stops?.length||0),0);
+    if(totalStops===0){showInfoToast('⚠️ 地点が登録されていません',3000);return;}
+    if(!confirm('ツーリングお疲れ様でした。\n走行記録をテキストファイルに保存しますか？')) return;
+    const now=new Date();
+    const WEEK=['日','月','火','水','木','金','土'];
+    const fmtDate=iso=>{if(!iso)return'';try{const d=new Date(iso+'T12:00:00');return`${d.getMonth()+1}/${d.getDate()}(${WEEK[d.getDay()]})`;}catch(e){return iso;}};
+    const fmtDiff=d=>{if(d===null)return'';const abs=Math.abs(d),h=Math.floor(abs/60),m=abs%60;const str=h>0&&m>0?`${h}時間${m}分`:h>0?`${h}時間`:`${m}分`;return d===0?'定刻':d>0?`+${str}`:`-${str}`;};
+    const HR='─'.repeat(30);
+    const lines=[];
+    lines.push('旅刻 走行記録');
+    lines.push(HR);
+    if(data.title) lines.push(`タイトル：${data.title}`);
+    lines.push(`記録日：${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}（${WEEK[now.getDay()]}）`);
+    lines.push('');
+    data.days.forEach((day,di)=>{
+      if(!day.stops||!day.stops.length) return;
+      lines.push(`【${di+1}日目${day.date?' '+fmtDate(day.date):''}】`);
+      lines.push('');
+      day.stops.forEach((s,si)=>{
+        lines.push(`${si+1}. ${s.name}`);
+        const planParts=[];
+        if(s.arr) planParts.push(`着 ${s.arr}`);
+        if(s.dep) planParts.push(`発 ${s.dep}`);
+        const sd=stayDur(s.arr,s.dep);
+        if(planParts.length) lines.push(`   計画  ${planParts.join('　')}${sd?' '+sd:''}`);
+        const actParts=[];
+        if(s.actArr){const d=actDiff(s.arr,s.actArr);actParts.push(`実着 ${s.actArr}${d!==null?' ('+fmtDiff(d)+')':''}`);}
+        if(s.actDep){const d=actDiff(s.dep,s.actDep);actParts.push(`実発 ${s.actDep}${d!==null?' ('+fmtDiff(d)+')':''}`);}
+        if(actParts.length) lines.push(`   実績  ${actParts.join('　')}`);
+        if(s.note) lines.push(`   メモ  ${s.note}`);
+        if(s.log)  lines.push(`   📝   ${s.log}`);
+        if(s.fuel) lines.push(`   ⛽   給油ポイント`);
+        lines.push('');
+      });
+    });
+    lines.push(HR);
+    lines.push('旅刻mk12 / Powered by 鴨吉');
+    const text=lines.join('\n');
+    const dateStr=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+    const title=(data.title||'ツーリング').replace(/[\\/:*?"<>|]/g,'_');
+    const filename=`旅刻_記録_${title}_${dateStr}.txt`;
+    const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)&&!window.MSStream;
+    const btn=document.getElementById('record-save-btn');
+    if(isIOS){
+      const dataUrl='data:text/plain;charset=utf-8,'+encodeURIComponent(text);
+      window.open(dataUrl,'_blank');
+      if(btn){const orig=btn.textContent;btn.textContent='📄';btn.style.background='var(--blue,#4da6ff)';btn.style.color='#000';setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},3500);}
+      showInfoToast('📄 開いたタブで長押し→「保存」してください',4000);
+    }else{
+      const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download=filename;
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),3000);
+      if(btn){const orig=btn.textContent;btn.textContent='✅';btn.style.background='var(--green)';btn.style.color='#000';setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},2000);}
+      showInfoToast(`📝 記録を保存しました：${filename}`,3000);
+    }
+  }catch(e){alert('記録の保存に失敗しました: '+e.message);}
+}
+function loadJSON(){
   document.getElementById('load-file-input').value='';
   document.getElementById('load-file-input').click();
 }
@@ -1074,7 +1161,20 @@ function currentDayIdxOf(id){return currentDayFlat().findIndex(s=>s.id===id);}
 function toMin(t){if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+m;}
 function fromMin(m){m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
 function nowMin(){const n=new Date();return n.getHours()*60+n.getMinutes();}
+function _updateRecordBtn(){
+  const btn=document.getElementById('record-save-btn');
+  if(!btn) return;
+  try{
+    const has=data&&(data.days||[]).some(d=>(d.stops||[]).some(s=>s.actArr||s.actDep||s.log));
+    btn.classList.toggle('has-record',!!has);
+  }catch(e){/* ボタン状態更新失敗は無視 */}
+}
 function stayDur(arr,dep){const a=toMin(arr),d=toMin(dep);if(a===null||d===null)return'';const diff=d-a;if(diff<=0)return'';const h=Math.floor(diff/60),m=diff%60;return h>0&&m>0?`(${h}時間${m}分)`:h>0?`(${h}時間)`:`(${m}分)`;}
+function actDiff(plan,actual){const p=toMin(plan),a=toMin(actual);if(p===null||a===null)return null;let d=a-p;if(d<-720)d+=1440;if(d>720)d-=1440;return d;}
+function actDiffHtml(plan,actual){const d=actDiff(plan,actual);if(d===null)return'';const abs=Math.abs(d),h=Math.floor(abs/60),m=abs%60;const str=h>0&&m>0?`${h}時間${m}分`:h>0?`${h}時間`:`${m}分`;if(d===0)return`<span class="stop-act-diff ontime">定刻</span>`;if(d>0)return`<span class="stop-act-diff late">+${str}</span>`;return`<span class="stop-act-diff early">-${str}</span>`;}
+function moveDur(dep,nextArr){const d=toMin(dep),a=toMin(nextArr);if(d===null||a===null)return'';let diff=a-d;if(diff<0)diff+=1440;if(diff<=0||diff>720)return'';const h=Math.floor(diff/60),m=diff%60;return h>0&&m>0?`${h}時間${m}分`:h>0?`${h}時間`:`${m}分`;}
+function moveDurLevel(dep,nextArr){const d=toMin(dep),a=toMin(nextArr);if(d===null||a===null)return -1;let diff=a-d;if(diff<0)diff+=1440;if(diff<=0||diff>720)return -1;return diff<=60?0:diff<=120?1:2;}
+function moveDurRide(dep,nextArr){const d=toMin(dep),a=toMin(nextArr);if(d===null||a===null)return null;let diff=a-d;if(diff<0)diff+=1440;if(diff<=0||diff>720)return null;const h=Math.floor(diff/60),m=diff%60;const level=diff<=60?0:diff<=120?1:2;let html=h>0&&m>0?`${h}<span style="font-size:.75em">時間</span>${String(m).padStart(2,'0')}<span style="font-size:.75em">分</span>`:h>0?`${h}<span style="font-size:.75em">時間</span>`:`${m}<span style="font-size:.75em">分</span>`;return{html,level};}
 
 let _cachedCdi=-1,_cachedCdiForId=null;
 function _getCdi(){
@@ -1260,6 +1360,7 @@ function renderRide(){
   const _mapLink=s=>s.addr?`<a class="ride-route-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 マップで確認</a>`:'';
   const _fuelBadge=(s,extra='')=>s.fuel?`<div class="stop-fuel-badge" style="width:100%;justify-content:center${extra}">⛽ 給油ポイント</div>`:'';
   const _noteHtml=s=>s.note?`<div class="ride-note${dm(s.note)?' dm-note':''}">${esc(s.note)}</div>`:'';
+  const _logHtml=s=>s.log?`<div class="ride-log">📝 ${esc(s.log)}</div>`:'';
   const _chips=(s,cls='ride-chip-val')=>{const _sd=stayDur(s.arr,s.dep);return`
         ${s.arr?`<div class="ride-chip"><div class="ride-chip-label">着</div><div class="${cls}">${s.arr}</div></div>`:''}
         ${s.dep?`<div class="ride-chip"><div class="ride-chip-label">発</div><div class="${cls}">${s.dep}</div>${_sd?`<div style="font-size:12px;color:var(--text3);font-weight:600;align-self:center;margin-left:2px">${_sd}</div>`:''}</div>`:''}`;
@@ -1277,7 +1378,7 @@ function renderRide(){
       <div class="ride-name">${esc(vs.name)}</div>
       <div class="ride-times-row">${_chips(vs)}${depCd}</div>
       ${rideWxBlock(vs.id,"ride-wx-curr",!!(vs.addr))}
-      ${_fuelBadge(vs,';font-size:16px;padding:8px')}${_noteHtml(vs)}
+      ${_fuelBadge(vs,';font-size:16px;padding:8px')}${_noteHtml(vs)}${_logHtml(vs)}
       ${rideActionVisible?`${vsRouteBtn}${_mapLink(vs)}`:''}
     </div>`;
   }else{
@@ -1287,21 +1388,23 @@ function renderRide(){
       <div class="ride-name" style="color:var(--text2)">${esc(vs.name)}</div>
       <div class="ride-times-row">${_chips(vs,'next-chip-val')}</div>
       ${rideWxBlock(vs.id,"ride-wx-curr",!!(vs.addr))}
-      ${_fuelBadge(vs,';font-size:16px;padding:8px')}${_noteHtml(vs)}
+      ${_fuelBadge(vs,';font-size:16px;padding:8px')}${_noteHtml(vs)}${_logHtml(vs)}
       ${rideActionVisible?`${vsRouteBtn}${_mapLink(vs)}<button class="ride-set-curr-btn" onclick="event.stopPropagation();setCurrentStop('${vs.id}')">📍 ここを現在地にする</button>`:''}
     </div>`;
   }
   const ni=rideViewIdx+1;
   if(ni<flat.length){
     const ns=flat[ni];
+    const _mdr=moveDurRide(vs.dep,ns.arr);
     let cd='';
     if(isCurr){const am=toMin(ns.arr);if(am!==null){const diff=am-nowMin();if(diff>0){const hh=Math.floor(diff/60),mm=diff%60;cd=hh>0?`あと ${hh}時間${mm}分`:`あと ${mm}分`;}else if(diff>-30)cd='まもなく到着';}}
+    h+=`${_mdr?`<div class="ride-move-dur${_mdr.level>=0?' lv'+_mdr.level:''}">→ 次まで ${_mdr.html}</div>`:''}`;
     h+=`<div class="ride-card">
       <div class="ride-tag">↓ 次の目的地${cd?`<span style="margin-left:8px;color:var(--green);font-size:12px">${cd}</span>`:''}</div>
       <div class="ride-name" style="color:var(--text2)">${esc(ns.name)}</div>
       <div class="ride-times-row">${_chips(ns,'next-chip-val')}</div>
       ${rideWxBlock(ns.id,"ride-wx-next",!!(ns.addr))}
-      ${_fuelBadge(ns)}${_noteHtml(ns)}
+      ${_fuelBadge(ns)}${_noteHtml(ns)}${_logHtml(ns)}
     </div>`;
   }else{
     h+=`<div style="color:var(--green);font-size:20px;font-weight:700;margin-top:12px;text-align:center">🏁 全行程完了</div>`;
@@ -1389,7 +1492,7 @@ function hideInfoToast(){
 // グローバルエラーハンドラは _dbgInit() 内で一本化して登録
 
 /* ══ バリデーション ══ */
-const LIMIT={name:50,addr:100,note:200,title:60,url:500};
+const LIMIT={name:50,addr:100,note:200,log:200,title:60,url:500};
 function sanitize(s,max){if(typeof s!=='string')return'';return s.replace(/<[^>]*>/g,'').replace(/javascript\s*:/gi,'').replace(/on\w+\s*=/gi,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'').slice(0,max).trim();}
 function isSafeUrl(s){if(!s)return true;try{const u=new URL(s);return u.protocol==='http:'||u.protocol==='https:';}catch(e){return false;}}
 function isValidTime(s){return typeof s==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(s);}
@@ -1415,6 +1518,10 @@ function _sanitizeImportedData(p){
       s.arr=isValidTime(s.arr)?s.arr:'';
       s.dep=isValidTime(s.dep)?s.dep:'';
       s.fuel=!!s.fuel;
+      // mk12新規フィールド（旧データには存在しないためデフォルト付与）
+      s.actArr=isValidTime(s.actArr)?s.actArr:'';
+      s.actDep=isValidTime(s.actDep)?s.actDep:'';
+      s.log=sanitize(s.log||'',LIMIT.log);
     }
   }
 }
@@ -1447,7 +1554,7 @@ function render(){
   // 天気フェッチ（日付未設定でも住所があれば取得）
   ensureDayWeather(currentDay);
   tl.innerHTML=ds.map((s,i)=>{
-    const st=getStatus(s,i,ds,cdi),isLast=i===ds.length-1,isDM=s.note&&s.note.includes('🩸'),_sdur=stayDur(s.arr,s.dep);
+    const st=getStatus(s,i,ds,cdi),isLast=i===ds.length-1,isDM=s.note&&s.note.includes('🩸'),_sdur=stayDur(s.arr,s.dep),_mdur=!isLast?moveDur(s.dep,ds[i+1].arr):'',_mlv=!isLast?moveDurLevel(s.dep,ds[i+1].arr):-1;
     return`<div class="stop-row ${st}" data-id="${s.id}">
   <div class="stop-line-col"><div class="stop-dot"></div>${!isLast?'<div class="stop-connector"></div>':''}</div>
   ${isEdit&&editingId===null?`<div class="drag-handle" data-drag-id="${s.id}" ontouchstart="onTouchDragStart(event,'${s.id}')" ontouchmove="onTouchDragMove(event)" ontouchend="onTouchDragEnd(event)" onmousedown="onMouseDragStart(event,'${s.id}')">⠿</div>`:''}
@@ -1460,10 +1567,12 @@ function render(){
     </div>
     <div id="wx-${s.id}">${stopWxInner(s.id,!!(s.addr))}</div>
     ${s.fuel?'<div class="stop-fuel-badge">⛽ 給油ポイント</div>':''}
+    ${(s.actArr||s.actDep)?`<div class="stop-act-row">${s.actArr?`<div class="stop-act-chip"><span class="stop-act-label">実着</span><span class="stop-act-value">${s.actArr}</span>${actDiffHtml(s.arr,s.actArr)}</div>`:''}${s.actDep?`<div class="stop-act-chip"><span class="stop-act-label">実発</span><span class="stop-act-value">${s.actDep}</span>${actDiffHtml(s.dep,s.actDep)}</div>`:''}</div>`:''}
     ${s.note?`<div class="stop-note${isDM?' dm':''}">${esc(s.note)}</div>`:''}
+    ${s.log?`<div class="stop-log">📝 ${esc(s.log)}</div>`:''}
     ${st==='current'?'<div class="current-badge">▶ 現在地</div>':''}
-    ${isEdit&&editingId===null&&activeEditStopId===s.id?`<div class="stop-edit-row">
-      <button class="small amber-outline" onclick="event.stopPropagation();setCurrentStop('${s.id}')">📍 現在</button>
+    ${!isLast&&_mdur?`<div class="move-dur-label${_mlv>=0?' lv'+_mlv:''}">→ 次まで ${_mdur}</div>`:''}
+    ${isEdit&&editingId===null&&activeEditStopId===s.id?`<div class="stop-edit-row">      <button class="small amber-outline" onclick="event.stopPropagation();setCurrentStop('${s.id}')">📍 現在</button>
       <button class="small amber-outline" onclick="event.stopPropagation();openEditStop('${s.id}')">✏️ 編集</button>
       ${s.addr?`<a class="map-link-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener">🗺 マップ</a>`:''}
       <button class="small danger" onclick="event.stopPropagation();delStop('${s.id}')">削除</button>
@@ -1471,6 +1580,7 @@ function render(){
   </div>
 </div>`;
   }).join('');
+  _updateRecordBtn();
   }catch(e){showAppError(EC.RENDER,e);}
 }
 
@@ -1544,8 +1654,8 @@ function setFormAdd(){
   editingId=null;
   _dom('form-title').textContent='地点を追加';
   _dom('save-btn').textContent='＋ 追加';
-  ['inp-name','inp-addr','inp-note'].forEach(id=>_dom(id).value='');
-  ['inp-arr','inp-dep'].forEach(id=>{
+  ['inp-name','inp-addr','inp-note','inp-log'].forEach(id=>_dom(id).value='');
+  ['inp-arr','inp-dep','inp-act-arr','inp-act-dep'].forEach(id=>{
     const el=_dom(id);
     if(el){el.value='';if(id==='inp-dep') el.style.borderColor='';}
   });
@@ -1560,8 +1670,11 @@ function openEditStop(id){
   try{
     const ds=stops(),s=ds.find(s=>s.id===id);if(!s)return;
     editingId=id;_dom('form-title').textContent='✏️ '+s.name;_dom('save-btn').textContent='✅ 更新';
-    _dom('inp-name').value=s.name;_dom('inp-addr').value=s.addr||'';_dom('inp-arr').value=s.arr||'';_dom('inp-dep').value=s.dep||'';_dom('inp-note').value=s.note||'';_setFuelCheck(!!s.fuel);
-    _setDetailsOpen(!!(s.addr||s.fuel));
+    _dom('inp-name').value=s.name;_dom('inp-addr').value=s.addr||'';_dom('inp-arr').value=s.arr||'';_dom('inp-dep').value=s.dep||'';_dom('inp-note').value=s.note||'';_dom('inp-log').value=s.log||'';
+    const _actArr=_dom('inp-act-arr'),_actDep=_dom('inp-act-dep');
+    if(_actArr)_actArr.value=s.actArr||'';if(_actDep)_actDep.value=s.actDep||'';
+    _setFuelCheck(!!s.fuel);
+    _setDetailsOpen(!!(s.addr||s.fuel||s.actArr||s.actDep));
     const idx=ds.findIndex(s=>s.id===id);_dom('cascade-hint').style.display=(s.dep&&idx<ds.length-1)?'block':'none';
     const _prev=document.getElementById('stay-dur-preview');if(_prev){const _sd=stayDur(s.arr,s.dep);_prev.textContent=_sd?'⏱ 滞在 '+_sd:'';_prev.style.display=_sd?'block':'none';}
     updateDragHint();
@@ -1582,7 +1695,7 @@ function _hasAnyStops(){
 // フォームに未保存の入力データがあるか判定
 function _formHasData(){
   if(editingId!==null) return true; // 既存地点の編集中は常に確認
-  return ['inp-name','inp-addr','inp-arr','inp-dep','inp-note'].some(id=>{
+  return ['inp-name','inp-addr','inp-arr','inp-dep','inp-note','inp-log'].some(id=>{
     const el=_dom(id); return el&&el.value.trim()!=='';
   });
 }
@@ -1603,23 +1716,26 @@ function saveStop(){
   const newArr=_dom('inp-arr').value,newDep=_dom('inp-dep').value;
   if(!isTimeOrderOk(newArr,newDep)){showValError('到着時刻は出発時刻より前に設定してください');return;}
   const note=sanitize(_dom('inp-note').value,LIMIT.note);
+  const log=sanitize(_dom('inp-log')?.value||'',LIMIT.log);
+  const actArr=isValidTime(_dom('inp-act-arr')?.value||'')?(_dom('inp-act-arr')?.value||''):'';
+  const actDep=isValidTime(_dom('inp-act-dep')?.value||'')?(_dom('inp-act-dep')?.value||''):'';
   const fuel=_dom('fuel-check-box')?.classList.contains('checked')||false;
   const old=_dom('val-error');if(old)old.remove();
   try{
     const ds=data.days[currentDay].stops;
     if(editingId!==null){
       const idx=ds.findIndex(s=>s.id===editingId),oldDep=ds[idx].dep;
-      ds[idx]={...ds[idx],name,addr,arr:newArr,dep:newDep,note,fuel};
+      ds[idx]={...ds[idx],name,addr,arr:newArr,dep:newDep,note,log,actArr,actDep,fuel};
       // 住所または日付が変わった可能性があるためキャッシュクリア
       delete wxStopRes[editingId];
       if(newDep&&oldDep!==newDep)cascadeFrom(currentDay,idx,oldDep);
       setFormAdd();sortCurrentDayStops();
     }else{
       const newId=Date.now().toString(36)+Math.random().toString(36).slice(2);
-      ds.push({id:newId,name,addr,arr:newArr,dep:newDep,note,fuel});
+      ds.push({id:newId,name,addr,arr:newArr,dep:newDep,note,log,actArr,actDep,fuel});
       sortCurrentDayStops();
-      ['inp-name','inp-addr','inp-note'].forEach(id=>_dom(id).value='');
-      ['inp-arr','inp-dep'].forEach(id=>_dom(id).value='');
+      ['inp-name','inp-addr','inp-note','inp-log'].forEach(id=>_dom(id).value='');
+      ['inp-arr','inp-dep','inp-act-arr','inp-act-dep'].forEach(id=>_dom(id).value='');
       syncBorderAddr();save();render();
       // キーボードを閉じてから追加地点へスクロール
       requestAnimationFrame(()=>{
@@ -1967,7 +2083,7 @@ function _dbgLog(event,data){
 
 function _dbgFmtAll(){
   const env={
-    app:'tabidoki mk11',
+    app:'tabidoki mk12',
     now:new Date().toISOString(),
     ua:navigator.userAgent,
     vw:window.innerWidth,vh:window.innerHeight,
@@ -1975,7 +2091,7 @@ function _dbgFmtAll(){
     err:_dbgErrCount,entries:_dbgBuf.length,
     snap:_dbgSnapshot(),
   };
-  const head='# 旅刻mk11 デバッグログ\n## 環境\n'+JSON.stringify(env,null,2)+'\n\n## イベント (古い→新しい)\n';
+  const head='# 旅刻mk12 デバッグログ\n## 環境\n'+JSON.stringify(env,null,2)+'\n\n## イベント (古い→新しい)\n';
   const lines=_dbgBuf.map(en=>`[${en.t}] ${en.e}${en.d?' '+JSON.stringify(en.d):''}`).join('\n');
   return head+lines+'\n';
 }
