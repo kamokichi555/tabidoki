@@ -99,10 +99,11 @@ button.small{padding:6px 10px;font-size:13px}
 .picker-chip.ch-hw{border-color:rgba(77,166,255,.45)!important;color:#4da6ff!important;background:rgba(77,166,255,.06)!important}
 .picker-chip.ch-mn{border-color:rgba(255,184,0,.45)!important;color:var(--amber)!important;background:rgba(255,184,0,.06)!important}
 .picker-chip.ch-gs{border-color:rgba(57,224,122,.45)!important;color:var(--green)!important;background:rgba(57,224,122,.06)!important}
-.time-inline-row{display:flex;align-items:center;gap:8px}
-.time-inline-row input[type=time]{flex:1;min-width:0;text-align:center}
-.time-inline-label{font-size:14px;font-weight:700;color:var(--text3);letter-spacing:.06em;flex-shrink:0}
-.time-inline-arrow{font-size:16px;color:var(--text3);font-weight:700;flex-shrink:0;padding:0 2px}
+.time-inline-row{display:flex;flex-direction:column;gap:4px}
+.time-inline-item{display:flex;align-items:center;gap:10px}
+.time-inline-item input[type=time]{flex:1;min-width:0;text-align:center}
+.time-inline-label{font-size:14px;font-weight:700;color:var(--text3);letter-spacing:.06em;flex-shrink:0;width:20px}
+.time-inline-arrow{font-size:11px;color:var(--text3);font-weight:700;padding-left:30px}
 .details-toggle{width:100%;background:transparent!important;border:1px dashed var(--border2)!important;color:var(--text3)!important;font-size:13px!important;font-weight:700;padding:9px!important;justify-content:center;letter-spacing:.04em;border-radius:8px!important}
 .details-toggle:active{background:var(--bg3)!important}
 .details-toggle.open{color:var(--amber)!important;border-color:rgba(255,184,0,.5)!important;border-style:solid!important}
@@ -321,11 +322,15 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
           <button type="button" class="picker-chip ch-gs" onclick="openGasStation()">⛽ GS</button>
         </div>
         <div class="time-inline-row">
-          <span class="time-inline-label">着</span>
-          <input id="inp-arr" type="time" oninput="checkTimeOrder()">
-          <span class="time-inline-arrow">→</span>
-          <span class="time-inline-label">発</span>
-          <input id="inp-dep" type="time" oninput="checkTimeOrder()">
+          <div class="time-inline-item">
+            <span class="time-inline-label">着</span>
+            <input id="inp-arr" type="time" oninput="checkTimeOrder()">
+          </div>
+          <span class="time-inline-arrow">↓</span>
+          <div class="time-inline-item">
+            <span class="time-inline-label">発</span>
+            <input id="inp-dep" type="time" oninput="checkTimeOrder()">
+          </div>
         </div>
         <div id="time-order-error" style="display:none;font-size:13px;color:var(--red);margin-top:-4px">⚠ 出発時刻は到着時刻より後にしてください</div>
         <input id="inp-note" type="text" maxlength="200" placeholder="メモ（食事・注意点など）">
