@@ -1440,9 +1440,9 @@ function render(){
     ${s.note?`<div class="stop-note${isDM?' dm':''}">${esc(s.note)}</div>`:''}
     ${st==='current'?'<div class="current-badge">▶ 現在地</div>':''}
     ${isEdit&&editingId===null&&activeEditStopId===s.id?`<div class="stop-edit-row">
-      <button class="small amber-outline" onclick="event.stopPropagation();setCurrentStop('${s.id}')">📍 現在地</button>
-      <button class="small amber-outline" onclick="event.stopPropagation();openEditStop('${s.id}')">✏️ 編集</button>
-      ${s.addr?`<a class="small" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border-color:#4da6ff;color:#4da6ff;background:rgba(77,166,255,.08);padding:6px 10px;font-size:13px;border:1.5px solid #4da6ff;border-radius:8px;white-space:nowrap">🗺 マップ</a>`:''}
+      <button class="small amber-outline" onclick="event.stopPropagation();setCurrentStop('${s.id}')">📍</button>
+      <button class="small amber-outline" onclick="event.stopPropagation();openEditStop('${s.id}')">✏️</button>
+      ${s.addr?`<a class="small" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border-color:#4da6ff;color:#4da6ff;background:rgba(77,166,255,.08);padding:6px 10px;font-size:13px;border:1.5px solid #4da6ff;border-radius:8px;white-space:nowrap">🗺</a>`:''}
       <button class="small danger" onclick="event.stopPropagation();delStop('${s.id}')">削除</button>
     </div>`:''}
   </div>
