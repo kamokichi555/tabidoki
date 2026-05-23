@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0d0d0d">
-<title>旅刻mk10</title>
+<title>旅刻mk11</title>
 <style>
 :root{--bg:#0d0d0d;--bg2:#1e1e1e;--bg3:#2c2c2c;--text:#ffffff;--text2:#e0e0e0;--text3:#aaaaaa;--border:rgba(255,255,255,.15);--border2:rgba(255,255,255,.30);--amber:#FFB800;--amber-bg:rgba(255,184,0,.10);--green:#39E07A;--red:#FF5A5A;--r:12px;--rl:16px}
 /* 屋外昼間モード */
@@ -274,7 +274,10 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
     <div class="splash-line"></div>
     <div class="splash-sub">ツーリング行程支援ツール</div>
     <div style="width:20px"></div>
-    <div class="splash-title">旅刻</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+      <div class="splash-title">旅刻</div>
+      <div style="font-size:clamp(11px,3vw,15px);color:rgba(240,235,215,.75);letter-spacing:.22em;font-family:-apple-system,'Hiragino Sans',sans-serif;font-weight:700;animation:splash-in .6s ease .65s both">mk11</div>
+    </div>
     <div style="width:28px"></div>
     <div style="writing-mode:vertical-rl;text-orientation:mixed;font-family:'Yuji Boku','Kaisei HarunoUmi','Hiragino Mincho ProN','Yu Mincho',serif;color:rgba(235,230,215,.88);text-shadow:2px 2px 4px rgba(0,0,0,.95),0 0 20px rgba(0,0,0,.8);animation:splash-in .6s ease .7s both;position:relative;z-index:1;line-height:1.6">
       <span id="splash-episode" style="font-size:clamp(13px,3.8vw,18px);letter-spacing:.4em;opacity:.7"></span>
@@ -341,6 +344,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
             <input id="inp-dep" type="time" oninput="checkTimeOrder()">
           </div>
         </div>
+        <div id="stay-dur-preview" style="font-size:13px;color:var(--text3);font-weight:600;text-align:right;display:none;margin-top:-4px"></div>
         <div id="time-order-error" style="display:none;font-size:13px;color:var(--red);margin-top:-4px">⚠ 出発時刻は到着時刻より後にしてください</div>
         <input id="inp-note" type="text" maxlength="200" placeholder="メモ（食事・注意点など）">
         <button type="button" class="details-toggle" id="details-toggle" onclick="toggleDetails()">
@@ -1070,6 +1074,7 @@ function currentDayIdxOf(id){return currentDayFlat().findIndex(s=>s.id===id);}
 function toMin(t){if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+m;}
 function fromMin(m){m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
 function nowMin(){const n=new Date();return n.getHours()*60+n.getMinutes();}
+function stayDur(arr,dep){const a=toMin(arr),d=toMin(dep);if(a===null||d===null)return'';const diff=d-a;if(diff<=0)return'';const h=Math.floor(diff/60),m=diff%60;return h>0&&m>0?`(${h}時間${m}分)`:h>0?`(${h}時間)`:`(${m}分)`;}
 
 let _cachedCdi=-1,_cachedCdiForId=null;
 function _getCdi(){
@@ -1255,9 +1260,10 @@ function renderRide(){
   const _mapLink=s=>s.addr?`<a class="ride-route-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 マップで確認</a>`:'';
   const _fuelBadge=(s,extra='')=>s.fuel?`<div class="stop-fuel-badge" style="width:100%;justify-content:center${extra}">⛽ 給油ポイント</div>`:'';
   const _noteHtml=s=>s.note?`<div class="ride-note${dm(s.note)?' dm-note':''}">${esc(s.note)}</div>`:'';
-  const _chips=(s,cls='ride-chip-val')=>`
+  const _chips=(s,cls='ride-chip-val')=>{const _sd=stayDur(s.arr,s.dep);return`
         ${s.arr?`<div class="ride-chip"><div class="ride-chip-label">着</div><div class="${cls}">${s.arr}</div></div>`:''}
-        ${s.dep?`<div class="ride-chip"><div class="ride-chip-label">発</div><div class="${cls}">${s.dep}</div></div>`:''}`;
+        ${s.dep?`<div class="ride-chip"><div class="ride-chip-label">発</div><div class="${cls}">${s.dep}</div>${_sd?`<div style="font-size:12px;color:var(--text3);font-weight:600;align-self:center;margin-left:2px">${_sd}</div>`:''}</div>`:''}`;
+  };
   let h='';
   const vs=flat[rideViewIdx];
   const isCurr=(rideViewIdx===rci),isPast=(rci!==-1&&rideViewIdx<rci);
@@ -1421,6 +1427,8 @@ function checkTimeOrder(){
   if(err) err.style.display=ok?'none':'block';
   depEl.style.borderColor=ok?'':'var(--red)';
   depEl.style.borderWidth=ok?'':'2px';
+  const prev=document.getElementById('stay-dur-preview');
+  if(prev){const sd=ok?stayDur(a,d):'';prev.textContent=sd?'⏱ 滞在 '+sd:'';prev.style.display=sd?'block':'none';}
 }
 function showValError(msg){const old=document.getElementById('val-error');if(old)old.remove();const el=document.createElement('div');el.id='val-error';el.className='val-error';el.textContent='⚠ '+msg;const fg=document.querySelector('.form-gap');if(fg)fg.prepend(el);setTimeout(()=>{if(el.parentNode)el.remove();},3500);}
 function showUrlError(msg){const el=document.getElementById('inp-route-url');if(!el)return;el.style.borderColor='var(--red)';el.title=msg;setTimeout(()=>{el.style.borderColor='';el.title='';},2500);}
@@ -1439,7 +1447,7 @@ function render(){
   // 天気フェッチ（日付未設定でも住所があれば取得）
   ensureDayWeather(currentDay);
   tl.innerHTML=ds.map((s,i)=>{
-    const st=getStatus(s,i,ds,cdi),isLast=i===ds.length-1,isDM=s.note&&s.note.includes('🩸');
+    const st=getStatus(s,i,ds,cdi),isLast=i===ds.length-1,isDM=s.note&&s.note.includes('🩸'),_sdur=stayDur(s.arr,s.dep);
     return`<div class="stop-row ${st}" data-id="${s.id}">
   <div class="stop-line-col"><div class="stop-dot"></div>${!isLast?'<div class="stop-connector"></div>':''}</div>
   ${isEdit&&editingId===null?`<div class="drag-handle" data-drag-id="${s.id}" ontouchstart="onTouchDragStart(event,'${s.id}')" ontouchmove="onTouchDragMove(event)" ontouchend="onTouchDragEnd(event)" onmousedown="onMouseDragStart(event,'${s.id}')">⠿</div>`:''}
@@ -1447,7 +1455,7 @@ function render(){
     ${s.addr?`<div class="stop-addr">📍 ${esc(s.addr)}</div>`:''}
     <div class="stop-times">
       ${s.arr?`<div class="time-chip"><span class="time-label">着</span><span class="time-value">${s.arr}</span></div>`:''}
-      ${s.dep?`<div class="time-chip"><span class="time-label">発</span><span class="time-value">${s.dep}</span></div>`:''}
+      ${s.dep?`<div class="time-chip"><span class="time-label">発</span><span class="time-value">${s.dep}</span>${_sdur?`<span style="font-size:13px;color:var(--text3);font-weight:600;margin-left:4px;align-self:center">${_sdur}</span>`:''}</div>`:''}
       ${!s.arr&&!s.dep?'<span style="color:var(--text3);font-size:13px">時刻未設定</span>':''}
     </div>
     <div id="wx-${s.id}">${stopWxInner(s.id,!!(s.addr))}</div>
@@ -1544,6 +1552,7 @@ function setFormAdd(){
   _dom('cascade-hint').style.display='none';
   const toe=_dom('time-order-error');
   if(toe) toe.style.display='none';
+  const _prev=document.getElementById('stay-dur-preview');if(_prev){_prev.textContent='';_prev.style.display='none';}
   _setFuelCheck(false);_setDetailsOpen(false);updateDragHint();
 }
 function openEditStop(id){
@@ -1554,6 +1563,7 @@ function openEditStop(id){
     _dom('inp-name').value=s.name;_dom('inp-addr').value=s.addr||'';_dom('inp-arr').value=s.arr||'';_dom('inp-dep').value=s.dep||'';_dom('inp-note').value=s.note||'';_setFuelCheck(!!s.fuel);
     _setDetailsOpen(!!(s.addr||s.fuel));
     const idx=ds.findIndex(s=>s.id===id);_dom('cascade-hint').style.display=(s.dep&&idx<ds.length-1)?'block':'none';
+    const _prev=document.getElementById('stay-dur-preview');if(_prev){const _sd=stayDur(s.arr,s.dep);_prev.textContent=_sd?'⏱ 滞在 '+_sd:'';_prev.style.display=_sd?'block':'none';}
     updateDragHint();
     _dom('normal-view')?.scrollTo({top:0,behavior:'smooth'});
   }catch(e){showAppError(EC.EDIT_OPEN,e);}
@@ -1957,7 +1967,7 @@ function _dbgLog(event,data){
 
 function _dbgFmtAll(){
   const env={
-    app:'tabidoki mk10',
+    app:'tabidoki mk11',
     now:new Date().toISOString(),
     ua:navigator.userAgent,
     vw:window.innerWidth,vh:window.innerHeight,
@@ -1965,7 +1975,7 @@ function _dbgFmtAll(){
     err:_dbgErrCount,entries:_dbgBuf.length,
     snap:_dbgSnapshot(),
   };
-  const head='# 旅刻mk10 デバッグログ\n## 環境\n'+JSON.stringify(env,null,2)+'\n\n## イベント (古い→新しい)\n';
+  const head='# 旅刻mk11 デバッグログ\n## 環境\n'+JSON.stringify(env,null,2)+'\n\n## イベント (古い→新しい)\n';
   const lines=_dbgBuf.map(en=>`[${en.t}] ${en.e}${en.d?' '+JSON.stringify(en.d):''}`).join('\n');
   return head+lines+'\n';
 }
