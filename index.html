@@ -114,7 +114,7 @@ button.small{padding:6px 10px;font-size:13px}
 body.day-mode .details-body{background:rgba(0,0,0,.03)}
 input[type=text],input[type=time],input[type=date]{background:var(--bg3);border:1.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:inherit;font-size:17px;padding:13px 14px;width:100%;outline:none;transition:border-color .15s}
 input[type=text]:focus,input[type=time]:focus,input[type=date]:focus{border-color:var(--amber);border-width:2px}
-input[type=time]{font-family:'SF Mono','Menlo',monospace;font-weight:700;font-size:18px}
+input[type=time]{font-family:'SF Mono','Menlo',monospace;font-weight:700;font-size:17px}
 input[type=time]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)}
 body.day-mode input[type=time]::-webkit-calendar-picker-indicator,
 body.day-mode input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0) opacity(.5)}
@@ -141,26 +141,32 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
 .addr-input-group{display:flex;flex-direction:column;gap:6px}
 .addr-opt{font-size:11px;color:var(--text3);margin-left:4px;font-weight:600}
 /* 地点ごと天気バッジ（行程ビュー） */
-.stop-wx{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;column-gap:6px;row-gap:1px;align-items:center;margin-top:7px;padding:6px 10px;background:rgba(255,255,255,.04);border-radius:8px;border:1px solid var(--border)}
-.stop-wx-icon{font-size:18px;line-height:1;grid-column:1;grid-row:1/3;align-self:center}
-.stop-wx-cond{font-size:13px;color:var(--text2);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;grid-column:2;grid-row:1}
-.stop-wx-temp{font-family:'SF Mono','Menlo',monospace;font-size:15px;font-weight:700;letter-spacing:.02em;color:var(--amber);white-space:nowrap;grid-column:2;grid-row:2}
+.stop-wx{display:flex;align-items:center;gap:6px;margin-top:7px;padding:6px 10px;background:rgba(255,255,255,.04);border-radius:8px;border:1px solid var(--border)}
+.stop-wx-icon{font-size:18px;line-height:1;flex-shrink:0;align-self:center}
+.stop-wx-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.stop-wx-row1{display:flex;align-items:center;gap:5px}
+.stop-wx-row2{display:flex;align-items:baseline}
+.stop-wx-cond{font-size:13px;color:var(--text2);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.stop-wx-temp{font-family:'SF Mono','Menlo',monospace;font-size:15px;font-weight:700;letter-spacing:.02em;color:var(--amber);white-space:nowrap}
 .stop-wx-tmax{font-size:1em;color:var(--red);font-weight:700}
 .stop-wx-tmin{font-size:1em;color:#4da6ff;font-weight:700}
-.stop-wx-precip{font-size:14px;font-weight:800;padding:2px 8px;border-radius:6px;white-space:nowrap;grid-column:3;grid-row:1/3;align-self:center}
+.stop-wx-precip{font-size:14px;font-weight:800;padding:2px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0}
 .stop-wx-precip.low{color:var(--text3);background:var(--bg3)}
 .stop-wx-precip.mid{color:var(--amber);background:rgba(255,184,0,.18)}
 .stop-wx-precip.high{color:var(--red);background:rgba(255,90,90,.18)}
 .stop-wx-loading{font-size:12px;color:var(--text3);margin-top:5px;opacity:.7}
 /* 走行モードの天気ブロック */
-.ride-wx{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;column-gap:8px;row-gap:2px;align-items:center;margin-top:10px;padding:10px 12px;background:rgba(0,0,0,.18);border-radius:10px;border:1px solid var(--border2);min-height:52px}
+.ride-wx{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;background:rgba(0,0,0,.18);border-radius:10px;border:1px solid var(--border2);min-height:52px}
 .ride-wx-na{border-style:dashed;opacity:.7}
-.ride-wx-icon{font-size:28px;line-height:1;grid-column:1;grid-row:1/3;align-self:center}
-.ride-wx-cond{font-size:18px;color:var(--text2);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;grid-column:2;grid-row:1}
-.ride-wx-temp{font-family:'SF Mono','Menlo',monospace;font-size:22px;font-weight:700;letter-spacing:.02em;color:var(--amber);white-space:nowrap;grid-column:2;grid-row:2}
+.ride-wx-icon{font-size:28px;line-height:1;flex-shrink:0;align-self:center}
+.ride-wx-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.ride-wx-row1{display:flex;align-items:center;gap:6px}
+.ride-wx-row2{display:flex;align-items:baseline}
+.ride-wx-cond{font-size:18px;color:var(--text2);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ride-wx-temp{font-family:'SF Mono','Menlo',monospace;font-size:22px;font-weight:700;letter-spacing:.02em;color:var(--amber);white-space:nowrap}
 .ride-wx-tmax{font-size:1em;color:var(--red);font-weight:700}
 .ride-wx-tmin{font-size:1em;color:#4da6ff;font-weight:700}
-.ride-wx-precip{font-size:17px;font-weight:800;padding:4px 10px;border-radius:8px;white-space:nowrap;grid-column:3;grid-row:1/3;align-self:center}
+.ride-wx-precip{font-size:17px;font-weight:800;padding:4px 10px;border-radius:8px;white-space:nowrap;flex-shrink:0}
 .ride-wx-precip.low{color:var(--text2);background:rgba(255,255,255,.08)}
 .ride-wx-precip.mid{color:var(--amber);background:rgba(255,184,0,.18)}
 .ride-wx-precip.high{color:var(--red);background:rgba(255,90,90,.18)}
@@ -384,6 +390,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
 <script>
 let isEdit=false,isRide=false,editingId=null,currentDay=0;
 let manualCurrentId=null,rideViewIdx=0,activeEditStopId=null;
+let rideActionVisible=false;
 /* ── DOM参照キャッシュ（初回アクセス時に解決） ── */
 let _domCache={};
 function _dom(id){return _domCache[id]||(_domCache[id]=document.getElementById(id));}
@@ -504,9 +511,10 @@ function stopWxInner(stopId,hasAddr){
   }
   return `<div class="stop-wx">
     <span class="stop-wx-icon">${w.e}</span>
-    <span class="stop-wx-cond">${w.t}</span>
-    <span class="stop-wx-temp">${tStr}${tnStr}</span>
-    <span class="stop-wx-precip ${pClass(p)}">💧${pStr}</span>
+    <div class="stop-wx-body">
+      <div class="stop-wx-row1"><span class="stop-wx-cond">${w.t}</span><span class="stop-wx-precip ${pClass(p)}">💧${pStr}</span></div>
+      <div class="stop-wx-row2"><span class="stop-wx-temp">${tStr}${tnStr}</span></div>
+    </div>
   </div>`;
 }
 
@@ -533,9 +541,10 @@ function rideWxInner(stopId,hasAddr){
   }
   return `<div class="ride-wx">
     <span class="ride-wx-icon">${w.e}</span>
-    <span class="ride-wx-cond">${w.t}</span>
-    <span class="ride-wx-temp">${rtStr}${rtnStr}</span>
-    <span class="ride-wx-precip ${pClass(p)}">💧${pStr}</span>
+    <div class="ride-wx-body">
+      <div class="ride-wx-row1"><span class="ride-wx-cond">${w.t}</span><span class="ride-wx-precip ${pClass(p)}">💧${pStr}</span></div>
+      <div class="ride-wx-row2"><span class="ride-wx-temp">${rtStr}${rtnStr}</span></div>
+    </div>
   </div>`;
 }
 function rideWxBlock(stopId,elId,hasAddr){
@@ -1232,6 +1241,9 @@ function syncBorderAddr(){
   }
 }
 
+/* ══ ライドアクション表示切替 ══ */
+function toggleRideAction(){rideActionVisible=!rideActionVisible;renderRide();}
+
 /* ══ ライドモード描画 ══ */
 function renderRide(){
   try{
@@ -1247,7 +1259,7 @@ function renderRide(){
   _dom('sw-arr-r').classList.toggle('dim',rideViewIdx===flat.length-1);
   const dm=n=>n&&n.includes('🩸');
   /* ── ライドカード共通パーツ ── */
-  const _mapLink=s=>s.addr?`<a class="ride-route-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener">🗺 マップで確認</a>`:'';
+  const _mapLink=s=>s.addr?`<a class="ride-route-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 マップで確認</a>`:'';
   const _fuelBadge=(s,extra='')=>s.fuel?`<div class="stop-fuel-badge" style="width:100%;justify-content:center${extra}">⛽ 給油ポイント</div>`:'';
   const _noteHtml=s=>s.note?`<div class="ride-note${dm(s.note)?' dm-note':''}">${esc(s.note)}</div>`:'';
   const _chips=(s,cls='ride-chip-val')=>`
@@ -1257,26 +1269,27 @@ function renderRide(){
   const vs=flat[rideViewIdx];
   const isCurr=(rideViewIdx===rci),isPast=(rci!==-1&&rideViewIdx<rci);
   const vsUrl=data.days[vs.dayIdx]?.routeUrl||'';
-  const vsRouteBtn=vsUrl?`<a class="ride-route-btn" href="${vsUrl}" target="_blank" rel="noopener">🗺 ルートを開く</a>`:'';
+  const vsRouteBtn=vsUrl?`<a class="ride-route-btn" href="${vsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 ルートを開く</a>`:'';
   if(isCurr){
     let depCd='';
     if(vs.dep){const dm2=toMin(vs.dep);if(dm2!==null){const diff=dm2-nowMin();const abs=Math.abs(diff);const hh=Math.floor(abs/60),mm=abs%60;const val=hh>0?`${hh}<span style="font-size:.75em">時間</span>${String(mm).padStart(2,'0')}<span style="font-size:.75em">分</span>`:`${mm}<span style="font-size:.75em">分</span>`;if(diff>2)depCd=`<div class="ride-dep-cd before"><span class="ride-dep-cd-val">${val}</span><span class="ride-dep-cd-unit">前</span></div>`;else if(diff>=-2)depCd=`<div class="ride-dep-cd now"><span class="ride-dep-cd-val">出発</span></div>`;else depCd=`<div class="ride-dep-cd after"><span class="ride-dep-cd-val">${val}</span><span class="ride-dep-cd-unit">超過</span></div>`;}}
-    h+=`<div class="ride-card curr">
+    h+=`<div class="ride-card curr" onclick="toggleRideAction()">
       <div class="ride-tag curr-tag">▶ 現在地</div>
       <div class="ride-name">${esc(vs.name)}</div>
       <div class="ride-times-row">${_chips(vs)}${depCd}</div>
       ${rideWxBlock(vs.id,"ride-wx-curr",!!(vs.addr))}
-      ${vsRouteBtn}${_mapLink(vs)}${_fuelBadge(vs,';font-size:16px;padding:8px')}${_noteHtml(vs)}
+      ${_fuelBadge(vs,';font-size:16px;padding:8px')}${_noteHtml(vs)}
+      ${rideActionVisible?`${vsRouteBtn}${_mapLink(vs)}`:''}
     </div>`;
   }else{
     const tag=isPast?'✓ 通過済み':'◎ 閲覧中';
-    h+=`<div class="ride-card">
+    h+=`<div class="ride-card" onclick="toggleRideAction()">
       <div class="ride-tag">${tag}</div>
       <div class="ride-name" style="color:var(--text2)">${esc(vs.name)}</div>
       <div class="ride-times-row">${_chips(vs,'next-chip-val')}</div>
       ${rideWxBlock(vs.id,"ride-wx-curr",!!(vs.addr))}
-      ${vsRouteBtn}${_mapLink(vs)}${_fuelBadge(vs,';font-size:16px;padding:8px')}${_noteHtml(vs)}
-      <button class="ride-set-curr-btn" onclick="setCurrentStop('${vs.id}')">📍 ここを現在地にする</button>
+      ${_fuelBadge(vs,';font-size:16px;padding:8px')}${_noteHtml(vs)}
+      ${rideActionVisible?`${vsRouteBtn}${_mapLink(vs)}<button class="ride-set-curr-btn" onclick="event.stopPropagation();setCurrentStop('${vs.id}')">📍 ここを現在地にする</button>`:''}
     </div>`;
   }
   const ni=rideViewIdx+1;
@@ -1289,7 +1302,7 @@ function renderRide(){
       <div class="ride-name" style="color:var(--text2)">${esc(ns.name)}</div>
       <div class="ride-times-row">${_chips(ns,'next-chip-val')}</div>
       ${rideWxBlock(ns.id,"ride-wx-next",!!(ns.addr))}
-      ${_mapLink(ns)}${_fuelBadge(ns)}${_noteHtml(ns)}
+      ${_fuelBadge(ns)}${_noteHtml(ns)}
     </div>`;
   }else{
     h+=`<div style="color:var(--green);font-size:20px;font-weight:700;margin-top:12px;text-align:center">🏁 全行程完了</div>`;
@@ -1343,6 +1356,7 @@ function _urgentRideFetch(flat){
 function rideNavigate(dir){
   if(_swAnim)return;const flat=currentDayFlat();if(flat.length<2)return;
   const to=Math.max(0,Math.min(flat.length-1,rideViewIdx+dir));if(to===rideViewIdx)return;
+  rideActionVisible=false;
   _swAnim=true;const el=document.getElementById('ride-content');
   const ec=dir>0?'sw-exit-left':'sw-exit-right',nc=dir>0?'sw-enter-left':'sw-enter-right';
   el.classList.add(ec);
@@ -1480,6 +1494,7 @@ function toggleRide(){
     const cdi=_getCdi();
     if(cdi!==-1&&cdi!==currentDay){currentDay=cdi;renderTabs();}
     const fi=currentDayIdxOf(manualCurrentId);rideViewIdx=fi!==-1?fi:0;
+    rideActionVisible=false;
     _updateStickyTops();
     ensureDayWeather(currentDay);
     renderRide();
