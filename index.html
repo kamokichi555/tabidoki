@@ -516,11 +516,32 @@ function hasCachedCoords(addr){return buildGeoTargets(addr).some(q=>!!_geoCacheG
 function pClass(p){return typeof p==='number'?(p>=70?'high':p>=40?'mid':'low'):'low';}
 
 /* ── 地点天気HTML（行程ビュー内バッジ） ── */
+/* ── 天気タップ再取得 ── */
+function retryStopWeather(stopId){
+  const r=wxStopRes[stopId];
+  if(r==='loading'||wxQueueIds.has(stopId)){showInfoToast('🌐 取得中です',1500);return;}
+  // 対象地点とその日付を取得
+  let stop=null,date='';
+  for(let di=0;di<data.days.length;di++){
+    const s=data.days[di].stops.find(s=>s.id===stopId);
+    if(s){stop=s;date=data.days[di].date||_isoToday(di);break;}
+  }
+  if(!stop){return;}
+  if(!(stop.addr||'').trim()&&!(stop.name||'').trim()){showInfoToast('⚠️ 住所がないため取得できません',2000);return;}
+  delete wxStopRes[stopId];
+  wxQueueIds.delete(stopId);
+  enqueueStop(stop,date);
+  // 即時 loading 表示
+  const el=document.getElementById('wx-'+stopId);
+  if(el) el.innerHTML='<div class="stop-wx-loading">🌐 取得中…</div>';
+  showInfoToast('🌐 天気を再取得します',2000);
+}
+
 function stopWxInner(stopId,hasAddr){
   const r=wxStopRes[stopId];
   if(!r) return hasAddr?'<div class="stop-wx-loading">🌐 取得中…</div>':'';
   if(r==='loading') return '<div class="stop-wx-loading">🌐 取得中…</div>';
-  if(r.error) return '';
+  if(r.error) return hasAddr?`<div class="stop-wx-loading" onclick="retryStopWeather('${stopId}')" style="cursor:pointer" title="タップして再取得">⚠️ 再取得</div>`:'';
   const w=WMO[r.wcode]??{e:'🌡️',t:'不明'};
   const p=r.precip??null;
   const pStr=p!==null?`${p}%`:'--';
@@ -551,7 +572,7 @@ function rideWxInner(stopId,hasAddr){
   const r=wxStopRes[stopId];
   if(!hasAddr) return `<div class="ride-wx ride-wx-na"><span class="ride-wx-icon" style="font-size:24px;opacity:.4">🌡️</span><span class="ride-wx-cond" style="color:var(--text3)">天気取得不可</span><span style="font-size:13px;color:var(--text3);margin-left:auto">住所未設定</span></div>`;
   if(r===undefined||r==='loading') return `<div class="ride-wx"><span class="ride-wx-icon" style="font-size:24px;opacity:.5">🌐</span><span class="ride-wx-cond" style="color:var(--text3)">取得中…</span></div>`;
-  if(!r||r.error) return `<div class="ride-wx ride-wx-na"><span class="ride-wx-icon" style="font-size:24px;opacity:.4">⚠️</span><span class="ride-wx-cond" style="color:var(--text3)">取得できませんでした</span></div>`;
+  if(!r||r.error) return `<div class="ride-wx ride-wx-na" onclick="retryStopWeather('${stopId}')" style="cursor:pointer" title="タップして再取得"><span class="ride-wx-icon" style="font-size:24px;opacity:.4">⚠️</span><span class="ride-wx-cond" style="color:var(--text3)">取得できませんでした</span><span style="font-size:12px;color:var(--text3);margin-left:auto">再取得</span></div>`;
   const w=WMO[r.wcode]??{e:'🌡️',t:''};
   const p=r.precip??null;
   const pStr=p!==null?`${p}%`:'--';
