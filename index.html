@@ -983,11 +983,10 @@ function _applyImportedData(p,titleFallback,skipConfirm){
   Object.keys(wxStopRes).forEach(k=>delete wxStopRes[k]);
   _cachedCdiForId=null;
   requestAnimationFrame(()=>{
-    if(isRide){isRide=false;document.body.classList.remove('ride-mode');_dom('normal-view').style.display='block';_dom('ride-view').classList.remove('active');_dom('ride-btn').classList.remove('on');_dom('ride-btn').textContent='🏍️ 走行';_dom('day-tabs').style.display='';_dom('day-manage').style.display='none';_dom('cancel-ride-btn').style.display='none';}
+    if(isRide){isRide=false;document.body.classList.remove('ride-mode');_dom('normal-view').style.display='block';_dom('ride-view').classList.remove('active');_dom('ride-btn').classList.remove('on');_dom('ride-btn').textContent='🏍️';_dom('day-tabs').style.display='';_dom('day-manage').style.display='none';_dom('cancel-ride-btn').style.display='none';}
     if(!isEdit){isEdit=true;_dom('edit-area').style.display='block';_dom('edit-btn').textContent='✅';setFormAdd();}
     editingId=null;activeEditStopId=null;
     renderTabs();render();hideInfoToast();
-    showInfoToast('✅ 読み込み完了：'+(data.title||'行程'),2500);
     requestAnimationFrame(()=>{_updateStickyTops();_dom('normal-view')?.scrollTo({top:0,behavior:'instant'});});
   });
 }
@@ -1041,7 +1040,7 @@ function onFileSelected(ev){
     showAppError(EC.LOAD,new Error(`ファイルサイズが上限（512KB）を超えています（${(file.size/1024).toFixed(0)}KB）`));
     return;
   }
-  showInfoToast('⏳ データ読み込み中…');
+  showInfoToast('');
   const reader=new FileReader();
   reader.onload=e=>{
     try{
@@ -1485,7 +1484,7 @@ function toggleRide(){
   _dom('normal-view').style.display=isRide?'none':'block';
   _dom('ride-view').classList.toggle('active',isRide);
   _dom('ride-btn').classList.toggle('on',isRide);
-  _dom('ride-btn').textContent=isRide?'📋 行程':'🏍️ 走行';
+  _dom('ride-btn').textContent=isRide?'📋':'🏍️';
   _dom('edit-btn').style.display='';
   _dom('edit-btn').textContent=isRide?'✏️':isEdit?'✅':'✏️';
   _dom('day-tabs').style.display=isRide?'none':'';
