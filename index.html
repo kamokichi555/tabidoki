@@ -3263,6 +3263,8 @@ setInterval(()=>{
   if(cd) cd.outerHTML=html;
 },15000);
 if(!isEdit&&!isRide){toggleEdit();showInfoToast('📂 データの読み込みをしてください',4000);}
+// 縦向き固定（Android Chrome対応・iOS Safariは非対応のため無視）
+screen.orientation?.lock('portrait').catch(()=>{});
 </script>
 </body>
 </html>
