@@ -267,8 +267,9 @@ body.day-mode .ride-move-dur{color:var(--text3)}
 .ride-swipe-arr{font-size:22px;color:var(--amber);opacity:1;transition:opacity .15s,transform .12s;padding:6px 16px;font-weight:900;letter-spacing:.08em;text-shadow:0 0 8px rgba(255,184,0,.5)}
 .ride-swipe-arr.dim{opacity:.15;pointer-events:none}
 .ride-swipe-arr:active{transform:scale(.85)}
-.ride-stop-ctr{font-family:'SF Mono','Menlo',monospace;font-size:14px;font-weight:700;color:var(--text2);letter-spacing:.08em}
-.ride-progress::-webkit-scrollbar{display:none}
+/* ── 7セグメント時計 ── */
+.led-wrap{display:flex;justify-content:center;align-items:center;padding:2px 6px}
+#now-display{display:flex;justify-content:center;line-height:1}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -299,7 +300,9 @@ body.day-mode .ride-move-dur{color:var(--text3)}
 
 <header>
   <div class="header-clock">
-    <span id="now-display" style="font-family:'SF Mono','Menlo','Courier New',monospace;font-size:clamp(48px,22vw,120px);font-weight:700;color:var(--green);letter-spacing:.02em;line-height:1;white-space:nowrap">--:--</span>
+    <div class="led-wrap">
+      <div id="now-display"></div>
+    </div>
   </div>
   <div class="header-main">
     <div class="header-actions">
@@ -846,6 +849,7 @@ function _applyTheme(day){
   document.body.classList.toggle('day-mode',day);
   const btn=document.getElementById('theme-btn');
   if(btn) btn.textContent=day?'🌙':'☀️';
+  updateClock(); // テーマ変更時にセグメント色を即時更新
 }
 function _initTheme(){
   const saved=localStorage.getItem('touring_theme');
@@ -1225,10 +1229,86 @@ function getStatus(s,idx,ds,cdi){
   if(ci!==-1) return idx<ci?'past':'upcoming';
   return idx===0?'current':'upcoming';
 }
+/* ════ 7セグメントディスプレイ ════
+   各セグメントをSVGパスで描画。
+   W=50,H=92,T=9 の座標系でセグメントを定義し
+   <g transform> で配置する。
+   a=上, b=右上, c=右下, d=下, e=左下, f=左上, g=中
+*/
+const _S7=(()=>{
+  const W=50,H=92,T=9,G=2;
+  const hL=W-2*G, vL=H/2-2*G;
+  // 水平セグメント（両端を菱形にカット）
+  const h=(x,y,l)=>`M${x+T/2},${y} L${x+l-T/2},${y} L${x+l},${y+T/2} L${x+l-T/2},${y+T} L${x+T/2},${y+T} L${x},${y+T/2}Z`;
+  // 垂直セグメント（両端を菱形にカット）
+  const v=(x,y,l)=>`M${x},${y+T/2} L${x+T/2},${y} L${x+T},${y+T/2} L${x+T},${y+l-T/2} L${x+T/2},${y+l} L${x},${y+l-T/2}Z`;
+  // 7セグメントのSVGパス定義（a〜g順）
+  const SEGS=[
+    h(G,    0,      hL),   // a 上
+    v(W-T,  G,      vL),   // b 右上
+    v(W-T,  H/2+G,  vL),   // c 右下
+    h(G,    H-T,    hL),   // d 下
+    v(0,    H/2+G,  vL),   // e 左下
+    v(0,    G,      vL),   // f 左上
+    h(G,    H/2-T/2,hL),   // g 中
+  ];
+  // 数字ごとの点灯パターン [a,b,c,d,e,f,g]
+  const BITS={
+    '0':[1,1,1,1,1,1,0],
+    '1':[0,1,1,0,0,0,0],
+    '2':[1,1,0,1,1,0,1],
+    '3':[1,1,1,1,0,0,1],
+    '4':[0,1,1,0,0,1,1],
+    '5':[1,0,1,1,0,1,1],
+    '6':[1,0,1,1,1,1,1],
+    '7':[1,1,1,0,0,0,0],
+    '8':[1,1,1,1,1,1,1],
+    '9':[1,1,1,1,0,1,1],
+    '-':[0,0,0,0,0,0,1],
+    ' ':[0,0,0,0,0,0,0],
+  };
+  return {W,H,T,SEGS,BITS};
+})();
+
+function _seg7svg(ts){
+  const {W,H,T,SEGS,BITS}=_S7;
+  const isDay=document.body.classList.contains('day-mode');
+  // 点灯色・消灯色・グロー
+  const ON  =isDay?'#1a9448':'#39E07A';
+  const OFF =isDay?'rgba(0,80,30,.15)':'rgba(0,70,25,.22)';
+  const GLOW=isDay
+    ?'<filter id="gl"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+    :'<filter id="gl"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+  const DX=W+7;   // 桁間隔
+  const CW=22;    // コロン幅
+  let body='', cx=0;
+  for(let i=0;i<ts.length;i++){
+    const ch=ts[i];
+    if(ch===':'){
+      // コロン：上下2ドット
+      const dr=T*0.55, dotX=cx+CW/2;
+      body+=`<circle cx="${dotX}" cy="${H*0.30}" r="${dr}" fill="${ON}" filter="url(#gl)"/>`;
+      body+=`<circle cx="${dotX}" cy="${H*0.70}" r="${dr}" fill="${ON}" filter="url(#gl)"/>`;
+      cx+=CW;
+    } else {
+      const bits=BITS[ch]||BITS[' '];
+      let g='';
+      SEGS.forEach((d,si)=>{
+        const on=bits[si];
+        g+=`<path d="${d}" fill="${on?ON:OFF}"${on?' filter="url(#gl)"':''}/>`;
+      });
+      body+=`<g transform="translate(${cx},0)">${g}</g>`;
+      cx+=DX;
+    }
+  }
+  const svgW=cx-7;
+  return `<svg viewBox="0 0 ${svgW} ${H}" style="height:clamp(52px,23vw,124px);width:auto;display:block;overflow:visible"><defs>${GLOW}</defs>${body}</svg>`;
+}
+
 function updateClock(){
   const n=new Date(),ts=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
-  const d=document.getElementById('now-display');if(d)d.textContent=ts;
-
+  const d=document.getElementById('now-display');
+  if(d) d.innerHTML=_seg7svg(ts);
 }
 
 function renderTabs(){
