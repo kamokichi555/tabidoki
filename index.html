@@ -77,7 +77,8 @@ button.small{padding:6px 10px;font-size:13px}
 .stop-note{font-size:17px;color:var(--text2);background:var(--bg3);border-left:4px solid var(--border2);border-radius:0 6px 6px 0;padding:8px 12px;margin-top:8px;line-height:1.7;word-break:break-word;overflow-wrap:anywhere}
 .stop-note.dm{border-left-color:var(--red);color:#ffcccc}
 .current-badge{display:inline-block;font-size:14px;font-weight:800;color:#000;background:var(--amber);border-radius:6px;padding:3px 10px;margin-top:6px;letter-spacing:.03em}
-.stop-edit-row{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.stop-edit-row{display:flex;gap:4px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.stop-edit-row button,.stop-edit-row a{white-space:nowrap;flex-shrink:0;padding:6px 7px!important;font-size:13px!important}
 .map-link-btn{display:flex;align-items:center;justify-content:center;text-decoration:none;color:#4da6ff;background:rgba(77,166,255,.08);padding:6px 10px;font-size:13px;font-weight:700;font-family:inherit;border:1.5px solid #4da6ff;border-radius:8px;white-space:nowrap;line-height:1;box-sizing:border-box}
 .stop-row.past .stop-dot{border-color:var(--bg3);background:var(--bg2)}
 .stop-row.past .stop-name-text{color:var(--text3)}
@@ -145,9 +146,9 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
 .stop-wx-icon{font-size:18px;line-height:1;flex-shrink:0;align-self:center}
 .stop-wx-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .stop-wx-row1{display:flex;align-items:center;gap:5px}
-.stop-wx-row2{display:flex;align-items:baseline}
+.stop-wx-row2{display:flex;align-items:baseline;overflow:hidden}
 .stop-wx-cond{font-size:13px;color:var(--text2);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.stop-wx-temp{font-family:'SF Mono','Menlo',monospace;font-size:15px;font-weight:700;letter-spacing:.02em;color:var(--amber);white-space:nowrap}
+.stop-wx-temp{font-family:'SF Mono','Menlo',monospace;font-size:clamp(12px,4vw,15px);font-weight:700;letter-spacing:.02em;color:var(--amber);white-space:nowrap}
 .stop-wx-tmax{font-size:1em;color:var(--red);font-weight:700}
 .stop-wx-tmin{font-size:1em;color:#4da6ff;font-weight:700}
 .stop-wx-precip{font-size:14px;font-weight:800;padding:2px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0}
@@ -161,9 +162,9 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
 .ride-wx-icon{font-size:28px;line-height:1;flex-shrink:0;align-self:center}
 .ride-wx-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .ride-wx-row1{display:flex;align-items:center;gap:6px}
-.ride-wx-row2{display:flex;align-items:baseline}
+.ride-wx-row2{display:flex;align-items:baseline;overflow:hidden}
 .ride-wx-cond{font-size:18px;color:var(--text2);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.ride-wx-temp{font-family:'SF Mono','Menlo',monospace;font-size:22px;font-weight:700;letter-spacing:.02em;color:var(--amber);white-space:nowrap}
+.ride-wx-temp{font-family:'SF Mono','Menlo',monospace;font-size:clamp(14px,5.5vw,22px);font-weight:700;letter-spacing:.02em;color:var(--amber);white-space:nowrap}
 .ride-wx-tmax{font-size:1em;color:var(--red);font-weight:700}
 .ride-wx-tmin{font-size:1em;color:#4da6ff;font-weight:700}
 .ride-wx-precip{font-size:17px;font-weight:800;padding:4px 10px;border-radius:8px;white-space:nowrap;flex-shrink:0}
@@ -1462,10 +1463,10 @@ function render(){
     ${s.note?`<div class="stop-note${isDM?' dm':''}">${esc(s.note)}</div>`:''}
     ${st==='current'?'<div class="current-badge">▶ 現在地</div>':''}
     ${isEdit&&editingId===null&&activeEditStopId===s.id?`<div class="stop-edit-row">
-      <button class="small amber-outline" onclick="event.stopPropagation();setCurrentStop('${s.id}')">📍 現</button>
-      <button class="small amber-outline" onclick="event.stopPropagation();openEditStop('${s.id}')">✏️ 編</button>
-      ${s.addr?`<a class="map-link-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener">🗺 M</a>`:''}
-      <button class="small danger" onclick="event.stopPropagation();delStop('${s.id}')">削</button>
+      <button class="small amber-outline" onclick="event.stopPropagation();setCurrentStop('${s.id}')">📍 現在</button>
+      <button class="small amber-outline" onclick="event.stopPropagation();openEditStop('${s.id}')">✏️ 編集</button>
+      ${s.addr?`<a class="map-link-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener">🗺 マップ</a>`:''}
+      <button class="small danger" onclick="event.stopPropagation();delStop('${s.id}')">削除</button>
     </div>`:''}
   </div>
 </div>`;
