@@ -395,7 +395,6 @@ let rideActionVisible=false;
 /* ── DOM参照キャッシュ（初回アクセス時に解決） ── */
 let _domCache={};
 function _dom(id){return _domCache[id]||(_domCache[id]=document.getElementById(id));}
-function _domClear(id){delete _domCache[id];} // 動的に生成/削除されるDOMに使用
 
 /* ══ WMO天気コード ══ */
 const WMO={
@@ -415,12 +414,6 @@ const WMO={
    wxStopRes  : stopId → result | 'loading' | null
 */
 /* ══ localStorage ユーティリティ（容量管理） ══ */
-function _lsSize(){
-  // 全キーの合計バイト数を推定
-  let total=0;
-  try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);total+=k.length+(localStorage.getItem(k)||'').length;}}catch(e){}
-  return total*2; // UTF-16 → バイト近似
-}
 function _lsSetItem(key,val){
   try{
     localStorage.setItem(key,val);
@@ -2452,6 +2445,7 @@ function selectHighway(name,addr,fullName){
   if(ai) ai.value=addr;
   if(addr) _setDetailsOpen(true);
   document.getElementById('highway-overlay')?.remove();
+  document.activeElement?.blur(); // キーボードを閉じる
   setTimeout(()=>{
     document.getElementById('normal-view')?.scrollTo({top:0,behavior:'instant'});
   },50);
@@ -2840,8 +2834,8 @@ function selectMichi(name,addr,fullName){
   if(ni) ni.value=fullName;
   if(ai) ai.value=addr;
   if(addr) _setDetailsOpen(true);
-  if(ni) ni.focus();
   document.getElementById('michi-overlay')?.remove();
+  document.activeElement?.blur(); // キーボードを閉じる
   setTimeout(()=>{
     document.getElementById('normal-view')?.scrollTo({top:0,behavior:'instant'});
   },50);
@@ -2915,7 +2909,7 @@ function selectGasStation(chain){
   if(ni) ni.value=chain+' SS';
   _setFuelCheck(true);
   document.getElementById('gs-overlay')?.remove();
-  // キーボードを自然に閉じさせ、visualViewport resizeに高さ計算を任せる
+  document.activeElement?.blur(); // キーボードを閉じる
   setTimeout(()=>{
     document.getElementById('normal-view')?.scrollTo({top:0,behavior:'instant'});
   },50);
@@ -2932,15 +2926,44 @@ toggleRide();
 requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));
 // スプラッシュ画面のエピソード・タイトルを描画
 _renderSplash();
-// iOS キーボード表示対応（visualViewport リサイズで高さ再計算）
-// キーボード表示時にフォーカス中の入力欄が隠れないようスクロール（Android/iOS共通）
+// ── キーボード表示対応 ──────────────────────────────
+// visualViewport resize: sticky高さ再計算 + edit-area先頭をnormal-view上端に揃える
 (window.visualViewport||window).addEventListener('resize',()=>{
   _updateStickyTops();
   const el=document.activeElement;
+  const nv=document.getElementById('normal-view');
   if(el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA')&&!el.closest('[id$="-overlay"]')){
-    setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'center'}),100);
+    setTimeout(()=>{
+      const ea=document.getElementById('edit-area');
+      if(nv&&ea){
+        const target=ea.getBoundingClientRect().top - nv.getBoundingClientRect().top + nv.scrollTop - 8;
+        nv.scrollTo({top:Math.max(0,target),behavior:'smooth'});
+      } else {
+        el.scrollIntoView({behavior:'smooth',block:'start'});
+      }
+    },150);
   }
 });
+// focusin: 時計を非表示にしてヘッダー高さを約150px削減 → normal-view 表示領域を確保
+document.addEventListener('focusin',e=>{
+  const el=e.target;
+  if((el.tagName==='INPUT'||el.tagName==='TEXTAREA')&&!el.closest('[id$="-overlay"]')){
+    const clk=document.querySelector('.header-clock');
+    if(clk) clk.style.display='none';
+    requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));
+  }
+},true);
+// focusout: フォーカスが外れたら時計を復元
+document.addEventListener('focusout',()=>{
+  setTimeout(()=>{
+    const a=document.activeElement;
+    if(!a||a.tagName!=='INPUT'&&a.tagName!=='TEXTAREA'){
+      const clk=document.querySelector('.header-clock');
+      if(clk) clk.style.display='';
+      requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));
+    }
+  },200);
+},true);
 // 時刻は15秒ごと更新（renderRide全再描画しない）
 setInterval(()=>{
   updateClock();
@@ -2964,6 +2987,5 @@ setInterval(()=>{
 },15000);
 if(!isEdit&&!isRide){toggleEdit();showInfoToast('📂 データの読み込みをしてください',4000);}
 </script>
-<!-- BGM -->
 </body>
 </html>
