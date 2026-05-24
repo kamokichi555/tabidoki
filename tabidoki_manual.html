@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="ja" style="scroll-behavior:smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旅刻mk13 マニュアル</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
+:root{
+  --bg:#0d0d0d;--bg2:#1a1a1a;--bg3:#252525;
+  --text:#f0f0f0;--text2:#c0c0c0;--text3:#888;
+  --amber:#FFB800;--amber-bg:rgba(255,184,0,.12);
+  --green:#39E07A;--blue:#4da6ff;--red:#FF5A5A;
+  --border:rgba(255,255,255,.12);--border2:rgba(255,255,255,.18);--r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',-apple-system,sans-serif;font-size:15px;line-height:1.7;padding:24px 20px 60px;max-width:640px;margin:0 auto}
+
+/* ヘッダー */
+.manual-header{text-align:center;padding:36px 0 28px;border-bottom:1px solid var(--border);margin-bottom:32px}
+.badge{display:inline-block;background:var(--amber-bg);border:1px solid rgba(255,184,0,.35);color:var(--amber);font-size:11px;font-weight:700;letter-spacing:.12em;padding:3px 12px;border-radius:20px;margin-bottom:14px}
+.manual-header h1{font-size:26px;font-weight:900;line-height:1.3}
+.manual-header p{font-size:13px;color:var(--text3);margin-top:8px}
+
+/* セクション */
+.section{margin-bottom:44px}
+.section-title{font-size:13px;font-weight:700;color:var(--amber);letter-spacing:.1em;text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* TOC */
+.toc-chapter{margin-bottom:14px}
+.toc-chapter-link{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text);font-size:14px;font-weight:700;padding:10px 14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);margin-bottom:4px}
+.toc-chapter-link:hover{color:var(--amber);border-color:rgba(255,184,0,.3)}
+.toc-chapter-num{background:var(--amber-bg);border:1px solid rgba(255,184,0,.35);color:var(--amber);font-size:11px;font-weight:900;padding:2px 8px;border-radius:4px;letter-spacing:.08em}
+.toc-sections{display:flex;flex-direction:column;gap:2px;padding-left:8px}
+.toc-section-link{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text3);font-size:13px;padding:7px 12px;border-left:2px solid var(--border);transition:color .15s,border-color .15s}
+.toc-section-link:hover{color:var(--text2);border-left-color:var(--amber)}
+.toc-section-num{font-family:'SF Mono','Menlo',monospace;font-size:11px;color:var(--amber);min-width:28px}
+.chapter-divider{height:1px;background:var(--border);margin:40px 0}
+.chapter-header{background:var(--bg2);border-left:4px solid var(--amber);border-radius:0 10px 10px 0;padding:16px 20px;margin-bottom:28px;display:flex;align-items:center;gap:14px}
+.chapter-header .ch-num{background:var(--amber);color:#000;font-size:13px;font-weight:900;padding:3px 10px;border-radius:4px;letter-spacing:.08em;flex-shrink:0}
+.chapter-header h2{font-size:20px;font-weight:900;color:var(--text);line-height:1.2}
+.back-to-top{display:block;text-align:right;font-size:12px;color:var(--text3);text-decoration:none;padding:6px 0;margin-bottom:8px}
+.back-to-top:hover{color:var(--amber)}
+
+/* カード */
+.card{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px}
+.card h4{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card p{font-size:13px;color:var(--text2);line-height:1.65}
+.card p+p{margin-top:8px}
+
+/* タグ */
+.tag{display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px;margin-left:4px;vertical-align:middle}
+.tag-req{background:rgba(255,90,90,.15);color:var(--red)}
+.tag-opt{background:rgba(255,255,255,.08);color:var(--text3)}
+.tag-auto{background:rgba(57,224,122,.12);color:var(--green)}
+.tag-blue{background:rgba(77,166,255,.15);color:var(--blue)}
+.tag-plan{background:rgba(77,166,255,.15);color:var(--blue)}
+.tag-amber{background:var(--amber-bg);color:var(--amber)}
+.tag-record{background:rgba(57,224,122,.12);color:var(--green)}
+
+/* ボタン説明 */
+.btn-list{display:flex;flex-direction:column;gap:8px}
+.btn-item{display:flex;gap:12px;align-items:flex-start;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);padding:11px 14px}
+.btn-icon{font-size:20px;width:32px;text-align:center;flex-shrink:0;padding-top:2px}
+.btn-info h4{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px}
+.btn-info p{font-size:12px;color:var(--text3);line-height:1.6}
+
+/* 入力フィールド説明 */
+.field-list{display:flex;flex-direction:column;gap:8px}
+.field-item{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;background:var(--bg2);border-radius:var(--r);border:1.5px solid var(--border)}
+.field-label{font-size:13px;font-weight:700;color:var(--amber);flex-shrink:0;width:60px;padding-top:2px}
+.field-desc{flex:1}
+.field-desc h4{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px}
+.field-desc p{font-size:12px;color:var(--text3);line-height:1.6}
+
+/* メッセージボックス */
+.note-box{background:rgba(255,184,0,.07);border:1px solid rgba(255,184,0,.25);border-radius:var(--r);padding:12px 16px;font-size:13px;color:var(--text2);line-height:1.7;margin-top:12px}
+.note-box strong{color:var(--amber)}
+.warn-box{background:rgba(255,90,90,.06);border:1px solid rgba(255,90,90,.22);border-radius:var(--r);padding:13px 16px;font-size:13px;color:var(--text2);line-height:1.75;margin-top:10px}
+.warn-box strong{color:var(--red)}
+.info-box{background:rgba(77,166,255,.06);border:1px solid rgba(77,166,255,.22);border-radius:var(--r);padding:13px 16px;font-size:13px;color:var(--text2);line-height:1.75;margin-top:10px}
+.info-box strong{color:var(--blue)}
+.warn-card{background:rgba(255,90,90,.05);border:1.5px solid rgba(255,90,90,.2);border-radius:var(--r);padding:14px 16px;margin-bottom:10px}
+.warn-card h4{font-size:14px;font-weight:700;color:var(--red);margin-bottom:6px}
+.warn-card p{font-size:13px;color:var(--text2);line-height:1.65}
+.warn-card p+p{margin-top:8px}
+.info-card{background:rgba(77,166,255,.05);border:1.5px solid rgba(77,166,255,.2);border-radius:var(--r);padding:14px 16px;margin-bottom:10px}
+.info-card h4{font-size:14px;font-weight:700;color:var(--blue);margin-bottom:6px}
+.info-card p{font-size:13px;color:var(--text2);line-height:1.65}
+
+/* 環境カード */
+.env-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.env-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px}
+.env-card.good{border-color:rgba(57,224,122,.35)}
+.env-card.ok{border-color:rgba(255,184,0,.3)}
+.env-card.ng{border-color:rgba(255,90,90,.25)}
+.env-card .ec-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.env-card .ec-icon{font-size:20px}
+.env-card .ec-name{font-size:13px;font-weight:700;color:var(--text)}
+.env-card .ec-status{font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px;margin-left:auto}
+.status-best{background:rgba(57,224,122,.15);color:var(--green)}
+.status-ok{background:rgba(255,184,0,.15);color:var(--amber)}
+.status-ng{background:rgba(255,90,90,.15);color:var(--red)}
+.env-card p{font-size:11px;color:var(--text3);line-height:1.65}
+
+/* テーブル */
+.compat-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}
+.compat-table th{background:var(--bg3);color:var(--text3);font-weight:700;padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
+.compat-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.06);color:var(--text2);vertical-align:middle}
+.compat-table tr:last-child td{border-bottom:none}
+.dot-good{color:var(--green);font-weight:700}
+.dot-ok{color:var(--amber);font-weight:700}
+.dot-ng{color:var(--red);font-weight:700}
+
+/* フロー */
+.flow{display:flex;flex-direction:column;gap:0}
+.flow-item{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--border)}
+.flow-item:last-child{border-bottom:none}
+.flow-num{background:var(--amber);color:#000;font-size:13px;font-weight:900;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.flow-body h4{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+.flow-body p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* アクションメニュー */
+.action-grid{display:flex;flex-direction:column;gap:8px}
+.action-item{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);padding:11px 14px;display:flex;gap:10px;align-items:flex-start}
+.action-icon{font-size:18px;flex-shrink:0;width:28px;text-align:center;padding-top:2px}
+.action-body h4{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px}
+.action-body p{font-size:12px;color:var(--text3);line-height:1.6}
+
+/* 天気バッジデモ */
+.wx-demo{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:13px}
+.wx-icon-demo{font-size:20px}
+.wx-info{display:flex;flex-direction:column;gap:2px}
+.wx-cond{color:var(--text);font-weight:700;font-size:12px}
+.wx-temp{color:var(--amber);font-size:12px;font-weight:700}
+
+/* 時刻チップデモ */
+.chip-demo{display:inline-flex;align-items:baseline;gap:5px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;margin:3px}
+.chip-label{font-size:11px;color:var(--text3);font-weight:700}
+.chip-val{font-family:'SF Mono','Menlo',monospace;font-size:22px;font-weight:700;color:var(--text)}
+
+/* 移動時間デモ */
+.move-dur-demo{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px;display:inline-flex;margin:3px}
+.lv0-demo{background:rgba(77,166,255,.1);color:var(--blue)}
+.lv1-demo{background:rgba(255,184,0,.1);color:var(--amber)}
+.lv2-demo{background:rgba(255,90,90,.1);color:var(--red)}
+
+/* アクセスボックス */
+.access-box{background:var(--bg2);border:1.5px solid rgba(77,166,255,.3);border-radius:var(--r);padding:16px 18px;margin-bottom:10px}
+.access-box h4{font-size:14px;font-weight:700;color:var(--blue);margin-bottom:8px}
+.url-display{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-family:'SF Mono','Menlo',monospace;font-size:13px;color:var(--amber);letter-spacing:.02em;word-break:break-all;margin:8px 0}
+.access-box p{font-size:13px;color:var(--text2);line-height:1.7}
+
+/* チェックリスト */
+.checklist{display:flex;flex-direction:column;gap:8px}
+.check-item{display:flex;gap:12px;align-items:flex-start;padding:11px 14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r)}
+.check-item.required{border-color:rgba(57,224,122,.3)}
+.ci-icon{font-size:18px;flex-shrink:0;width:28px;text-align:center;padding-top:1px}
+.ci-body h4{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px}
+.ci-body p{font-size:12px;color:var(--text3);line-height:1.6}
+
+/* ライドカードデモ */
+.ride-card-demo{background:var(--bg2);border:1.5px solid var(--border2);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.ride-card-demo.curr{border-color:var(--amber);border-width:2.5px;background:#1c1500}
+.rcd-tag{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px}
+.rcd-tag.curr-tag{color:var(--amber)}
+.rcd-name{font-size:22px;font-weight:700;color:var(--text);margin-bottom:8px}
+.rcd-name.amber{color:var(--amber)}
+.rcd-times{display:flex;gap:16px;flex-wrap:wrap}
+
+/* スプラッシュプレビュー */
+.splash-preview{background:#1a1710;border:1.5px solid rgba(255,184,0,.2);border-radius:var(--r);padding:20px 16px;text-align:center;font-family:'Hiragino Mincho ProN','Yu Mincho',serif;margin-top:12px}
+.sp-ep{font-size:14px;color:rgba(240,235,215,.7);letter-spacing:.35em;margin-bottom:6px}
+.sp-title{font-size:28px;color:rgba(240,235,215,.95);letter-spacing:.2em;font-weight:400;writing-mode:vertical-rl;display:inline-block;margin:0 8px}
+.sp-sub{font-size:13px;color:rgba(240,235,215,.8);letter-spacing:.2em;margin-top:8px}
+
+/* アップデートボックス */
+.update-box{background:var(--bg2);border:1.5px solid rgba(57,224,122,.25);border-radius:var(--r);padding:16px 18px;font-size:13px;color:var(--text2);line-height:1.8}
+.update-box strong{color:var(--green)}
+
+/* その他 */
+.item-list{display:flex;flex-direction:column;gap:8px}
+.item{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);padding:12px 16px;font-size:13px;color:var(--text2);line-height:1.7}
+.item strong{color:var(--text)}
+.empty-card{background:var(--bg2);border:1.5px dashed rgba(255,255,255,.18);border-radius:var(--r);padding:28px 20px;text-align:center}
+.empty-card .icon{font-size:36px;opacity:.4;margin-bottom:12px}
+.empty-card p{font-size:13px;color:var(--text3);line-height:1.8}
+code{font-family:'SF Mono','Menlo',monospace;font-size:11px;color:var(--amber);background:var(--bg3);padding:1px 5px;border-radius:3px}
+
+/* ピッカーチップデモ */
+.picker-demo{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.pd-chip{display:inline-block;font-size:13px;font-weight:700;padding:7px 14px;border-radius:8px;border:1px solid}
+.pd-hw{border-color:rgba(77,166,255,.45);color:#4da6ff;background:rgba(77,166,255,.06)}
+.pd-mn{border-color:rgba(255,184,0,.45);color:var(--amber);background:rgba(255,184,0,.06)}
+.pd-gs{border-color:rgba(57,224,122,.45);color:var(--green);background:rgba(57,224,122,.06)}
+
+footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--border);text-align:center;font-size:11px;color:var(--text3);letter-spacing:.06em;line-height:2}
+</style>
+</head>
+<body id="top">
+
+<div class="manual-header">
+  <div class="badge">MANUAL</div>
+  <h1>旅刻mk13<br>ユーザーマニュアル</h1>
+  <p>バージョン mk13-v1 ／ Powered by 鴨吉</p>
+</div>
+
+<!-- ══ 目次 ══ -->
+<div class="section">
+  <div class="section-title">目次</div>
+
+  <div class="toc-chapter">
+    <a class="toc-chapter-link" href="#ch0"><span class="toc-chapter-num">Chapter 0</span>使用要件・推奨環境</a>
+    <div class="toc-sections">
+      <a class="toc-section-link" href="#s0-1"><span class="toc-section-num">0-1</span>アクセス方法</a>
+      <a class="toc-section-link" href="#s0-2"><span class="toc-section-num">0-2</span>推奨ブラウザ・デバイス</a>
+      <a class="toc-section-link" href="#s0-3"><span class="toc-section-num">0-3</span>通信要件</a>
+      <a class="toc-section-link" href="#s0-4"><span class="toc-section-num">0-4</span>ストレージ・データ保存</a>
+      <a class="toc-section-link" href="#s0-5"><span class="toc-section-num">0-5</span>機能・通信の対応表</a>
+    </div>
+  </div>
+
+  <div class="toc-chapter">
+    <a class="toc-chapter-link" href="#ch1"><span class="toc-chapter-num">Chapter 1</span>起動画面の見かた</a>
+    <div class="toc-sections">
+      <a class="toc-section-link" href="#s1-0"><span class="toc-section-num">1-0</span>起動直後の画面</a>
+      <a class="toc-section-link" href="#s1-1"><span class="toc-section-num">1-1</span>現在時刻の表示</a>
+      <a class="toc-section-link" href="#s1-2"><span class="toc-section-num">1-2</span>ヘッダーボタン</a>
+      <a class="toc-section-link" href="#s1-3"><span class="toc-section-num">1-3</span>中央エリア（未読み込み時）</a>
+      <a class="toc-section-link" href="#s1-4"><span class="toc-section-num">1-4</span>使い始めの流れ</a>
+    </div>
+  </div>
+
+  <div class="toc-chapter">
+    <a class="toc-chapter-link" href="#ch2"><span class="toc-chapter-num">Chapter 2</span>編集画面の使いかた</a>
+    <div class="toc-sections">
+      <a class="toc-section-link" href="#s2-0"><span class="toc-section-num">2-0</span>編集画面の全体像</a>
+      <a class="toc-section-link" href="#s2-1"><span class="toc-section-num">2-1</span>日程タブ</a>
+      <a class="toc-section-link" href="#s2-2"><span class="toc-section-num">2-2</span>地点の追加フォーム</a>
+      <a class="toc-section-link" href="#s2-3"><span class="toc-section-num">2-3</span>入力補助ピッカー（高速 / 道の駅 / GS）</a>
+      <a class="toc-section-link" href="#s2-4"><span class="toc-section-num">2-4</span>詳細セクション</a>
+      <a class="toc-section-link" href="#s2-5"><span class="toc-section-num">2-5</span>地点タップ時のアクションメニュー</a>
+      <a class="toc-section-link" href="#s2-6"><span class="toc-section-num">2-6</span>並び替え（ドラッグ）</a>
+      <a class="toc-section-link" href="#s2-7"><span class="toc-section-num">2-7</span>帰宅後の記録入力の流れ</a>
+    </div>
+  </div>
+
+  <div class="toc-chapter">
+    <a class="toc-chapter-link" href="#ch3"><span class="toc-chapter-num">Chapter 3</span>走行モードの使いかた</a>
+    <div class="toc-sections">
+      <a class="toc-section-link" href="#s3-1"><span class="toc-section-num">3-1</span>走行モードとは</a>
+      <a class="toc-section-link" href="#s3-2"><span class="toc-section-num">3-2</span>カード表示の見かた</a>
+      <a class="toc-section-link" href="#s3-3"><span class="toc-section-num">3-3</span>スワイプ・ナビゲーション</a>
+      <a class="toc-section-link" href="#s3-4"><span class="toc-section-num">3-4</span>現在地の変更・アクション</a>
+      <a class="toc-section-link" href="#s3-5"><span class="toc-section-num">3-5</span>天気表示と再取得</a>
+    </div>
+  </div>
+
+  <div class="toc-chapter">
+    <a class="toc-chapter-link" href="#ch4"><span class="toc-chapter-num">Chapter 4</span>行程テキスト共有</a>
+    <div class="toc-sections">
+      <a class="toc-section-link" href="#s4-1"><span class="toc-section-num">4-1</span>この機能について</a>
+      <a class="toc-section-link" href="#s4-2"><span class="toc-section-num">4-2</span>テキストの内容</a>
+      <a class="toc-section-link" href="#s4-3"><span class="toc-section-num">4-3</span>操作方法</a>
+    </div>
+  </div>
+
+  <div class="toc-chapter">
+    <a class="toc-chapter-link" href="#ch5"><span class="toc-chapter-num">Chapter 5</span>設定画面の使いかた</a>
+    <div class="toc-sections">
+      <a class="toc-section-link" href="#s5-1"><span class="toc-section-num">5-1</span>スプラッシュ演出の設定</a>
+      <a class="toc-section-link" href="#s5-2"><span class="toc-section-num">5-2</span>デバッグログ</a>
+    </div>
+  </div>
+
+  <div class="toc-chapter">
+    <a class="toc-chapter-link" href="#ch6"><span class="toc-chapter-num">Chapter 6</span>著作権・免責事項</a>
+    <div class="toc-sections">
+      <a class="toc-section-link" href="#s6-1"><span class="toc-section-num">6-1</span>著作権</a>
+      <a class="toc-section-link" href="#s6-2"><span class="toc-section-num">6-2</span>免責事項</a>
+      <a class="toc-section-link" href="#s6-3"><span class="toc-section-num">6-3</span>プライバシー</a>
+      <a class="toc-section-link" href="#s6-4"><span class="toc-section-num">6-4</span>バージョン情報</a>
+    </div>
+  </div>
+</div>
+
+<div class="chapter-divider"></div>
+
+<!-- ══ Chapter 0 ══ -->
+<div class="chapter-header" id="ch0"><span class="ch-num">Chapter 0</span><h2>使用要件・推奨環境</h2></div>
+
+<div class="section" id="s0-1">
+  <div class="section-title">0-1  アクセス方法</div>
+  <div class="access-box">
+    <h4>GitHub Pages（ホスティング）</h4>
+    <div class="url-display">https://chi555.github.io/tabidoki/</div>
+    <p>上記URLをブラウザで開くだけで利用できます。インストール不要、アカウント登録不要です。</p>
+    <p style="margin-top:8px;font-size:12px;color:var(--text3)">スマートフォンで利用する場合はブラウザのブックマーク・ホーム画面追加が便利です。</p>
+  </div>
+  <div class="info-box">
+    <strong>オフライン利用について：</strong>行程の閲覧・編集・走行モードはオフラインでも動作します。天気取得・施設ピッカーのオンライン更新はインターネット接続が必要です。
+  </div>
+</div>
+
+<div class="section" id="s0-2">
+  <div class="section-title">0-2  推奨ブラウザ・デバイス</div>
+  <div class="env-grid">
+    <div class="env-card good">
+      <div class="ec-head">
+        <span class="ec-icon">📱</span>
+        <span class="ec-name">Android Chrome</span>
+        <span class="ec-status status-best">BEST</span>
+      </div>
+      <p>全機能が最も安定して動作します。縦向き固定にも対応。</p>
+    </div>
+    <div class="env-card good">
+      <div class="ec-head">
+        <span class="ec-icon">🍎</span>
+        <span class="ec-name">iOS Safari</span>
+        <span class="ec-status status-ok">OK</span>
+      </div>
+      <p>ほぼ全機能対応。ファイル保存は「開いたタブで長押し」操作が必要。縦向き固定は非対応。</p>
+    </div>
+    <div class="env-card ok">
+      <div class="ec-head">
+        <span class="ec-icon">💻</span>
+        <span class="ec-name">PC Chrome / Edge</span>
+        <span class="ec-status status-ok">OK</span>
+      </div>
+      <p>Nexus5シミュレーション（DevTools）での動作確認済み。マウスドラッグで並び替え可能。</p>
+    </div>
+    <div class="env-card ng">
+      <div class="ec-head">
+        <span class="ec-icon">🦊</span>
+        <span class="ec-name">Firefox / 旧OS</span>
+        <span class="ec-status status-ng">非推奨</span>
+      </div>
+      <p>動作は確認していますが、一部UIが崩れる場合があります。</p>
+    </div>
+  </div>
+  <div class="note-box">
+    <strong>表示サイズ：</strong>スマートフォン（幅 375〜480px）に最適化されています。タブレット・PCではページ幅が最大 480px に制限されます。
+  </div>
+</div>
+
+<div class="section" id="s0-3">
+  <div class="section-title">0-3  通信要件</div>
+  <div class="checklist">
+    <div class="check-item required">
+      <div class="ci-icon">🌤️</div>
+      <div class="ci-body">
+        <h4>天気予報取得 <span class="tag tag-auto">自動</span></h4>
+        <p>地点の住所が設定されている場合、Open-Meteo / OpenStreetMap Nominatim / 国土地理院 API に接続して天気予報を自動取得します。地点ごとに通信が発生します。</p>
+      </div>
+    </div>
+    <div class="check-item">
+      <div class="ci-icon">🛣️</div>
+      <div class="ci-body">
+        <h4>高速SA・PA データ更新 <span class="tag tag-auto">バックグラウンド</span></h4>
+        <p>Overpass API から全国高速施設データを取得・更新します。キャッシュが24時間以内なら通信しません。フォールバックデータ（230件）がオフラインで常時利用可能です。</p>
+      </div>
+    </div>
+    <div class="check-item">
+      <div class="ci-icon">🏪</div>
+      <div class="ci-body">
+        <h4>道の駅データ更新 <span class="tag tag-auto">バックグラウンド</span></h4>
+        <p>同様に全国道の駅データを取得します。キャッシュが24時間以内なら通信しません。フォールバックデータ（464件）がオフラインで常時利用可能です。</p>
+      </div>
+    </div>
+    <div class="check-item">
+      <div class="ci-icon">🗺️</div>
+      <div class="ci-body">
+        <h4>マップリンク <span class="tag tag-opt">タップ時のみ</span></h4>
+        <p>「マップで確認」ボタンをタップすると Google Maps が別タブで開きます。タップしない限り通信は発生しません。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s0-4">
+  <div class="section-title">0-4  ストレージ・データ保存</div>
+  <div class="card">
+    <h4>💾 JSON ファイル保存（推奨）</h4>
+    <p>💾 ボタンで行程データを <code>.json</code> ファイルとしてデバイスに保存します。次回のツーリング計画にも再利用できます。<strong>大切なデータは必ずここでバックアップしてください。</strong></p>
+  </div>
+  <div class="card">
+    <h4>📝 走行記録保存</h4>
+    <p>📝 ボタンで実着・実発・走行メモを含む走行記録を <code>.txt</code> ファイルとして保存します。ツーリング後の記録残しに使います。</p>
+  </div>
+  <div class="warn-box">
+    <strong>注意：</strong>ブラウザの「閲覧データ消去」やプライベートブラウズ終了でデータが消える場合があります。セッションをまたいでデータを保持するには <strong>💾 保存</strong> を必ず実行してください。
+  </div>
+</div>
+
+<div class="section" id="s0-5">
+  <div class="section-title">0-5  機能・通信の対応表</div>
+  <table class="compat-table">
+    <tr><th>機能</th><th>オフライン</th><th>通信内容</th></tr>
+    <tr><td>行程の閲覧・編集</td><td class="dot-good">✔ 完全対応</td><td>—</td></tr>
+    <tr><td>走行モード</td><td class="dot-good">✔ 完全対応</td><td>—</td></tr>
+    <tr><td>JSON 保存 / 読込</td><td class="dot-good">✔ 完全対応</td><td>—</td></tr>
+    <tr><td>走行記録保存（.txt）</td><td class="dot-good">✔ 完全対応</td><td>—</td></tr>
+    <tr><td>高速SA・PA ピッカー</td><td class="dot-good">✔ フォールバック</td><td>最新データ自動更新</td></tr>
+    <tr><td>道の駅ピッカー</td><td class="dot-good">✔ フォールバック</td><td>最新データ自動更新</td></tr>
+    <tr><td>GSピッカー</td><td class="dot-good">✔ 完全対応</td><td>—（内蔵データ）</td></tr>
+    <tr><td>天気予報</td><td class="dot-ng">✘ 要通信</td><td>Nominatim / GSI / Open-Meteo</td></tr>
+    <tr><td>マップリンク</td><td class="dot-ng">✘ 要通信</td><td>Google Maps（別タブ）</td></tr>
+  </table>
+</div>
+
+<a class="back-to-top" href="#top">▲ 目次へ戻る</a>
+<div class="chapter-divider"></div>
+
+<!-- ══ Chapter 1 ══ -->
+<div class="chapter-header" id="ch1"><span class="ch-num">Chapter 1</span><h2>起動画面の見かた</h2></div>
+
+<div class="section" id="s1-0">
+  <div class="section-title">1-0  起動直後の画面</div>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:14px">起動すると「木枯らし紋次郎」風のスプラッシュ画面が表示され、本画面に遷移します。スプラッシュの主演名・話数・タイトルは 📜 ボタンでカスタマイズできます。</p>
+  <div class="empty-card">
+    <div class="icon">🗺️</div>
+    <p>
+      <strong>データ未読み込み状態</strong><br>
+      「📂 データの読み込みをしてください」と表示されます。<br>
+      <strong>📂 読込</strong> で保存済みファイルを開くか、<br>
+      <strong>✏️ 編集</strong> から地点を新規追加してください。
+    </p>
+  </div>
+  <p style="font-size:12px;color:var(--text3);text-align:center;margin-top:8px">初回起動時・データ未読み込み時の状態</p>
+</div>
+
+<div class="section" id="s1-1">
+  <div class="section-title">1-1  現在時刻の表示</div>
+  <div class="card">
+    <h4 style="font-family:'SF Mono','Menlo',monospace;font-size:28px;color:var(--green);letter-spacing:.06em;font-weight:700">23:16</h4>
+    <p style="margin-top:8px">ヘッダー上部に常時表示されるデジタル時計（15秒ごと更新）。走行モード中は大きく表示されます。時刻の色は時間帯によって変化します。</p>
+    <div class="sub" style="margin-top:8px;font-size:11px;color:var(--text3)">
+      🌅 明け方（5〜6時）: オレンジ　☀️ 日中（6〜17時）: 白　🌆 夕方（17〜19時）: オレンジ　🌙 夜間（19〜5時）: 緑
+    </div>
+  </div>
+  <div class="note-box">
+    <strong>テーマ連動：</strong>☀️/🌙 ボタンでテーマを手動切替した場合、60分ごとの自動テーマ変更は停止します。手動設定はブラウザを閉じても保持されます。
+  </div>
+</div>
+
+<div class="section" id="s1-2">
+  <div class="section-title">1-2  ヘッダーボタン</div>
+  <div class="btn-list">
+    <div class="btn-item">
+      <div class="btn-icon">🏍️</div>
+      <div class="btn-info">
+        <h4>走行モード <span class="tag tag-amber">走行中メイン</span></h4>
+        <p>ツーリング中に使うビュー。現在地・次の目的地・天気・出発カウントダウンを大きく表示。スワイプまたは ◀前 / 次▶ で地点を切り替えられます。走行モード中はボタンが 📋 に変わります。</p>
+      </div>
+    </div>
+    <div class="btn-item">
+      <div class="btn-icon">✏️</div>
+      <div class="btn-info">
+        <h4>編集 <span class="tag tag-plan">行程作成</span></h4>
+        <p>地点の追加・編集・並び替えを行います。走行モード中に押すと走行モードを終了して編集モードに切り替わります。</p>
+      </div>
+    </div>
+    <div class="btn-item">
+      <div class="btn-icon">💾</div>
+      <div class="btn-info">
+        <h4>保存（JSON） <span class="tag tag-plan">計画データ</span></h4>
+        <p>現在の行程データを <code>.json</code> ファイルとして保存。ファイル名は「旅刻_タイトル_日付.json」形式。地点が1件もない場合は保存できません。</p>
+      </div>
+    </div>
+    <div class="btn-item">
+      <div class="btn-icon">📂</div>
+      <div class="btn-info">
+        <h4>読込 <span class="tag tag-plan">計画データ</span></h4>
+        <p>保存済みの <code>.json</code> ファイルを読み込みます。現在の行程は上書きされます（確認ダイアログあり）。</p>
+      </div>
+    </div>
+    <div class="btn-item">
+      <div class="btn-icon">📋</div>
+      <div class="btn-info">
+        <h4>共有テキスト</h4>
+        <p>行程をテキスト形式に変換。クリップボードにコピーして LINE・メモへの貼り付けに使えます。</p>
+      </div>
+    </div>
+    <div class="btn-item">
+      <div class="btn-icon">📜</div>
+      <div class="btn-info">
+        <h4>タイトル設定</h4>
+        <p>起動スプラッシュの演出をカスタマイズ。主演名・第◯話・サブタイトルを自由に設定できます。</p>
+      </div>
+    </div>
+    <div class="btn-item">
+      <div class="btn-icon">☀️</div>
+      <div class="btn-info">
+        <h4>テーマ切替 <span class="tag tag-amber">視認性向上</span></h4>
+        <p>ダークモード（夜間・室内向け）と昼間モード（屋外・直射日光下向け）を切り替えます。6〜18時は自動で昼間モードになりますが、手動切替後は自動変更が停止します。</p>
+      </div>
+    </div>
+    <div class="btn-item" style="border-color:rgba(57,224,122,.2)">
+      <div class="btn-icon">📝</div>
+      <div class="btn-info">
+        <h4>走行記録保存 <span class="tag tag-record">走行後</span></h4>
+        <p>帰宅後に実着・実発・走行メモを1件以上入力するとボタンが<strong style="color:var(--amber)"> amber色に点灯</strong>します。押すと計画時刻・実績時刻・差分・メモを含む <code>.txt</code> ファイルを保存します。</p>
+      </div>
+    </div>
+    <div class="btn-item">
+      <div class="btn-icon">🗺️</div>
+      <div class="btn-info">
+        <h4>サンプルデータ</h4>
+        <p>神奈川〜山梨の日帰りツーリングサンプルを読み込みます。初めて使うときの動作確認に便利です。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s1-3">
+  <div class="section-title">1-3  中央エリア（未読み込み時）</div>
+  <div class="empty-card">
+    <div class="icon">🗺️</div>
+    <p>「編集から地点を追加してください」<br>
+    <strong>📂 読込</strong> で保存済みファイルを開くか、<br>
+    <strong>✏️ 編集</strong> → <strong>＋ 追加</strong> で地点を追加してください。<br>
+    <strong>🗺️ サンプル</strong> でまず動作確認もできます。</p>
+  </div>
+</div>
+
+<div class="section" id="s1-4">
+  <div class="section-title">1-4  使い始めの流れ</div>
+  <div class="flow">
+    <div class="flow-item">
+      <div class="flow-num">1</div>
+      <div class="flow-body">
+        <h4>✏️ 編集モードを開く</h4>
+        <p>鉛筆ボタンをタップ。地点名・時刻・住所・メモを入力して「＋ 追加」で地点を登録。</p>
+      </div>
+    </div>
+    <div class="flow-item">
+      <div class="flow-num">2</div>
+      <div class="flow-body">
+        <h4>💾 行程を保存する</h4>
+        <p>フロッピーボタンで JSON 保存。次回は 📂 読込でそのまま再開できます。</p>
+      </div>
+    </div>
+    <div class="flow-item">
+      <div class="flow-num">3</div>
+      <div class="flow-body">
+        <h4>🏍️ 走行モードで出発</h4>
+        <p>バイクボタンで走行ビューに切り替え。現在地・次の目的地・天気・出発カウントダウンが表示されます。</p>
+      </div>
+    </div>
+    <div class="flow-item">
+      <div class="flow-num">4</div>
+      <div class="flow-body">
+        <h4>📝 帰宅後に記録を残す</h4>
+        <p>✏️ 編集から実着・実発・走行メモを入力。📝 ボタンが amber 点灯したらテキスト保存。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<a class="back-to-top" href="#top">▲ 目次へ戻る</a>
+<div class="chapter-divider"></div>
+
+<!-- ══ Chapter 2 ══ -->
+<div class="chapter-header" id="ch2"><span class="ch-num">Chapter 2</span><h2>編集画面の使いかた</h2></div>
+
+<div class="section" id="s2-0">
+  <div class="section-title">2-0  編集画面の全体像</div>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:14px">✏️ 編集ボタンを押すと上部にフォームが展開し、下に地点一覧が表示されます。フォームで地点を追加・編集し、一覧で並び替え・削除・現在地設定ができます。</p>
+  <div class="card">
+    <h4>① ヘッダー直下</h4>
+    <p>日程タブ（1日目・2日目…）と日付・ルートURL入力欄が表示されます。</p>
+  </div>
+  <div class="card">
+    <h4>② 地点追加フォーム</h4>
+    <p>地点名・時刻・メモ・走行メモ、詳細（住所・給油・実績時刻）を入力するエリアです。</p>
+  </div>
+  <div class="card">
+    <h4>③ 地点一覧（タイムライン）</h4>
+    <p>登録した地点が縦のタイムライン形式で表示されます。各地点をタップするとアクションメニューが開きます。地点間には移動時間が色分け表示されます。</p>
+  </div>
+  <div class="note-box">
+    <strong>自動保存について：</strong>地点の追加・編集・削除・並び替えはすべて localStorage に自動保存されます。ただしセッションをまたぐバックアップには <strong>💾 JSON 保存</strong> が必要です。
+  </div>
+</div>
+
+<div class="section" id="s2-1">
+  <div class="section-title">2-1  日程タブ</div>
+  <div class="card">
+    <h4>日程の切り替え</h4>
+    <p>タブをタップして日程を切り替えます。タブには「1日目 / 3/25(日)」のように日付と曜日が自動表示されます。</p>
+  </div>
+  <div class="card">
+    <h4>日程管理エリア</h4>
+    <p>日付・ルートURLの入力欄と、日程追加・削除ボタンが表示されます。</p>
+  </div>
+  <div class="field-list" style="margin-top:12px">
+    <div class="field-item">
+      <div class="field-label">日付</div>
+      <div class="field-desc">
+        <h4>ツーリング日</h4>
+        <p>日付を設定すると天気の取得基準日になります。同一日付の登録は不可。日付を設定した日程は自動的に日付順に並び替わります。</p>
+      </div>
+    </div>
+    <div class="field-item">
+      <div class="field-label">ルートURL</div>
+      <div class="field-desc">
+        <h4>Google Maps ルートなど</h4>
+        <p>http / https で始まる URL を登録すると、走行モードで「🗺 ルートを開く」ボタンが表示されます。Google マイマップや Yahooカーナビのルートリンクを登録しておくと便利です。</p>
+      </div>
+    </div>
+  </div>
+  <div class="note-box">
+    <strong>日程追加：</strong>「＋ 日程追加」で最大7日程まで追加できます。<strong>日程削除：</strong>「🗑 削除」でその日程の全地点ごと削除されます（確認ダイアログあり）。
+  </div>
+</div>
+
+<div class="section" id="s2-2">
+  <div class="section-title">2-2  地点の追加フォーム</div>
+  <div class="field-list">
+    <div class="field-item">
+      <div class="field-label">地点名 <span class="tag tag-req">必須</span></div>
+      <div class="field-desc">
+        <h4>地点の名前（最大50文字）</h4>
+        <p>例：道の駅みつまた、ENEOS SS、足柄SA（上り）。ピッカーで選ぶと自動入力されます。</p>
+      </div>
+    </div>
+    <div class="field-item">
+      <div class="field-label">着時刻 <span class="tag tag-opt">任意</span></div>
+      <div class="field-desc">
+        <h4>到着予定時刻（HH:MM）</h4>
+        <p>設定すると走行モードで「あと○分」カウントダウンが表示されます。</p>
+      </div>
+    </div>
+    <div class="field-item">
+      <div class="field-label">発時刻 <span class="tag tag-opt">任意</span></div>
+      <div class="field-desc">
+        <h4>出発予定時刻（HH:MM）</h4>
+        <p>着時刻より後の時刻を入力してください。着→発の滞在時間が自動計算されてフォームに表示されます（例：(1時間30分)）。</p>
+        <p style="color:var(--amber);font-size:11px;margin-top:4px">⏱ 既存地点の発時刻を変更すると、以降の地点の時刻が差分だけ自動調整されます（カスケード）。</p>
+      </div>
+    </div>
+    <div class="field-item">
+      <div class="field-label">メモ <span class="tag tag-opt">任意</span></div>
+      <div class="field-desc">
+        <h4>計画メモ（最大200文字）</h4>
+        <p>食事・注意点・立ち寄り先など。行程ビューと走行モードに表示されます。「DM」「danger」「注意」等のキーワードを含む場合は赤文字で強調表示されます。</p>
+      </div>
+    </div>
+    <div class="field-item">
+      <div class="field-label">走行メモ <span class="tag tag-opt">任意</span></div>
+      <div class="field-desc">
+        <h4>📝 走行後の記録メモ（最大200文字）</h4>
+        <p>走行中や帰宅後に入力する記録用メモ。走行記録保存（📝）に含まれます。入力があると 📝 ボタンが amber 点灯します。</p>
+      </div>
+    </div>
+  </div>
+  <div class="note-box" style="margin-top:14px">
+    <strong>時刻順バリデーション：</strong>着時刻 ＞ 発時刻 になっている場合はエラーが表示され追加/更新できません。
+  </div>
+</div>
+
+<div class="section" id="s2-3">
+  <div class="section-title">2-3  入力補助ピッカー（高速 / 道の駅 / GS）</div>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:12px">地点名入力欄の下にある3つのチップボタンをタップすると、施設名をリストから選んで地点名と住所を自動入力できます。</p>
+  <div class="picker-demo">
+    <span class="pd-chip pd-hw">🛣 高速</span>
+    <span class="pd-chip pd-mn">🏪 道の駅</span>
+    <span class="pd-chip pd-gs">⛽ GS</span>
+  </div>
+  <div class="field-list" style="margin-top:12px">
+    <div class="field-item">
+      <div class="field-label" style="color:#4da6ff">🛣 高速</div>
+      <div class="field-desc">
+        <h4>高速SA・PA・IC</h4>
+        <p>全国の高速道路SA・PA・ICを選択。フォールバックデータ230件を内蔵。オンライン時はOverpass APIで最新データを自動取得・補完します。選択すると地点名と都道府県が自動入力されます。</p>
+      </div>
+    </div>
+    <div class="field-item">
+      <div class="field-label" style="color:var(--amber)">🏪 道の駅</div>
+      <div class="field-desc">
+        <h4>全国道の駅</h4>
+        <p>全国の道の駅を選択。フォールバックデータ464件を内蔵。「道の駅 ◯◯」形式で地点名が入力されます。都道府県名で検索可能。</p>
+      </div>
+    </div>
+    <div class="field-item">
+      <div class="field-label" style="color:var(--green)">⛽ GS</div>
+      <div class="field-desc">
+        <h4>ガソリンスタンド チェーン</h4>
+        <p>ENEOS・apollostation・コスモ石油など14チェーンを選択。選択すると「チェーン名 SS」が地点名に入力され、給油ポイントが自動でONになります。</p>
+      </div>
+    </div>
+  </div>
+  <div class="info-box" style="margin-top:8px">
+    <strong>検索のコツ：</strong>ピッカーを開くと現在の地点名入力内容が検索欄に自動入力されます。部分一致で絞り込みができます。
+  </div>
+</div>
+
+<div class="section" id="s2-4">
+  <div class="section-title">2-4  詳細セクション</div>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:12px">「詳細（住所・給油・実績）」ボタンを押すと追加入力欄が展開されます。</p>
+  <div class="field-list">
+    <div class="field-item">
+      <div class="field-label">住所 <span class="tag tag-auto">天気用</span></div>
+      <div class="field-desc">
+        <h4>住所（最大100文字）</h4>
+        <p>天気予報取得のための住所です。住所があると天気が取得されます。「神奈川県小田原市」のように都道府県＋市区町村程度で十分です。ピッカーで施設を選ぶと自動入力されます。</p>
+      </div>
+    </div>
+    <div class="field-item">
+      <div class="field-label">⛽ 給油</div>
+      <div class="field-desc">
+        <h4>給油ポイントフラグ</h4>
+        <p>タップでON/OFF切替。ONにすると行程ビュー・走行モードで ⛽ アイコンが表示されます。GSピッカーで選択すると自動でONになります。</p>
+      </div>
+    </div>
+    <div class="field-item">
+      <div class="field-label">実着 <span class="tag tag-record">走行後</span></div>
+      <div class="field-desc">
+        <h4>実際の到着時刻</h4>
+        <p>帰宅後に実際に到着した時刻を記録。走行記録保存で計画との差分（±○分）が出力されます。</p>
+      </div>
+    </div>
+    <div class="field-item">
+      <div class="field-label">実発 <span class="tag tag-record">走行後</span></div>
+      <div class="field-desc">
+        <h4>実際の出発時刻</h4>
+        <p>帰宅後に実際に出発した時刻を記録。実着・実発・走行メモのいずれかが入力されると 📝 ボタンが amber 点灯します。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s2-5">
+  <div class="section-title">2-5  地点タップ時のアクションメニュー</div>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:12px">編集モードで地点をタップすると行内にアクションメニューが表示されます。</p>
+  <div class="action-grid">
+    <div class="action-item">
+      <div class="action-icon">📍</div>
+      <div class="action-body">
+        <h4>現在地にする</h4>
+        <p>その地点を「現在地」としてマークします。走行モードで現在地として表示されます。行程ビューでは▶ 現在地バッジが付きます。</p>
+      </div>
+    </div>
+    <div class="action-item">
+      <div class="action-icon">✏️</div>
+      <div class="action-body">
+        <h4>編集</h4>
+        <p>フォームにその地点のデータを読み込み、内容を編集できます。編集中はボタンが「更新」に変わります。</p>
+      </div>
+    </div>
+    <div class="action-item">
+      <div class="action-icon">🗺</div>
+      <div class="action-body">
+        <h4>マップ</h4>
+        <p>住所が登録されている場合のみ表示。Google Maps で地点名を検索します（別タブ）。</p>
+      </div>
+    </div>
+    <div class="action-item" style="border-color:rgba(255,90,90,.2)">
+      <div class="action-icon">🗑</div>
+      <div class="action-body">
+        <h4>削除</h4>
+        <p>その地点を削除します（確認あり）。削除後は元に戻せません。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s2-6">
+  <div class="section-title">2-6  並び替え（ドラッグ）</div>
+  <div class="card">
+    <h4>地点の長押しドラッグ（スマートフォン）</h4>
+    <p>地点左端の ⠿ ハンドルを長押しすると地点がゴーストコピーになり、ドラッグで順序を変更できます。他の地点の上でドロップすると入れ替わります。</p>
+  </div>
+  <div class="card">
+    <h4>マウスドラッグ（PC）</h4>
+    <p>同じく ⠿ ハンドルをマウスでドラッグして並び替えできます。</p>
+  </div>
+  <div class="note-box">
+    <strong>注意：</strong>地点の編集中（フォームに読み込み中）は並び替えができません。先にキャンセルまたは更新してください。
+  </div>
+</div>
+
+<div class="section" id="s2-7">
+  <div class="section-title">2-7  帰宅後の記録入力の流れ</div>
+  <div class="flow">
+    <div class="flow-item">
+      <div class="flow-num">1</div>
+      <div class="flow-body">
+        <h4>📂 行程ファイルを読み込む</h4>
+        <p>ツーリング前に保存したJSONファイルを読み込みます。</p>
+      </div>
+    </div>
+    <div class="flow-item">
+      <div class="flow-num">2</div>
+      <div class="flow-body">
+        <h4>✏️ 編集モードで各地点を開く</h4>
+        <p>地点をタップ → 「✏️ 編集」→ 詳細セクションを開いて実着・実発を入力。走行メモも入力。「更新」で保存。</p>
+      </div>
+    </div>
+    <div class="flow-item">
+      <div class="flow-num">3</div>
+      <div class="flow-body">
+        <h4>📝 ボタンが amber 点灯したら</h4>
+        <p>実着・実発・走行メモのいずれかが入力されるとボタンが点灯します。</p>
+      </div>
+    </div>
+    <div class="flow-item">
+      <div class="flow-num">4</div>
+      <div class="flow-body">
+        <h4>📝 走行記録を保存する</h4>
+        <p>ボタンを押すと日付入りの <code>.txt</code> ファイルが保存されます。計画時刻・実績時刻・差分が一覧形式で出力されます。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<a class="back-to-top" href="#top">▲ 目次へ戻る</a>
+<div class="chapter-divider"></div>
+
+<!-- ══ Chapter 3 ══ -->
+<div class="chapter-header" id="ch3"><span class="ch-num">Chapter 3</span><h2>走行モードの使いかた</h2></div>
+
+<div class="section" id="s3-1">
+  <div class="section-title">3-1  走行モードとは</div>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:14px">🏍️ ボタンで走行モードに切り替えます。行程表示が大型カードに切り替わり、走行中に必要な情報（現在地・天気・出発時刻・次の目的地）が一画面に集約されます。</p>
+  <div class="warn-box">
+    <strong>重要：</strong>走行中はスマートフォンを操作しないでください。必ず停車・安全な場所で操作してください。本ツールの操作に起因する事故について制作者は責任を負いません。
+  </div>
+  <div class="note-box" style="margin-top:10px">
+    <strong>縦向き固定：</strong>Android Chrome では走行モード開始時に縦向きが自動ロックされます（iOS Safari は非対応）。
+  </div>
+</div>
+
+<div class="section" id="s3-2">
+  <div class="section-title">3-2  カード表示の見かた</div>
+  <div class="ride-card-demo curr">
+    <div class="rcd-tag curr-tag">▶ 現在地</div>
+    <div class="rcd-name amber">道の駅みつまた</div>
+    <div class="rcd-times">
+      <div class="chip-demo"><span class="chip-label">着</span><span class="chip-val" style="color:var(--amber)">11:30</span></div>
+      <div class="chip-demo"><span class="chip-label">発</span><span class="chip-val" style="color:var(--amber)">12:00</span></div>
+      <span style="font-size:12px;color:var(--green);margin-left:4px;align-self:flex-end;padding-bottom:3px">あと 35分</span>
+    </div>
+    <div class="wx-demo" style="margin-top:10px">
+      <span class="wx-icon-demo">🌤️</span>
+      <div class="wx-info">
+        <div class="wx-cond">晴れ</div>
+        <div class="wx-temp">最高 24°C / 最低 12°C</div>
+      </div>
+    </div>
+  </div>
+  <div class="ride-card-demo" style="margin-top:4px">
+    <div class="rcd-tag">↓ 次の目的地</div>
+    <div class="rcd-name" style="color:var(--text2);font-size:20px">足柄SA（上り）</div>
+    <div class="rcd-times">
+      <div class="chip-demo"><span class="chip-label">着</span><span class="chip-val" style="font-size:20px;color:var(--text2)">13:30</span></div>
+    </div>
+  </div>
+
+  <div class="field-list" style="margin-top:16px">
+    <div class="field-item">
+      <div class="field-label">▶ 現在地</div>
+      <div class="field-desc">
+        <h4>現在地カード（amber 枠）</h4>
+        <p>現在地として設定した地点。到着・出発時刻、天気、カウントダウン、給油フラグ、メモ、走行メモが大きく表示されます。</p>
+      </div>
+    </div>
+    <div class="field-item">
+      <div class="field-label">あと○分</div>
+      <div class="field-desc">
+        <h4>出発カウントダウン</h4>
+        <p>発時刻が設定されている場合に表示。15秒ごとに自動更新。「出発」（±2分以内）、「○分前」、「○分超過」の3状態で表示されます。</p>
+      </div>
+    </div>
+    <div class="field-item">
+      <div class="field-label">↓ 次の目的地</div>
+      <div class="field-desc">
+        <h4>次地点カード（グレー枠）</h4>
+        <p>次の目的地の地点名・到着予定時刻を表示。「あと○時間○分で到着」も表示されます。</p>
+      </div>
+    </div>
+    <div class="field-item">
+      <div class="field-label">移動時間</div>
+      <div class="field-desc">
+        <h4>区間移動時間（色分け）</h4>
+        <p>前の地点の発〜次の地点の着の区間時間。<span class="move-dur-demo lv0-demo">1時間以内 🔵</span> <span class="move-dur-demo lv1-demo">〜2時間 🟡</span> <span class="move-dur-demo lv2-demo">2時間超 🔴</span> で色分け表示されます。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s3-3">
+  <div class="section-title">3-3  スワイプ・ナビゲーション</div>
+  <div class="card">
+    <h4>左右スワイプ</h4>
+    <p>走行ビューを左右にスワイプすると前後の地点カードに切り替わります。アニメーション付きでスムーズに遷移します。</p>
+  </div>
+  <div class="card">
+    <h4>◀ 前 / 次 ▶ ボタン</h4>
+    <p>画面下部のスワイプバーのボタンで同様の切り替えができます。現在の地点位置はプログレスドット（● ○ ○）で確認できます。</p>
+  </div>
+  <div class="card">
+    <h4>閲覧中（◎）表示</h4>
+    <p>現在地以外の地点を閲覧しているときは「◎ 閲覧中」または「✓ 通過済み」タグが表示されます。カードをタップすると「ここを現在地にする」ボタンが出現します。</p>
+  </div>
+</div>
+
+<div class="section" id="s3-4">
+  <div class="section-title">3-4  現在地の変更・アクション</div>
+  <div class="action-grid">
+    <div class="action-item">
+      <div class="action-icon">📍</div>
+      <div class="action-body">
+        <h4>ここを現在地にする</h4>
+        <p>カードをタップしてアクションを展開 → 「📍 ここを現在地にする」で現在地を変更できます。次の地点に着いたときに使います。</p>
+      </div>
+    </div>
+    <div class="action-item">
+      <div class="action-icon">🗺</div>
+      <div class="action-body">
+        <h4>ルートを開く / マップで確認</h4>
+        <p>日程にルートURLが設定されている場合「🗺 ルートを開く」、地点に住所が設定されている場合「🗺 マップで確認」が表示されます。</p>
+      </div>
+    </div>
+    <div class="action-item">
+      <div class="action-icon">✏️</div>
+      <div class="action-body">
+        <h4>編集モードに戻る</h4>
+        <p>ヘッダーの ✏️ ボタンで走行モードを終了して編集モードに切り替えます。閲覧していた地点の日程に自動でジャンプします。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s3-5">
+  <div class="section-title">3-5  天気表示と再取得</div>
+  <div class="wx-demo">
+    <span class="wx-icon-demo">🌤️</span>
+    <div class="wx-info">
+      <div class="wx-cond">晴れ</div>
+      <div class="wx-temp">最高 24°C / 最低 12°C　降水 5%</div>
+    </div>
+  </div>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:12px">住所が登録されている地点は天気予報が自動取得されます。</p>
+  <div class="card">
+    <h4>🌐 取得中…</h4>
+    <p>取得中は「🌐 取得中…」が表示されます。通信状況により数秒〜10秒かかる場合があります。</p>
+  </div>
+  <div class="card">
+    <h4>⚠️ 再取得（タップ）</h4>
+    <p>取得に失敗すると「⚠️ 再取得」が表示されます。タップすると再試行します。オフライン環境では取得できません。</p>
+  </div>
+  <div class="note-box">
+    <strong>自動更新：</strong>走行モード切り替え時・タブ復帰時・30分ごとに天気が自動更新されます。天気データは当日分のみ表示されます（日付未設定の地点は今日の天気）。
+  </div>
+</div>
+
+<a class="back-to-top" href="#top">▲ 目次へ戻る</a>
+<div class="chapter-divider"></div>
+
+<!-- ══ Chapter 4 ══ -->
+<div class="chapter-header" id="ch4"><span class="ch-num">Chapter 4</span><h2>行程テキスト共有</h2></div>
+
+<div class="section" id="s4-1">
+  <div class="section-title">4-1  この機能について</div>
+  <div class="card">
+    <h4>📋 共有テキストとは</h4>
+    <p>行程全体を読みやすいテキスト形式に変換します。LINE・メモ・メール等に貼り付けて仲間と共有したり、バックアップとして保管するのに便利です。</p>
+  </div>
+  <div class="info-box">
+    <strong>JSON との違い：</strong>JSON ファイルは機械可読な計画データで次回ツーリングに再利用できます。共有テキストは人が読みやすい形式で、再読み込みはできません。
+  </div>
+</div>
+
+<div class="section" id="s4-2">
+  <div class="section-title">4-2  テキストの内容</div>
+  <div class="card" style="font-family:'SF Mono','Menlo',monospace;font-size:12px;color:var(--text2);line-height:1.9;background:var(--bg3)">
+    <div>═══════════════════════</div>
+    <div style="color:var(--amber)">　ツーリング行程タイトル</div>
+    <div>═══════════════════════</div>
+    <div style="margin-top:6px">【1日目】3月25日(日)</div>
+    <div style="margin-top:4px">⛽ ENEOS SS</div>
+    <div style="color:var(--text3)">　到着 10:00｜出発 10:15</div>
+    <div style="margin-top:4px">▶ 道の駅みつまた</div>
+    <div style="color:var(--text3)">　到着 11:30｜出発 12:00</div>
+    <div style="color:var(--text3)">　📝 ランチ予定</div>
+    <div style="margin-top:8px;color:var(--text3)">───────────────────────</div>
+    <div style="color:var(--text3)">　旅刻 / Powered by 鴨吉</div>
+  </div>
+  <p style="font-size:12px;color:var(--text3);margin-top:8px">給油ポイントは ⛽ マークで表示されます。</p>
+</div>
+
+<div class="section" id="s4-3">
+  <div class="section-title">4-3  操作方法</div>
+  <div class="flow">
+    <div class="flow-item">
+      <div class="flow-num">1</div>
+      <div class="flow-body">
+        <h4>📋 ボタンをタップ</h4>
+        <p>全日程のテキストがモーダル画面に表示されます。</p>
+      </div>
+    </div>
+    <div class="flow-item">
+      <div class="flow-num">2</div>
+      <div class="flow-body">
+        <h4>「クリップボードにコピー」をタップ</h4>
+        <p>テキストがコピーされ、1.2秒後にモーダルが自動で閉じます。</p>
+      </div>
+    </div>
+    <div class="flow-item">
+      <div class="flow-num">3</div>
+      <div class="flow-body">
+        <h4>LINE・メモ等に貼り付ける</h4>
+        <p>コピーしたテキストを任意のアプリに貼り付けて利用してください。</p>
+      </div>
+    </div>
+  </div>
+  <div class="note-box" style="margin-top:4px">
+    <strong>閉じる方法：</strong>✕ ボタン、またはモーダル背景（暗い部分）をタップで閉じます。
+  </div>
+</div>
+
+<a class="back-to-top" href="#top">▲ 目次へ戻る</a>
+<div class="chapter-divider"></div>
+
+<!-- ══ Chapter 5 ══ -->
+<div class="chapter-header" id="ch5"><span class="ch-num">Chapter 5</span><h2>設定画面の使いかた</h2></div>
+
+<div class="section" id="s5-1">
+  <div class="section-title">5-1  スプラッシュ演出の設定</div>
+  <p style="font-size:13px;color:var(--text3);margin-bottom:14px">📜 ボタンで設定画面を開きます。起動時に表示される「木枯らし紋次郎」風スプラッシュのカスタマイズができます。</p>
+  <div class="field-list">
+    <div class="field-item">
+      <div class="field-label">主演名</div>
+      <div class="field-desc">
+        <h4>スプラッシュの主演クレジット（最大20文字）</h4>
+        <p>空欄のとき「あなた」として表示されます。例：田中太郎</p>
+      </div>
+    </div>
+    <div class="field-item">
+      <div class="field-label">第◯話</div>
+      <div class="field-desc">
+        <h4>話数（1〜99）</h4>
+        <p>「第◯話」として表示されます（第一話〜第九十九話）。空欄にするとランダムな話数が表示されます。</p>
+      </div>
+    </div>
+    <div class="field-item">
+      <div class="field-label">タイトル</div>
+      <div class="field-desc">
+        <h4>サブタイトル（最大40文字）</h4>
+        <p>スプラッシュのサブタイトル。空欄にすると「甲州街道に月を追う」のような紋次郎風タイトルがランダム表示されます。</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="font-size:12px;color:var(--text3);margin:14px 0 6px">設定するとこのように表示されます：</div>
+  <div class="splash-preview">
+    <div class="sp-ep">第十二話</div>
+    <div class="sp-title">旅刻</div>
+    <div style="display:inline-block;writing-mode:vertical-rl;vertical-align:top">
+      <div style="font-size:11px;color:rgba(240,235,215,.7);letter-spacing:.3em;font-family:'Hiragino Mincho ProN',serif">主演：田中太郎</div>
+      <div style="font-size:13px;color:rgba(240,235,215,.9);letter-spacing:.2em;font-family:'Hiragino Mincho ProN',serif;margin-top:4px">甲州街道に月を追う</div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s5-2">
+  <div class="section-title">5-2  デバッグログ</div>
+  <p style="font-size:13px;color:var(--text3);margin-bottom:14px">不具合が発生したときに操作履歴・エラー情報を記録・取り出す機能です。通常は OFF のままで問題ありません。</p>
+  <div class="btn-list">
+    <div class="btn-item">
+      <div class="btn-icon">☑️</div>
+      <div class="btn-info">
+        <h4>操作・エラーを記録する（ON/OFF）</h4>
+        <p>チェックするとログ記録を開始。ONにすると画面右下に 🐛 バッジが表示されます。エラーが発生すると赤くなります。</p>
+      </div>
+    </div>
+    <div class="btn-item">
+      <div class="btn-icon">📋</div>
+      <div class="btn-info">
+        <h4>コピー</h4>
+        <p>記録されたログをクリップボードにコピーします。不具合報告の際にそのまま貼り付けて送れます。</p>
+      </div>
+    </div>
+    <div class="btn-item">
+      <div class="btn-icon">💾</div>
+      <div class="btn-info">
+        <h4>保存</h4>
+        <p>ログをテキストファイル（.txt）として保存します。</p>
+      </div>
+    </div>
+    <div class="btn-item">
+      <div class="btn-icon">🗑️</div>
+      <div class="btn-info">
+        <h4>消去</h4>
+        <p>記録されたログをすべて削除します（確認あり）。</p>
+      </div>
+    </div>
+  </div>
+  <div class="info-box" style="margin-top:12px">
+    <strong>不具合が起きたときの手順</strong><br>
+    ① 「操作・エラーを記録する」をON<br>
+    ② 不具合を再現する操作を行う<br>
+    ③「コピー」または「保存」でログを取り出す<br>
+    ④ 報告先にログを貼り付けて送る
+  </div>
+  <div class="warn-box">
+    <strong>注意：</strong>デバッグログをONにしたまま長時間使い続けるとログが蓄積されます（最大500件）。不具合確認後はOFFにするか「消去」してください。
+  </div>
+</div>
+
+<a class="back-to-top" href="#top">▲ 目次へ戻る</a>
+<div class="chapter-divider"></div>
+
+<!-- ══ Chapter 6 ══ -->
+<div class="chapter-header" id="ch6"><span class="ch-num">Chapter 6</span><h2>著作権・免責事項</h2></div>
+
+<div class="section" id="s6-1">
+  <div class="section-title">6-1  著作権</div>
+  <div class="card">
+    <h4>本ツールの著作権</h4>
+    <p>旅刻mk13（以下「本ツール」）のソースコード・デザイン・UIを含む一切の著作権は、制作者（鴨吉）に帰属します。</p>
+    <p>本ツールは個人利用を目的として制作されたものです。無断転載・再配布・商用利用・改変した上での公開はご遠慮ください。</p>
+  </div>
+  <div class="card">
+    <h4>利用データの著作権</h4>
+    <p>本ツールに入力した行程データ（地点名・メモ・時刻・走行記録等）の著作権は、入力したご本人に帰属します。本ツールがこれらのデータを外部に送信・収集することはありません。</p>
+  </div>
+  <div class="info-card">
+    <h4>外部サービスの利用</h4>
+    <p>本ツールは以下の外部サービスを利用しています。各サービスの著作権および利用規約はそれぞれの提供元に帰属します。</p>
+    <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--text3)">
+      <div>• <strong style="color:var(--text2)">Open-Meteo</strong>　天気予報データの取得</div>
+      <div>• <strong style="color:var(--text2)">OpenStreetMap Nominatim</strong>　住所→座標変換</div>
+      <div>• <strong style="color:var(--text2)">国土地理院 ジオコーダAPI</strong>　住所→座標変換（補完）</div>
+      <div>• <strong style="color:var(--text2)">OpenStreetMap Overpass API</strong>　SA・PA・道の駅データ取得</div>
+      <div>• <strong style="color:var(--text2)">Google Maps</strong>　マップリンク表示</div>
+      <div>• <strong style="color:var(--text2)">Google Fonts</strong>　フォントデータ（Noto Sans JP 等）</div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s6-2">
+  <div class="section-title">6-2  免責事項</div>
+  <div class="warn-card">
+    <h4>⚠ 安全運転に関する免責</h4>
+    <p>本ツールは走行計画の補助を目的としたものです。<strong>走行中の操作は絶対に行わないでください。</strong></p>
+    <p>本ツールの使用に起因する事故・違反・損害について、制作者は一切の責任を負いません。交通ルールを遵守し、安全運転に努めてください。</p>
+  </div>
+  <div class="warn-card">
+    <h4>⚠ データ損失に関する免責</h4>
+    <p>本ツールのデータはブラウザの localStorage に保存されます。以下の操作によりデータが消失する場合があります。</p>
+    <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--text2)">
+      <div>• ブラウザの「閲覧データの消去」</div>
+      <div>• プライベートブラウズ（シークレットモード）の終了</div>
+      <div>• ブラウザのアンインストール・再インストール</div>
+      <div>• ブラウザのストレージ上限超過</div>
+    </div>
+    <p style="margin-top:10px">大切な行程データは必ず <strong>💾 保存ボタン</strong> で JSON ファイルとしてバックアップを取ってください。</p>
+  </div>
+  <div class="card">
+    <h4>天気予報・外部データに関する免責</h4>
+    <p>天気予報・施設情報（SA・PA・道の駅等）は外部サービスのデータを利用しています。情報の正確性・最新性を保証するものではなく、これらの情報に基づく判断で生じた損害について制作者は責任を負いません。</p>
+  </div>
+  <div class="card">
+    <h4>サービス継続性に関する免責</h4>
+    <p>本ツールは予告なく機能変更・公開停止される場合があります。また外部 API の仕様変更・サービス停止により、一部機能が利用できなくなる場合があります。</p>
+  </div>
+</div>
+
+<div class="section" id="s6-3">
+  <div class="section-title">6-3  プライバシー</div>
+  <div class="item-list">
+    <div class="item">
+      <strong>データの外部送信なし</strong><br>
+      入力した行程データ・メモ・個人情報は外部サーバーに送信されません。すべてのデータはお使いのデバイスのブラウザ内にのみ保存されます。
+    </div>
+    <div class="item">
+      <strong>天気・施設検索の通信について</strong><br>
+      天気予報取得・施設データ更新では、入力された住所・地名が外部 API サーバーに送信されます。これは機能の動作上必要な通信です。
+    </div>
+    <div class="item">
+      <strong>アクセス解析・広告なし</strong><br>
+      本ツールにはアクセス解析・トラッキング・広告配信の仕組みは含まれていません。
+    </div>
+  </div>
+</div>
+
+<div class="section" id="s6-4">
+  <div class="section-title">6-4  バージョン情報</div>
+  <div class="update-box">
+    <strong>旅刻mk13</strong>　（mk13-v1）<br>
+    <span style="color:var(--text3);font-size:11px">ホスティング：GitHub Pages（chi555.github.io）</span><br><br>
+    <strong>mk13 主な変更・修正点</strong><br>
+    天気取得ロジック修正（ローディング表示・エラー再取得対応） / 走行モード再レンダリング整合性修正 / オーバーレイ閉鎖時のヘッダーz-index復元 / 高速・道の駅データの24時間キャッシュ更新 / ルートURL入力のHTML注入対策強化 / ドラッグハンドルのnullガード追加 / 話数プレビューの99超バグ修正 / 道の駅データ（茂木町の都道府県誤り）修正
+  </div>
+</div>
+
+<a class="back-to-top" href="#top">▲ 目次へ戻る</a>
+
+<footer>
+  旅刻mk13 / Powered by 鴨吉<br>
+  <a href="#top" style="color:var(--amber);text-decoration:none;font-size:11px">▲ ページ先頭へ</a>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+    a.addEventListener('click', function(e) {
+      e.preventDefault();
+      var id = this.getAttribute('href').slice(1);
+      var target = document.getElementById(id);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.replaceState(null, '', '#' + id);
+      }
+    });
+  });
+});
+</script>
+</body>
+</html>
