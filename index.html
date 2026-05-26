@@ -1274,7 +1274,10 @@ function _updateStickyTops(){
   const hh=document.querySelector('header')?.offsetHeight||62;
   const vv=window.visualViewport;
   const vh=vv?vv.height:window.innerHeight;
-  const h=Math.max(200,vh-hh);
+  // vvt: iOS/Android がキーボード表示時に visual viewport をシフトする量
+  // 利用可能高さ = vp底辺(vvt+vh) - header底辺(hh) = vh+vt-hh
+  const vt=vv?vv.offsetTop:0;
+  const h=Math.max(200,vh+vt-hh);
   // CSS変数とstyle両方を更新（タイミングずれに対する二重保険）
   document.documentElement.style.setProperty('--nv-h', vh+'px');
   document.documentElement.style.setProperty('--hh', hh+'px');
@@ -1282,6 +1285,14 @@ function _updateStickyTops(){
   if(nv) nv.style.height=h+'px';
   const rv=document.getElementById('ride-view');
   if(rv) rv.style.height=h+'px';
+}
+// iOS Safari: キーボード消去後にwindow.scrollYが残留する問題を補正
+// キーボードアニメーション完了後かつ入力フォーカスがないことを確認してから呼ぶ
+function _resetWindowScroll(){
+  if(window.scrollY>0){
+    _dbgLog('kb:scroll_reset',{sY_before:Math.round(window.scrollY)});
+    window.scrollTo(0,0);
+  }
 }
 function cascadeFrom(di,si,oldDep){
   try{const od=toMin(oldDep),nd=toMin(data.days[di].stops[si].dep);if(od===null||nd===null||od===nd)return;const delta=nd-od;for(let i=si+1;i<data.days[di].stops.length;i++){const s=data.days[di].stops[i];if(s.arr)s.arr=fromMin(toMin(s.arr)+delta);if(s.dep)s.dep=fromMin(toMin(s.dep)+delta);}}
@@ -1776,7 +1787,7 @@ function render(){
     return`<div class="stop-row ${st}" data-id="${s.id}">
   <div class="stop-line-col"><div class="stop-dot"></div>${!isLast?'<div class="stop-connector"></div>':''}</div>
   ${isEdit&&editingId===null?`<div class="drag-handle" data-drag-id="${s.id}" ontouchstart="onTouchDragStart(event,'${s.id}')" ontouchmove="onTouchDragMove(event)" ontouchend="onTouchDragEnd(event)" ontouchcancel="_cancelTouchDrag()" onmousedown="onMouseDragStart(event,'${s.id}')">⠿</div>`:''}
-  <div class="stop-body"${isEdit&&editingId===null?` onclick="tapStopInEdit('${s.id}')"`:''}>    <div class="stop-name-row"><span class="stop-name-text">${esc(s.name)}</span>${isEdit&&editingId===null?`<span style="font-size:13px;color:var(--text3);margin-left:auto">▾</span>`:''}</div>
+  <div class="stop-body"${isEdit?` onclick="tapStopInEdit('${s.id}')"`:''}>    <div class="stop-name-row"><span class="stop-name-text">${esc(s.name)}</span>${isEdit&&editingId===null?`<span style="font-size:13px;color:var(--text3);margin-left:auto">▾</span>`:''}</div>
     ${s.addr?`<div class="stop-addr">📍 ${esc(s.addr)}</div>`:''}
     <div class="stop-times">
       ${s.arr?`<div class="time-chip"><span class="time-label">着</span><span class="time-value">${s.arr}</span></div>`:''}
@@ -1954,10 +1965,26 @@ function openEditStop(id){
     const idx=ds.findIndex(s=>s.id===id);_dom('cascade-hint').style.display=(s.dep&&idx<ds.length-1)?'block':'none';
     const _prev=document.getElementById('stay-dur-preview');if(_prev){const _sd=stayDur(s.arr,s.dep);_prev.textContent=_sd?'⏱ 滞在 '+_sd:'';_prev.style.display=_sd?'block':'none';}
     updateDragHint();
-    _dom('normal-view')?.scrollTo({top:0,behavior:'smooth'});
+    // render()を呼んでタイムラインHTMLを更新（editingId!=nullの状態に）
+    // → staleなtapStopInEdit onclickが残存するのを防ぐ（Bug A対策）
+    render();
+    // scrollTo(instant)はAndroid Chromeで非同期になるケースがあるため scrollTop直接代入で確実に同期スクロール
+    const _nvEl=_dom('normal-view');
+    if(_nvEl) _nvEl.scrollTop=0;
   }catch(e){showAppError(EC.EDIT_OPEN,e);}
 }
 function tapStopInEdit(id){
+  if(editingId!==null){
+    const nv=document.getElementById('normal-view');
+    if(editingId===id){
+      // 編集中の地点自身をタップ → フォームを先頭に表示
+      if(nv) nv.scrollTop=0;
+      return;
+    }
+    // 別の地点をタップ → 編集をキャンセルして切り替え
+    // ※ confirm()はAndroid ChromeでNavigation警告のように見えるため使用しない
+    cancelEdit(true); // editingId=null・フォームリセット（noRender=true、直後にrender）
+  }
   activeEditStopId=(activeEditStopId===id?null:id);
   render();
 }
@@ -2391,6 +2418,29 @@ function _dbgSnapshot(){
       vvt:window.visualViewport?Math.round(window.visualViewport.offsetTop):null,
     };
   }catch(e){return {snapErr:String(e).slice(0,60)};}
+}
+
+// キーボード挙動デバッグ用の軽量スナップショット
+// （_dbgEnabled チェックは呼び出し側で行う）
+function _dbgVpSnap(){
+  try{
+    const vv=window.visualViewport;
+    const nv=document.getElementById('normal-view');
+    const clk=document.querySelector('.header-clock');
+    const hdr=document.querySelector('header');
+    const act=document.activeElement;
+    const actStr=act?(act.tagName+(act.id?'#'+act.id:act.className?'.'+String(act.className).split(' ')[0]:'')):'-';
+    return {
+      vvh: vv?Math.round(vv.height):null,          // visual viewport 高さ（キーボードで変化）
+      vvt: vv?Math.round(vv.offsetTop):null,        // vp オフセット（iOS shift）
+      hh:  hdr?hdr.offsetHeight:0,                  // header 実測高さ
+      nvH: nv?parseInt(nv.style.height)||0:0,       // normal-view JS設定高さ
+      nvST:nv?Math.round(nv.scrollTop):0,           // normal-view スクロール位置
+      sY:  Math.round(window.scrollY||0),           // window スクロール（iOS drift）
+      clk: !clk||clk.style.display!=='none',        // 時計表示中か
+      act: actStr,                                   // フォーカス中要素
+    };
+  }catch(e){return {err:1};}
 }
 
 function _dbgLog(event,data){
@@ -3376,7 +3426,19 @@ requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));
 _renderSplash();
 // ── キーボード表示対応 ──────────────────────────────
 // visualViewport resize: sticky高さ再計算 + edit-area先頭をnormal-view上端に揃える
+let _kbResizeTimer=null;
+let _kbPrevVvh=null; // キーボード開閉判定用（前回のvvh）
+let _kbLastWasClose=false; // 最後のresizeがkb_closeだったか（Android fold 対応）
 (window.visualViewport||window).addEventListener('resize',()=>{
+  // キーボード開閉判定（デバッグOFF時も必要なため常に計算）
+  const _rvVvh=window.visualViewport?window.visualViewport.height:window.innerHeight;
+  const _rvDelta=_kbPrevVvh!==null?Math.round(_rvVvh-_kbPrevVvh):null;
+  const _rvEv=_rvDelta!==null?(Math.abs(_rvDelta)>80?(_rvDelta<0?'kb_open':'kb_close'):'ui_resize'):null;
+  // kb_close のみ true にする。ui_resize では上書きしない（2段階 resize で kb_close が消えるバグ対策）
+  if(_rvEv==='kb_close') _kbLastWasClose=true;
+  else if(_rvEv==='kb_open') _kbLastWasClose=false;
+  _kbPrevVvh=_rvVvh;
+  if(_dbgEnabled) _dbgLog('kb:vp_resize',{..._dbgVpSnap(),delta:_rvDelta,ev:_rvEv});
   _updateStickyTops();
   const el=document.activeElement;
   const nv=document.getElementById('normal-view');
@@ -3396,26 +3458,80 @@ _renderSplash();
       }
     },150);
   }
+  // iOS: キーボードアニメーション（約300ms）完了後に再計算してレイアウトを確定
+  // resize は途中値で発火することがあるため、350ms後に再度補正する
+  clearTimeout(_kbResizeTimer);
+  _kbResizeTimer=setTimeout(()=>{
+    const _ka=document.activeElement;
+    const _kaIsInput=_ka&&(_ka.tagName==='INPUT'||_ka.tagName==='TEXTAREA');
+    // ── Android fold 対応 ──────────────────────────
+    // キーボードが閉じたのに入力フォーカスが残っている場合（foldでfocusoutが来ない）:
+    // ① focusin で非表示にした時計を復元（hh=250 に戻す）
+    // ② 編集フォームを先頭に戻す（nvST リセット）
+    if(_kaIsInput&&_kbLastWasClose){
+      const clk=document.querySelector('.header-clock');
+      if(clk&&clk.style.display==='none') clk.style.display='';
+      // 編集モードでフォームが画面外に出ていたら先頭へスクロール
+      if(typeof isEdit!=='undefined'&&isEdit&&typeof editingId!=='undefined'&&editingId!==null){
+        const _nv=document.getElementById('normal-view');
+        if(_nv&&_nv.scrollTop>200) _nv.scrollTop=0; // 同期スクロール
+      }
+    }
+    _kbLastWasClose=false; // settle後にリセット（次の fold 判定に備える）
+    // ──────────────────────────────────────────────
+    _dbgLog('kb:settle_before',()=>({..._dbgVpSnap(),willReset:!_kaIsInput}));
+    if(!_kaIsInput) _resetWindowScroll();
+    _updateStickyTops();
+    _dbgLog('kb:settle_after',_dbgVpSnap);
+  },350);
+});
+// iOS Safari: キーボード表示時にvisualViewportがスクロールするケースも補捉
+// デバウンス(50ms)して連打を防ぐ（アニメーション中はここで window.scrollTo を呼ばない）
+let _vpScrollTimer=null;
+window.visualViewport?.addEventListener('scroll',()=>{
+  clearTimeout(_vpScrollTimer);
+  _vpScrollTimer=setTimeout(_updateStickyTops,50);
 });
 // focusin: 時計を非表示にしてヘッダー高さを約150px削減 → normal-view 表示領域を確保
 document.addEventListener('focusin',e=>{
   const el=e.target;
   if((el.tagName==='INPUT'||el.tagName==='TEXTAREA')&&!el.closest('[id$="-overlay"]')){
+    _dbgLog('kb:focusin',()=>({el:el.tagName+(el.id?'#'+el.id:''),..._dbgVpSnap()}));
     const clk=document.querySelector('.header-clock');
     if(clk) clk.style.display='none';
     requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));
   }
 },true);
 // focusout: フォーカスが外れたら時計を復元
-document.addEventListener('focusout',()=>{
+document.addEventListener('focusout',e=>{
+  // 即時: どの要素からフォーカスが外れたかを記録
+  _dbgLog('kb:focusout',()=>({
+    from:e.target?(e.target.tagName+(e.target.id?'#'+e.target.id:'')):'-',
+    ..._dbgVpSnap(),
+  }));
+  // iOS: キーボードアニメーション（~300ms）完了を待ってから処理する
   setTimeout(()=>{
     const a=document.activeElement;
-    if(!a||a.tagName!=='INPUT'&&a.tagName!=='TEXTAREA'){
+    const aIsInput=a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA');
+    if(!aIsInput){
       const clk=document.querySelector('.header-clock');
       if(clk) clk.style.display='';
-      requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));
+      // iOS: キーボード消去後にwindow.scrollYが残ることがあるためリセット
+      _resetWindowScroll();
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        _updateStickyTops();
+        // 編集中にフォームが画面外（nvST > 200）に出ていたら即座に先頭へ戻す
+        // scrollTo(instant)はAndroid Chromeで非同期になるケースがあるため scrollTop直接代入で確実に同期
+        if(typeof isEdit!=='undefined'&&isEdit&&typeof editingId!=='undefined'&&editingId!==null){
+          const _fonv=document.getElementById('normal-view');
+          if(_fonv&&_fonv.scrollTop>200) _fonv.scrollTop=0;
+        }
+        _dbgLog('kb:focusout_settle',_dbgVpSnap);
+      }));
+    } else {
+      _dbgLog('kb:focusout_refocused',()=>({newAct:a.tagName+(a.id?'#'+a.id:''),..._dbgVpSnap()}));
     }
-  },200);
+  },350); // 200→350ms: iOSキーボードアニメーション完了を確実に待つ
 },true);
 // 時刻は15秒ごと更新（renderRide全再描画しない）
 setInterval(()=>{
