@@ -60,7 +60,8 @@ body.day-mode .ride-log{background:rgba(0,80,200,.07);border-left-color:rgba(0,8
 body.day-mode .fuel-check-row{background:#f0f0f0;border-color:rgba(0,0,0,.2)}
 body.day-mode .fuel-check-box{background:#fff;border-color:rgba(0,0,0,.3)}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);padding-bottom:env(safe-area-inset-bottom);font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;font-size:20px;line-height:1.75;max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;overflow-x:hidden}
+html{height:100%;overscroll-behavior:none}
+body{background:var(--bg);color:var(--text);padding-bottom:env(safe-area-inset-bottom);font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;font-size:20px;line-height:1.75;max-width:480px;margin:0 auto;height:100dvh;overflow:hidden;overscroll-behavior:none}
 header{position:sticky;top:0;background:var(--bg);z-index:100000;border-bottom:2px solid var(--border);padding-top:env(safe-area-inset-top)}
 .header-clock{padding:0 4px;display:flex;align-items:center;justify-content:center;animation:header-appear .4s ease 5.3s both;line-height:1.05}
 .header-main{padding:2px 8px 4px;display:flex;align-items:center;justify-content:space-between;gap:4px;animation:header-appear .4s ease 5.3s both}
@@ -1867,8 +1868,66 @@ function toggleEdit(){
   _dbgLog('toggleEdit:out', _dbgSnapshot);
 }
 function updateDragHint(){const h=_dom('drag-hint');if(!h)return;if(editingId!==null){h.innerHTML='✏️ 地点を保存またはキャンセル後に並び替えできます';h.style.color='var(--amber)';}else{h.innerHTML='地点をドラッグして行程を並び替え（PCはマウスドラッグ）';h.style.color='';}}
+/* ── 編集中フォームの下書き自動保存（リロード対策） ── */
+const DRAFT_SK='touring_edit_draft';
+function _saveDraft(){
+  try{
+    const draft={
+      editingId,
+      day:currentDay,
+      name:_dom('inp-name')?.value||'',
+      addr:_dom('inp-addr')?.value||'',
+      arr:_dom('inp-arr')?.value||'',
+      dep:_dom('inp-dep')?.value||'',
+      note:_dom('inp-note')?.value||'',
+      log:_dom('inp-log')?.value||'',
+      actArr:_dom('inp-act-arr')?.value||'',
+      actDep:_dom('inp-act-dep')?.value||'',
+      fuel:_dom('fuel-check-box')?.classList.contains('checked')||false,
+      detailsOpen:_dom('details-body')?.style.display!=='none',
+    };
+    sessionStorage.setItem(DRAFT_SK,JSON.stringify(draft));
+  }catch(e){}
+}
+function _clearDraft(){try{sessionStorage.removeItem(DRAFT_SK);}catch(e){}}
+function _restoreDraftIfAny(){
+  try{
+    const raw=sessionStorage.getItem(DRAFT_SK);
+    if(!raw)return;
+    const d=JSON.parse(raw);
+    if(!d||!d.name)return; // 地点名なしは復元しない
+    // 対象日に切り替え
+    if(typeof d.day==='number'&&d.day!==currentDay)currentDay=d.day;
+    if(!isEdit){toggleEdit();}
+    if(d.editingId){
+      // 編集対象の地点がまだ存在するか確認
+      const exists=stops().some(s=>s.id===d.editingId);
+      if(exists){
+        openEditStop(d.editingId); // まずフォームを地点データで埋める
+      }
+    }
+    // 下書きの値で上書き
+    if(_dom('inp-name'))_dom('inp-name').value=d.name;
+    if(_dom('inp-addr'))_dom('inp-addr').value=d.addr;
+    if(_dom('inp-arr'))_dom('inp-arr').value=d.arr;
+    if(_dom('inp-dep'))_dom('inp-dep').value=d.dep;
+    if(_dom('inp-note'))_dom('inp-note').value=d.note;
+    if(_dom('inp-log'))_dom('inp-log').value=d.log;
+    if(_dom('inp-act-arr'))_dom('inp-act-arr').value=d.actArr;
+    if(_dom('inp-act-dep'))_dom('inp-act-dep').value=d.actDep;
+    _setFuelCheck(d.fuel);
+    if(d.detailsOpen)_setDetailsOpen(true);
+    showInfoToast('✏️ 編集中の内容を復元しました',3000);
+  }catch(e){_clearDraft();}
+}
+// フォーム入力のたびに下書き保存
+['inp-name','inp-addr','inp-arr','inp-dep','inp-note','inp-log','inp-act-arr','inp-act-dep'].forEach(id=>{
+  document.getElementById(id)?.addEventListener('input',_saveDraft);
+});
+
 function setFormAdd(){
   editingId=null;
+  _clearDraft();
   _dom('form-title').textContent='地点を追加';
   _dom('save-btn').textContent='＋ 追加';
   ['inp-name','inp-addr','inp-note','inp-log'].forEach(id=>_dom(id).value='');
@@ -1958,7 +2017,7 @@ function saveStop(){
       sortCurrentDayStops();
       ['inp-name','inp-addr','inp-note','inp-log'].forEach(id=>_dom(id).value='');
       ['inp-arr','inp-dep','inp-act-arr','inp-act-dep'].forEach(id=>_dom(id).value='');
-      syncBorderAddr();save();render();
+      syncBorderAddr();save();render();_clearDraft();
       // キーボードを閉じてから追加地点へスクロール
       requestAnimationFrame(()=>{
         if(document.activeElement) document.activeElement.blur();
@@ -1970,6 +2029,7 @@ function saveStop(){
       return;
     }
     syncBorderAddr();save();render();
+    _clearDraft();
     // キーボードを閉じてから更新した地点へスクロール（sortで位置が変わる場合もdata-idで確実に特定）
     requestAnimationFrame(()=>{
       if(document.activeElement) document.activeElement.blur();
@@ -2078,6 +2138,7 @@ function toggleFuelCheck(){
   if(!box) return;
   const next=!box.classList.contains('checked');
   _setFuelCheck(next);
+  _saveDraft();
 }
 
 /* ══ 詳細セクション開閉 ══ */
@@ -3321,12 +3382,17 @@ _renderSplash();
   const nv=document.getElementById('normal-view');
   if(el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA')&&!el.closest('[id$="-overlay"]')){
     setTimeout(()=>{
-      const ea=document.getElementById('edit-area');
-      if(nv&&ea){
-        const target=ea.getBoundingClientRect().top - nv.getBoundingClientRect().top + nv.scrollTop - 8;
-        nv.scrollTo({top:Math.max(0,target),behavior:'smooth'});
+      if(nv){
+        const elRect=el.getBoundingClientRect();
+        const nvRect=nv.getBoundingClientRect();
+        const vvBottom=window.visualViewport?.height??window.innerHeight;
+        // フォーカス要素がキーボードに隠れているか、表示領域外の場合のみスクロール
+        if(elRect.bottom>vvBottom-16||elRect.top<nvRect.top+4){
+          const target=elRect.top-nvRect.top+nv.scrollTop-8;
+          nv.scrollTo({top:Math.max(0,target),behavior:'smooth'});
+        }
       } else {
-        el.scrollIntoView({behavior:'smooth',block:'start'});
+        el.scrollIntoView({behavior:'smooth',block:'nearest'});
       }
     },150);
   }
@@ -3373,6 +3439,7 @@ setInterval(()=>{
   if(cd) cd.outerHTML=html;
 },15000);
 if(!isEdit&&!isRide){toggleEdit();showInfoToast('📂 データの読み込みをしてください',4000);}
+else{_restoreDraftIfAny();}
 // 縦向き固定（Android Chrome対応・iOS Safariは非対応のため無視）
 screen.orientation?.lock('portrait').catch(()=>{});
 </script>
