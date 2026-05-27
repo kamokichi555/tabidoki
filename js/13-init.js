@@ -116,7 +116,8 @@ setInterval(()=>{
   const vs=flat[rideViewIdx];
   if(rideViewIdx!==rci||!vs?.dep) return;
   const dm2=toMin(vs.dep);if(dm2===null)return;
-  const diff=dm2-nowMin(),abs=Math.abs(diff);
+  let diff=dm2-nowMin();if(diff<-720)diff+=1440;if(diff>720)diff-=1440; // 深夜またぎ補正
+  const abs=Math.abs(diff);
   const hh2=Math.floor(abs/60),mm2=abs%60;
   const val=hh2>0&&mm2>0?`${hh2}<span style="font-size:.75em">時間</span>${String(mm2).padStart(2,'0')}<span style="font-size:.75em">分</span>`:hh2>0?`${hh2}<span style="font-size:.75em">時間</span>`:`${mm2}<span style="font-size:.75em">分</span>`;
   let html='';

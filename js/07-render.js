@@ -128,7 +128,8 @@ function renderRide(){
   const vsRouteBtn=vsUrlSafe?`<a class="ride-route-btn" href="${esc(vsUrlSafe)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 ルートを開く</a>`:'';
   if(isCurr){
     let depCd='';
-    if(vs.dep){const dm2=toMin(vs.dep);if(dm2!==null){const diff=dm2-nowMin();const abs=Math.abs(diff);const hh=Math.floor(abs/60),mm=abs%60;const val=hh>0&&mm>0?`${hh}<span style="font-size:.75em">時間</span>${String(mm).padStart(2,'0')}<span style="font-size:.75em">分</span>`:hh>0?`${hh}<span style="font-size:.75em">時間</span>`:`${mm}<span style="font-size:.75em">分</span>`;if(diff>2)depCd=`<div class="ride-dep-cd before"><span class="ride-dep-cd-val">${val}</span><span class="ride-dep-cd-unit">前</span></div>`;else if(diff>=-2)depCd=`<div class="ride-dep-cd now"><span class="ride-dep-cd-val">出発</span></div>`;else depCd=`<div class="ride-dep-cd after"><span class="ride-dep-cd-val">${val}</span><span class="ride-dep-cd-unit">超過</span></div>`;}}
+    if(vs.dep){const dm2=toMin(vs.dep);if(dm2!==null){let diff=dm2-nowMin();if(diff<-720)diff+=1440;if(diff>720)diff-=1440; // 深夜またぎ補正
+const abs=Math.abs(diff);const hh=Math.floor(abs/60),mm=abs%60;const val=hh>0&&mm>0?`${hh}<span style="font-size:.75em">時間</span>${String(mm).padStart(2,'0')}<span style="font-size:.75em">分</span>`:hh>0?`${hh}<span style="font-size:.75em">時間</span>`:`${mm}<span style="font-size:.75em">分</span>`;if(diff>2)depCd=`<div class="ride-dep-cd before"><span class="ride-dep-cd-val">${val}</span><span class="ride-dep-cd-unit">前</span></div>`;else if(diff>=-2)depCd=`<div class="ride-dep-cd now"><span class="ride-dep-cd-val">出発</span></div>`;else depCd=`<div class="ride-dep-cd after"><span class="ride-dep-cd-val">${val}</span><span class="ride-dep-cd-unit">超過</span></div>`;}}
     h+=`<div class="ride-card curr" onclick="toggleRideAction()">
       <div class="ride-tag curr-tag">▶ 現在地</div>
       <div class="ride-name">${esc(vs.name)}</div>
@@ -153,7 +154,8 @@ function renderRide(){
     const ns=flat[ni];
     const _mdr=moveDurRide(vs.dep,ns.arr);
     let cd='';
-    if(isCurr){const am=toMin(ns.arr);if(am!==null){const diff=am-nowMin();if(diff>0){const hh=Math.floor(diff/60),mm=diff%60;cd=hh>0&&mm>0?`あと ${hh}時間${mm}分`:hh>0?`あと ${hh}時間`:`あと ${mm}分`;}else if(diff>-30)cd='まもなく到着';}}
+    if(isCurr){const am=toMin(ns.arr);if(am!==null){let diff=am-nowMin();if(diff<-720)diff+=1440;if(diff>720)diff-=1440; // 深夜またぎ補正
+if(diff>0){const hh=Math.floor(diff/60),mm=diff%60;cd=hh>0&&mm>0?`あと ${hh}時間${mm}分`:hh>0?`あと ${hh}時間`:`あと ${mm}分`;}else if(diff>-30)cd='まもなく到着';}}
     h+=`${_mdr?`<div class="ride-move-dur${_mdr.level>=0?' lv'+_mdr.level:''}">→ 次まで ${_mdr.html}</div>`:''}`;
     h+=`<div class="ride-card">
       <div class="ride-tag">↓ 次の目的地${cd?`<span style="margin-left:8px;color:var(--green);font-size:12px">${cd}</span>`:''}</div>
