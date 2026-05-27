@@ -3506,14 +3506,7 @@ async function _startKaikatsuFetch(){
   if(_kaikatsuLoading) return;
   _kaikatsuLoading=true;
   try{
-    // PCかどうか判定（タッチ非対応 = PC扱い）
-    const isPC=!navigator.maxTouchPoints||navigator.maxTouchPoints===0;
-    if(isPC){
-      // PCは位置情報を試みず即ActionPanel
-      renderKaikatsuList([],false,'',true);
-      return;
-    }
-    // 1. モバイル：位置情報取得（5秒）
+    // 位置情報取得（5秒）
     const pos=await new Promise((resolve,reject)=>{
       if(!navigator.geolocation){reject(new Error('no_geolocation'));return;}
       navigator.geolocation.getCurrentPosition(resolve,reject,{timeout:5000,maximumAge:60000});
@@ -3580,26 +3573,7 @@ function selectKaikatsu(name,addr){
 /* ══ 近くのトイレ検索（Googleマップ直接遷移） ══ */
 function openToiletMap(){
   _dbgLog('openToiletMap',{});
-  // クリック直後に空ウィンドウを開いてポップアップブロックを回避
-  const win=window.open('','_blank');
-  const fallbackUrl='https://www.google.com/maps/search/トイレ';
-  const buildUrl=(lat,lng)=>`https://www.google.com/maps/search/トイレ/@${lat.toFixed(5)},${lng.toFixed(5)},16z`;
-  // ポップアップブロックされた場合は同タブ遷移
-  const navTo=url=>{if(win){win.location=url;}else{location.href=url;}};
-  if(win){
-    try{win.document.write('<title>トイレを検索中...</title><body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#888;background:#0d0d0d">📍 現在地を取得中...</body>');}catch(_){}
-  }
-  // PCは位置情報を試みず即汎用検索
-  const isPC=!navigator.maxTouchPoints||navigator.maxTouchPoints===0;
-  if(isPC||!navigator.geolocation){
-    navTo(fallbackUrl);
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(
-    pos=>navTo(buildUrl(pos.coords.latitude,pos.coords.longitude)),
-    ()=>navTo(fallbackUrl),
-    {timeout:5000,maximumAge:30000}
-  );
+  window.open('https://maps.google.com/?q=トイレ','_blank','noopener');
 }
 
 
