@@ -8,10 +8,14 @@
 /* ── localStorageからの自動復元 ── */
 let data;
 let _restored=false;
+let _restoreDebug={hasRaw:false,parsed:false,daysCount:0,stopsTotal:0,err:null};
 try{
   const _raw=localStorage.getItem(SK);
+  _restoreDebug.hasRaw=!!_raw;
+  _restoreDebug.rawLen=_raw?_raw.length:0;
   if(_raw){
     const _p=JSON.parse(_raw);
+    _restoreDebug.parsed=true;
     if(_p&&typeof _p==='object'&&Array.isArray(_p.days)){
       // 旧バージョンからの移行（_applyImportedDataと同じロジック）
       if(_p.version&&['mk13-v1','mk8-v1','mk7-v2','mk7-v1','mk6-v1','mk5-v1','mk4-v2','mk4-v1'].includes(_p.version)){
@@ -31,10 +35,14 @@ try{
       if(!_p.days.length) _p.days=[{label:'1日目',date:'',routeUrl:'',stops:[]}];
       data=_p;
       _restored=data.days.some(d=>d.stops&&d.stops.length>0);
+      _restoreDebug.daysCount=data.days.length;
+      _restoreDebug.stopsTotal=data.days.reduce((s,d)=>s+(d.stops?.length||0),0);
     }
   }
-}catch(e){console.warn('[旅刻] 自動復元に失敗:',e);}
+}catch(e){console.warn('[旅刻] 自動復元に失敗:',e);_restoreDebug.err=String(e).slice(0,100);}
 if(!data) data=JSON.parse(JSON.stringify(DEFAULT));
+// 復元結果をデバッグログに記録（debug ON時のみ実際に記録される）
+setTimeout(()=>{try{_dbgLog('restore_check',{restored:_restored,..._restoreDebug});}catch(e){}},100);
 
 {
   const ds0=data.days[0]?.stops??[];
@@ -128,12 +136,15 @@ setInterval(()=>{
 },15000);
 if(!isEdit&&!isRide){
   toggleEdit();
-  if(_restored){
-    const _total=data.days.reduce((s,d)=>s+(d.stops?.length||0),0);
-    showInfoToast(`🗺️ 前回の行程を復元しました（${_total}地点）`,3000);
-  }else{
-    showInfoToast('📂 データの読み込みをしてください',4000);
-  }
+  // スプラッシュ画面（5秒表示+0.5秒フェードアウト）の後にトーストを表示
+  setTimeout(()=>{
+    if(_restored){
+      const _total=data.days.reduce((s,d)=>s+(d.stops?.length||0),0);
+      showInfoToast(`🗺️ 前回の行程を復元しました（${_total}地点）`,3500);
+    }else{
+      showInfoToast('📂 データの読み込みをしてください',4000);
+    }
+  },5600);
 }
 // 縦向き固定（Android Chrome対応・iOS Safariは非対応のため無視）
 screen.orientation?.lock('portrait').catch(()=>{});
