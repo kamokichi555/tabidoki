@@ -2203,11 +2203,11 @@ function _numToEpisode(val){
 // 木枯らし紋次郎 各話タイトル（笹沢左保 原作）
 const MONJIROU_TITLES=[
   '甲州街道に月を追う','赦免花は散ったか','一里塚に風が吹く',
-  '木◯しは江戸に吹いた','墓場に何かが帰る夜','峠に散った三度笠',
+  '木枯しは江戸に吹いた','墓場に何かが帰る夜','峠に散った三度笠',
   '流れ旅に泥が跳んだ','崖の上に影が消えた','風鈴峠に月が泣く',
   '霧の中の渡り鳥','荒野に十字架が立った','血文字峠を越せ',
   '荒れ野に仁義は無い','三度笠が流れる宿','峠の向こうに嘘があった',
-  '木◯しの涯に海があった','野分の後に血が流れた','孤独な旅路に敵が待つ',
+  '木枯しの涯に海があった','野分の後に血が流れた','孤独な旅路に敵が待つ',
   '旅がらすに傷が疼く','荒漠の地に道はない','砂塵の中の決闘',
   '宵闇の中の渡り鳥','冬枯れの道に涙が落ちた','山霧の彼方に故郷がある',
   '三度笠に吹雪が沁みた','刃風峠に月が泣いた','橋の袂で骨が鳴る',
@@ -3582,7 +3582,7 @@ function openToiletMap(){
   _dbgLog('openToiletMap',{});
   // クリック直後に空ウィンドウを開いてポップアップブロックを回避
   const win=window.open('','_blank');
-  const fallbackUrl='https://www.google.com/maps/search/公衆トイレ';
+  const fallbackUrl='https://www.google.com/maps/search/トイレ';
   const buildUrl=(lat,lng)=>`https://www.google.com/maps/search/トイレ/@${lat.toFixed(5)},${lng.toFixed(5)},16z`;
   // ポップアップブロックされた場合は同タブ遷移
   const navTo=url=>{if(win){win.location=url;}else{location.href=url;}};
