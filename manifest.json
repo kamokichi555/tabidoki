@@ -2,7 +2,7 @@
   "name": "旅刻 – ツーリング行程支援ツール",
   "short_name": "旅刻",
   "description": "荒漠の地に道はない。ツーリング行程支援ツール。",
-  "start_url": "/index.html",
+  "start_url": "/tabidoki/index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#111111",
