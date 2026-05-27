@@ -214,6 +214,7 @@ function _applyImportedData(p,titleFallback,skipConfirm){
   Object.keys(wxStopRes).forEach(k=>delete wxStopRes[k]);
   wxQueueIds.clear();wxQueue.length=0;wxQueueFast.length=0;wxQueueRunning=false;
   _cachedCdiForId=null;
+  save(); // 読み込んだデータを即座にlocalStorageへ反映（読み込み直後にタブを閉じても残るように）
   requestAnimationFrame(()=>{
     if(isRide){isRide=false;document.body.classList.remove('ride-mode');_dom('normal-view').style.display='block';_dom('ride-view').classList.remove('active');_dom('ride-btn').classList.remove('on');_dom('ride-btn').textContent='🏍️';_dom('day-tabs').style.display='';_dom('day-manage').style.display='none';_dom('cancel-ride-btn').style.display='none';}
     if(!isEdit){isEdit=true;_dom('edit-area').style.display='block';}
