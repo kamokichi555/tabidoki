@@ -3497,8 +3497,10 @@ function _renderKkLoading(){
   const list=document.getElementById('kaikatsu-list');
   if(!list) return;
   list.innerHTML='<div style="padding:24px 16px;text-align:center;color:var(--text3);font-size:14px">'
-    +'<div style="margin-bottom:8px">📍 位置情報を取得中…</div>'
-    +'<div style="font-size:12px;opacity:.7;line-height:1.6">許可ダイアログが表示されたら「許可」を押してください</div>'
+    +'<div style="margin-bottom:10px">📍 位置情報を取得中…</div>'
+    +'<div style="font-size:13px;line-height:1.8;color:var(--text2)">'
+    +'ブラウザの上部に<br>「<b>位置情報を許可しますか？</b>」<br>と表示されたら「<b>許可</b>」を押してください'
+    +'</div>'
     +'</div>';
 }
 
@@ -3506,10 +3508,10 @@ async function _startKaikatsuFetch(){
   if(_kaikatsuLoading) return;
   _kaikatsuLoading=true;
   try{
-    // 位置情報取得（5秒）
+    // 位置情報取得（15秒：許可ダイアログへの応答時間を考慮）
     const pos=await new Promise((resolve,reject)=>{
       if(!navigator.geolocation){reject(new Error('no_geolocation'));return;}
-      navigator.geolocation.getCurrentPosition(resolve,reject,{timeout:5000,maximumAge:60000});
+      navigator.geolocation.getCurrentPosition(resolve,reject,{timeout:15000,maximumAge:60000});
     });
     _kaikatsuUserLat=pos.coords.latitude;
     _kaikatsuUserLng=pos.coords.longitude;
@@ -3529,8 +3531,15 @@ async function _startKaikatsuFetch(){
       renderKaikatsuList([],false,'');
     }
   }catch(e){
-    // 位置情報エラー → 位置なしActionPanel
-    renderKaikatsuList([],false,'',true);
+    // 位置情報エラー → 原因別メッセージ付きActionPanel
+    const list=document.getElementById('kaikatsu-list');
+    if(list){
+      const msg=e?.code===1?'位置情報の許可が必要です。<br>ブラウザの設定でこのサイトの位置情報を「許可」してください。':
+                e?.code===3?'位置情報の取得がタイムアウトしました。<br>再度ボタンを押してください。':
+                e?.message==='no_geolocation'?'この端末は位置情報に非対応です。':'位置情報を取得できませんでした。';
+      list.innerHTML='<div style="padding:16px 14px;text-align:center;color:var(--text3);font-size:13px;line-height:1.7;margin-bottom:4px">⚠️ '+msg+'</div>'
+        +_kkActionPanel(null,null);
+    }
   }finally{
     _kaikatsuLoading=false;
   }
