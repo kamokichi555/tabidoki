@@ -5,8 +5,51 @@
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
 
-let data=JSON.parse(JSON.stringify(DEFAULT));
-{const ds0=data.days[0]?.stops??[];manualCurrentId=data.currentStopId??(ds0[0]?.id??null);}
+/* ── localStorageからの自動復元 ── */
+let data;
+let _restored=false;
+try{
+  const _raw=localStorage.getItem(SK);
+  if(_raw){
+    const _p=JSON.parse(_raw);
+    if(_p&&typeof _p==='object'&&Array.isArray(_p.days)){
+      // 旧バージョンからの移行（_applyImportedDataと同じロジック）
+      if(_p.version&&['mk13-v1','mk8-v1','mk7-v2','mk7-v1','mk6-v1','mk5-v1','mk4-v2','mk4-v1'].includes(_p.version)){
+        if(_p.version==='mk4-v1'){
+          let mid=null;
+          for(const d of _p.days){if(d.currentStopId){mid=d.currentStopId;break;}}
+          _p.currentStopId=mid;
+        }
+        _p.version=DEFAULT.version;
+        for(const d of _p.days||[]){
+          if(!('date' in d)) d.date='';
+          if(!('routeUrl' in d)) d.routeUrl='';
+          for(const s of d.stops||[]) if(!('addr' in s)) s.addr='';
+        }
+      }
+      _sanitizeImportedData(_p);
+      if(!_p.days.length) _p.days=[{label:'1日目',date:'',routeUrl:'',stops:[]}];
+      data=_p;
+      _restored=data.days.some(d=>d.stops&&d.stops.length>0);
+    }
+  }
+}catch(e){console.warn('[旅刻] 自動復元に失敗:',e);}
+if(!data) data=JSON.parse(JSON.stringify(DEFAULT));
+
+{
+  const ds0=data.days[0]?.stops??[];
+  manualCurrentId=data.currentStopId??(ds0[0]?.id??null);
+  // currentStopIdが存在しない地点を指していたら無効化
+  if(manualCurrentId){
+    let _found=false;
+    _outer:for(const _d of data.days){
+      for(const _s of _d.stops){
+        if(_s.id===manualCurrentId){_found=true;break _outer;}
+      }
+    }
+    if(!_found) manualCurrentId=data.days[0]?.stops[0]?.id??null;
+  }
+}
 // スプラッシュ表示中に天気取得を先行開始（DOM構築より先に通信を走らせる）
 setTimeout(()=>ensureAllWeather(),0);
 /* ══ 初期化 ══ */
@@ -83,6 +126,14 @@ setInterval(()=>{
   const cd=document.querySelector('.ride-dep-cd');
   if(cd) cd.outerHTML=html;
 },15000);
-if(!isEdit&&!isRide){toggleEdit();showInfoToast('📂 データの読み込みをしてください',4000);}
+if(!isEdit&&!isRide){
+  toggleEdit();
+  if(_restored){
+    const _total=data.days.reduce((s,d)=>s+(d.stops?.length||0),0);
+    showInfoToast(`🗺️ 前回の行程を復元しました（${_total}地点）`,3000);
+  }else{
+    showInfoToast('📂 データの読み込みをしてください',4000);
+  }
+}
 // 縦向き固定（Android Chrome対応・iOS Safariは非対応のため無視）
 screen.orientation?.lock('portrait').catch(()=>{});
