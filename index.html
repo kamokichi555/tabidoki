@@ -3511,7 +3511,7 @@ async function _startKaikatsuFetch(){
     // 位置情報取得（15秒：許可ダイアログへの応答時間を考慮）
     const pos=await new Promise((resolve,reject)=>{
       if(!navigator.geolocation){reject(new Error('no_geolocation'));return;}
-      navigator.geolocation.getCurrentPosition(resolve,reject,{timeout:15000,maximumAge:60000});
+      navigator.geolocation.getCurrentPosition(resolve,reject,{timeout:15000,maximumAge:300000,enableHighAccuracy:false});
     });
     _kaikatsuUserLat=pos.coords.latitude;
     _kaikatsuUserLng=pos.coords.longitude;
