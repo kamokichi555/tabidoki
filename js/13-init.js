@@ -6,8 +6,9 @@
    ══════════════════════════════════════════════════════ */
 
 /* ── localStorageからの自動復元 ── */
+// _pendingRestore は 01-state.js で宣言済み（保存系から参照するためグローバル共有）
 let data;
-let _pendingRestore=null;
+_pendingRestore=null;
 try{
   const _raw=localStorage.getItem(SK);
   if(_raw){
@@ -147,10 +148,17 @@ if(!isEdit&&!isRide){
     // 少し遅延させることで白画面ではなくスプラッシュ上にダイアログが出る。
     setTimeout(()=>{
       const _total=_pendingRestore.days.reduce((s,d)=>s+(d.stops?.length||0),0);
-      if(confirm(`前回の行程データが保存されています（${_total}地点）。\n読み込みますか？`)){
+      const _ok=confirm(`前回の行程データが保存されています（${_total}地点）。\n読み込みますか？`);
+      _pendingRestore=null; // 確認に応答したので保留解除（以降の保存系ガードを外す）
+      if(_ok){
         restoreFromStorage(); // localStorageは保持済みなので再読込で適用
       }else{
-        // 新規開始: localStorageは破壊していないため、復旧用ボタン付きトーストを表示
+        // 新規開始: data は空のままなので、ブラウザが復元した入力欄の値を明示的にクリアする。
+        // _syncTitleInput=ツーリング名、renderTabs=ルートURL/日付欄をdataから再同期。
+        _syncTitleInput();
+        renderTabs();
+        // localStorageの前回データはあえて上書きせず保持する（restoreFromStorageで復旧できるように）。
+        // 復旧用ボタン付きトーストを表示。
         showInfoToast('📂 前回データは読み込んでいません',10000,{label:'読み込む',fn:restoreFromStorage});
       }
     },800);

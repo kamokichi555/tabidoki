@@ -123,6 +123,7 @@ function _syncTitleInput(){
 }
 // debounce未確定のツーリング名入力を即時data.titleへ反映（保存/共有/記録の前に呼ぶ）
 function _flushTitle(){
+  if(_pendingRestore) return; // 復元確認が保留中はdataを変更しない（save()非経由のため個別ガード）
   const el=document.getElementById('inp-title');
   if(!el) return;
   const v=sanitize(el.value,LIMIT.title);

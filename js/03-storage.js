@@ -9,6 +9,10 @@
 /* ══ データ管理（localStorage） ══ */
 
 function save(){
+  // 起動時の復元確認が保留中（_pendingRestore）は、まだ「新規開始/復元」が未確定。
+  // この間に空のdataをlocalStorageへ書き込むと前回データを破壊してしまうため保存しない。
+  // 確認に応答すると 13-init.js が _pendingRestore=null にしてからsave/restoreを行う。
+  if(_pendingRestore) return;
   try{
     data.currentStopId=manualCurrentId;
     data.version=DEFAULT.version;
