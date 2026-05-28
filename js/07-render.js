@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk15 — 07-render.js
+   旅刻 mk16 — 07-render.js
    描画系（7セグ / updateClock / renderTabs / renderRide / render）
    + エラー・トースト UI（showAppError / showInfoToast）
    依存: 00-constants.js（EC/WMO）, 02-utils.js（esc/toMin等）
@@ -94,6 +94,18 @@ function updateClock(){
 /* ══ ライドアクション表示切替 ══ */
 function toggleRideAction(){rideActionVisible=!rideActionVisible;renderRide();}
 
+/* ── 共通: 出発カウントダウンのHTML（走行カード・15秒更新の両方で使用） ── */
+function _depCountdownHtml(dep){
+  if(!dep) return '';
+  const dm=toMin(dep);
+  if(dm===null) return '';
+  const diff=wrapDiff(dm-nowMin());
+  const val=fmtHM(Math.abs(diff),{span:true});
+  if(diff>2)   return `<div class="ride-dep-cd before"><span class="ride-dep-cd-val">${val}</span><span class="ride-dep-cd-unit">前</span></div>`;
+  if(diff>=-2) return `<div class="ride-dep-cd now"><span class="ride-dep-cd-val">出発</span></div>`;
+  return `<div class="ride-dep-cd after"><span class="ride-dep-cd-val">${val}</span><span class="ride-dep-cd-unit">超過</span></div>`;
+}
+
 /* ══ ライドモード描画 ══ */
 function renderRide(){
   try{
@@ -108,11 +120,9 @@ function renderRide(){
   bar.style.display='flex';
   _dom('sw-arr-l').classList.toggle('dim',rideViewIdx===0);
   _dom('sw-arr-r').classList.toggle('dim',rideViewIdx===flat.length-1);
-  const dm=n=>n&&n.includes('🩸');
   /* ── ライドカード共通パーツ ── */
   const _mapLink=s=>s.addr?`<a class="ride-route-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 マップで確認</a>`:'';
   const _fuelBadge=(s,extra='')=>s.fuel?`<div class="stop-fuel-badge" style="width:100%;justify-content:center${extra}">⛽ 給油ポイント</div>`:'';
-  const _noteHtml=s=>s.note?`<div class="ride-note${dm(s.note)?' dm-note':''}">${esc(s.note)}</div>`:'';
   const _noteCompact=s=>s.note?`<div class="ride-note-compact" title="${esc(s.note)}">${esc(s.note)}</div>`:'';
   const _logHtml=s=>s.log?`<div class="ride-log">📝 ${esc(s.log)}</div>`:'';
   const _chips=(s,cls='ride-chip-val')=>{const _sd=stayDur(s.arr,s.dep);return`
@@ -127,9 +137,7 @@ function renderRide(){
   const vsUrlSafe=vsUrl?(()=>{try{return new URL(vsUrl).href;}catch(e){return '';}})():'';
   const vsRouteBtn=vsUrlSafe?`<a class="ride-route-btn" href="${esc(vsUrlSafe)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 ルートを開く</a>`:'';
   if(isCurr){
-    let depCd='';
-    if(vs.dep){const dm2=toMin(vs.dep);if(dm2!==null){let diff=dm2-nowMin();if(diff<-720)diff+=1440;if(diff>720)diff-=1440; // 深夜またぎ補正
-const abs=Math.abs(diff);const hh=Math.floor(abs/60),mm=abs%60;const val=hh>0&&mm>0?`${hh}<span style="font-size:.75em">時間</span>${String(mm).padStart(2,'0')}<span style="font-size:.75em">分</span>`:hh>0?`${hh}<span style="font-size:.75em">時間</span>`:`${mm}<span style="font-size:.75em">分</span>`;if(diff>2)depCd=`<div class="ride-dep-cd before"><span class="ride-dep-cd-val">${val}</span><span class="ride-dep-cd-unit">前</span></div>`;else if(diff>=-2)depCd=`<div class="ride-dep-cd now"><span class="ride-dep-cd-val">出発</span></div>`;else depCd=`<div class="ride-dep-cd after"><span class="ride-dep-cd-val">${val}</span><span class="ride-dep-cd-unit">超過</span></div>`;}}
+    const depCd=_depCountdownHtml(vs.dep);
     h+=`<div class="ride-card curr" onclick="toggleRideAction()">
       <div class="ride-tag curr-tag">▶ 現在地</div>
       <div class="ride-name">${esc(vs.name)}</div>

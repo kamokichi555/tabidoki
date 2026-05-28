@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk15 — 03-storage.js
+   旅刻 mk16 — 03-storage.js
    データ管理（save / share / saveJSON / saveRecord / load / migration）
    依存: 00-constants.js（SK/DEFAULT/LIMIT）, 02-utils.js（sanitize等）
    実行時依存: data, currentDay, render, showInfoToast, showAppError
@@ -73,6 +73,28 @@ function shareItinerary(){
   document.getElementById('share-text').textContent=text;
 }
 
+/* ── 共通: テキストをファイルとして保存（iOSはdata:URLで新タブ、PCはBlob+aタグ） ──
+   opt: {text, filename, blobType, dataMime, btnId, iosBtnText, desktopToast} */
+function downloadTextFile(opt){
+  const btn=opt.btnId?document.getElementById(opt.btnId):null;
+  const flash=(t,bg,ms)=>{if(!btn)return;const orig=btn.textContent;btn.textContent=t;btn.style.background=bg;btn.style.color='#000';setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},ms);};
+  if(IS_IOS){
+    // iOS Safari: data:URLで新しいタブを開いて長押し保存を促す
+    window.open('data:'+opt.dataMime+','+encodeURIComponent(opt.text),'_blank');
+    flash(opt.iosBtnText||'📄','var(--blue,#4da6ff)',3500);
+    showInfoToast('📄 開いたタブで長押し→「保存」してください',4000);
+  }else{
+    const blob=new Blob([opt.text],{type:opt.blobType});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=opt.filename;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),3000);
+    flash('✅','var(--green)',2000);
+    if(opt.desktopToast) showInfoToast(opt.desktopToast,3000);
+  }
+}
+
 function saveJSON(){
   _closeAllOverlays();
   _flushTitle(); // 入力中のツーリング名を確定してからファイル名生成
@@ -87,39 +109,12 @@ function saveJSON(){
     data.currentStopId=manualCurrentId;
     data.version=DEFAULT.version;
     const json=JSON.stringify(data,null,2);
-    const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)&&!window.MSStream;
     const title=(data.title||'ツーリング行程').replace(/[\\/:*?"<>|]/g,'_');
-    const btn=document.getElementById('json-save-btn');
-    if(isIOS){
-      // iOS Safari: data:URLで新しいタブを開いて長押し保存を促す
-      const dataUrl='data:application/json;charset=utf-8,'+encodeURIComponent(json);
-      window.open(dataUrl,'_blank');
-      if(btn){
-        const orig=btn.textContent;
-        btn.textContent='📄 タブで開きました';
-        btn.style.background='var(--blue,#4da6ff)';
-        btn.style.color='#000';
-        setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},3500);
-      }
-      showInfoToast('📄 開いたタブで長押し→「保存」してください',4000);
-    }else{
-      const blob=new Blob([json],{type:'application/json'});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      a.href=url;
-      a.download=`${title}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(()=>URL.revokeObjectURL(url),3000);
-      if(btn){
-        const orig=btn.textContent;
-        btn.textContent='✅';
-        btn.style.background='var(--green)';
-        btn.style.color='#000';
-        setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},2000);
-      }
-    }
+    downloadTextFile({
+      text:json, filename:`${title}.json`,
+      blobType:'application/json', dataMime:'application/json;charset=utf-8',
+      btnId:'json-save-btn', iosBtnText:'📄 タブで開きました'
+    });
   }catch(e){alert('保存に失敗しました: '+e.message);}
 }
 function saveRecord(){
@@ -163,28 +158,17 @@ function saveRecord(){
       });
     });
     lines.push(HR);
-    lines.push('旅刻mk15 / Powered by 鴨吉');
+    lines.push('旅刻mk16 / Powered by 鴨吉');
     const text=lines.join('\n');
     const dateStr=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
     const title=(data.title||'ツーリング').replace(/[\\/:*?"<>|]/g,'_');
     const filename=`旅刻_記録_${title}_${dateStr}.txt`;
-    const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)&&!window.MSStream;
-    const btn=document.getElementById('record-save-btn');
-    if(isIOS){
-      const dataUrl='data:text/plain;charset=utf-8,'+encodeURIComponent(text);
-      window.open(dataUrl,'_blank');
-      if(btn){const orig=btn.textContent;btn.textContent='📄';btn.style.background='var(--blue,#4da6ff)';btn.style.color='#000';setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},3500);}
-      showInfoToast('📄 開いたタブで長押し→「保存」してください',4000);
-    }else{
-      const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      a.href=url;a.download=filename;
-      document.body.appendChild(a);a.click();document.body.removeChild(a);
-      setTimeout(()=>URL.revokeObjectURL(url),3000);
-      if(btn){const orig=btn.textContent;btn.textContent='✅';btn.style.background='var(--green)';btn.style.color='#000';setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},2000);}
-      showInfoToast(`📝 記録を保存しました：${filename}`,3000);
-    }
+    downloadTextFile({
+      text, filename,
+      blobType:'text/plain;charset=utf-8', dataMime:'text/plain;charset=utf-8',
+      btnId:'record-save-btn', iosBtnText:'📄',
+      desktopToast:`📝 記録を保存しました：${filename}`
+    });
   }catch(e){alert('記録の保存に失敗しました: '+e.message);}
 }
 function loadJSON(){
@@ -209,7 +193,7 @@ function restoreFromStorage(){
 function _applyImportedData(p,titleFallback,skipConfirm){
   if(!p||typeof p!=='object'||!Array.isArray(p.days)) throw new Error('フォーマットが正しくありません');
   if(!p.days.length) p.days=[{label:'1日目',date:'',routeUrl:'',stops:[]}];
-  if(p.version&&['mk13-v1','mk8-v1','mk7-v2','mk7-v1','mk6-v1','mk5-v1','mk4-v2','mk4-v1'].includes(p.version)){
+  if(p.version&&['mk15-v1','mk13-v1','mk8-v1','mk7-v2','mk7-v1','mk6-v1','mk5-v1','mk4-v2','mk4-v1'].includes(p.version)){
     if(p.version==='mk4-v1'){let mid=null;for(const d of p.days){if(d.currentStopId){mid=d.currentStopId;break;}}p.currentStopId=mid;}
     p.version=DEFAULT.version;
     for(const d of p.days||[]){
@@ -248,19 +232,7 @@ function _applyImportedData(p,titleFallback,skipConfirm){
     if(_truncated)showInfoToast(`⚠️ 1日${LIMIT.stopsPerDay}件を超える地点は読み込みませんでした`,4000);
     else showInfoToast(`🗺️ 「${title}」を読み込みました`,3000);
     _lastClockTs='';updateClock(); // 走行モードから戻った場合に時計サイズを即時更新
-    requestAnimationFrame(()=>{
-      _updateStickyTops();
-      const nv=_dom('normal-view');
-      if(!nv) return;
-      const firstStop=nv.querySelector('#timeline .stop-row');
-      if(firstStop){
-        const nvRect=nv.getBoundingClientRect();
-        const stopRect=firstStop.getBoundingClientRect();
-        nv.scrollTo({top:nv.scrollTop+(stopRect.top-nvRect.top)-8,behavior:'instant'});
-      }else{
-        nv.scrollTo({top:0,behavior:'instant'});
-      }
-    });
+    requestAnimationFrame(_scrollNormalViewToFirstStop);
   });
 }
 

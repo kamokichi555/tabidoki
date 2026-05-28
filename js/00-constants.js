@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk15 — 00-constants.js
+   旅刻 mk16 — 00-constants.js
    定数・マスタデータ（WMO / DEFAULT / SK / EC / LIMIT）
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
@@ -16,7 +16,7 @@ const WMO={
   95:{e:'⛈️',t:'雷雨'},96:{e:'⛈️',t:'雷雨(雹)'},99:{e:'⛈️',t:'激しい雷雨'}
 };
 const DEFAULT={
-  version:'mk15-v1',title:'',currentStopId:null,
+  version:'mk16-v1',title:'',currentStopId:null,
   days:[
     {label:'1日目',date:'',routeUrl:'',stops:[]}
   ]

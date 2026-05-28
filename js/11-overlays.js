@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk15 — 11-overlays.js
+   旅刻 mk16 — 11-overlays.js
    給油チェック / 詳細セクション / スプラッシュ設定 / オーバーレイ共通
    依存: 00-constants.js（LIMIT）, 02-utils.js（sanitize）
    実行時依存: _dbgLog, showInfoToast, save, render, _lsSetItem

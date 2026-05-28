@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk15 — 02-utils.js
+   旅刻 mk16 — 02-utils.js
    純粋ユーティリティ（DOM非依存）
    依存: 00-constants.js（LIMIT, EC等）
    Copyright © 鴨吉 All Rights Reserved.
@@ -25,16 +25,34 @@ function pClass(p){return typeof p==='number'?(p>=70?'high':p>=40?'mid':'low'):'
 function toMin(t){if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+m;}
 function fromMin(m){m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
 function nowMin(){const n=new Date();return n.getHours()*60+n.getMinutes();}
-function stayDur(arr,dep){const a=toMin(arr),d=toMin(dep);if(a===null||d===null)return'';const diff=d-a;if(diff<=0)return'';const h=Math.floor(diff/60),m=diff%60;return h>0&&m>0?`(${h}時間${m}分)`:h>0?`(${h}時間)`:`(${m}分)`;}
-function actDiff(plan,actual){const p=toMin(plan),a=toMin(actual);if(p===null||a===null)return null;let d=a-p;if(d<-720)d+=1440;if(d>720)d-=1440;return d;}
-function actDiffHtml(plan,actual){const d=actDiff(plan,actual);if(d===null)return'';const abs=Math.abs(d),h=Math.floor(abs/60),m=abs%60;const str=h>0&&m>0?`${h}時間${m}分`:h>0?`${h}時間`:`${m}分`;if(d===0)return`<span class="stop-act-diff ontime">定刻</span>`;if(d>0)return`<span class="stop-act-diff late">+${str}</span>`;return`<span class="stop-act-diff early">-${str}</span>`;}
-function moveDur(dep,nextArr){const d=toMin(dep),a=toMin(nextArr);if(d===null||a===null)return'';let diff=a-d;if(diff<0)diff+=1440;if(diff<=0||diff>720)return'';const h=Math.floor(diff/60),m=diff%60;return h>0&&m>0?`${h}時間${m}分`:h>0?`${h}時間`:`${m}分`;}
+/* ── 共通: 分数→「○時間○分」整形 ──
+   opt.span : 単位を <span style="font-size:.75em"> で小さく表示し、両表記時は分を2桁ゼロ詰め
+   opt.paren: 全体を ( ) で囲む
+   ※ 呼び出し側で 0/負値・深夜補正を済ませた「非負の分数」を渡す前提 */
+function fmtHM(min,opt){
+  const o=opt||{};
+  const t=Math.max(0,Math.trunc(min||0));
+  const h=Math.floor(t/60),m=t%60;
+  const TS=o.span?'<span style="font-size:.75em">時間</span>':'時間';
+  const MS=o.span?'<span style="font-size:.75em">分</span>':'分';
+  const mm=o.span?String(m).padStart(2,'0'):String(m);
+  const s=h>0&&m>0?`${h}${TS}${mm}${MS}`:h>0?`${h}${TS}`:`${m}${MS}`;
+  return o.paren?`(${s})`:s;
+}
+/* ── 共通: 深夜またぎ補正（±12時間を超える差を1日分巻き戻す） ── */
+function wrapDiff(d){if(d<-720)d+=1440;if(d>720)d-=1440;return d;}
+function stayDur(arr,dep){const a=toMin(arr),d=toMin(dep);if(a===null||d===null)return'';const diff=d-a;if(diff<=0)return'';return fmtHM(diff,{paren:true});}
+function actDiff(plan,actual){const p=toMin(plan),a=toMin(actual);if(p===null||a===null)return null;return wrapDiff(a-p);}
+function actDiffHtml(plan,actual){const d=actDiff(plan,actual);if(d===null)return'';const str=fmtHM(Math.abs(d));if(d===0)return`<span class="stop-act-diff ontime">定刻</span>`;if(d>0)return`<span class="stop-act-diff late">+${str}</span>`;return`<span class="stop-act-diff early">-${str}</span>`;}
+function moveDur(dep,nextArr){const d=toMin(dep),a=toMin(nextArr);if(d===null||a===null)return'';let diff=a-d;if(diff<0)diff+=1440;if(diff<=0||diff>720)return'';return fmtHM(diff);}
 function moveDurLevel(dep,nextArr){const d=toMin(dep),a=toMin(nextArr);if(d===null||a===null)return -1;let diff=a-d;if(diff<0)diff+=1440;if(diff<=0||diff>720)return -1;return diff<=60?0:diff<=120?1:2;}
-function moveDurRide(dep,nextArr){const d=toMin(dep),a=toMin(nextArr);if(d===null||a===null)return null;let diff=a-d;if(diff<0)diff+=1440;if(diff<=0||diff>720)return null;const h=Math.floor(diff/60),m=diff%60;const level=diff<=60?0:diff<=120?1:2;let html=h>0&&m>0?`${h}<span style="font-size:.75em">時間</span>${String(m).padStart(2,'0')}<span style="font-size:.75em">分</span>`:h>0?`${h}<span style="font-size:.75em">時間</span>`:`${m}<span style="font-size:.75em">分</span>`;return{html,level};}
+function moveDurRide(dep,nextArr){const d=toMin(dep),a=toMin(nextArr);if(d===null||a===null)return null;let diff=a-d;if(diff<0)diff+=1440;if(diff<=0||diff>720)return null;const level=diff<=60?0:diff<=120?1:2;const html=fmtHM(diff,{span:true});return{html,level};}
 function sanitize(s,max){if(typeof s!=='string')return'';return s.replace(/<[^>]*>/g,'').replace(/javascript\s*:/gi,'').replace(/on\w+\s*=/gi,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'').slice(0,max).trim();}
 function isSafeUrl(s){if(!s)return true;try{const u=new URL(s);return u.protocol==='http:'||u.protocol==='https:';}catch(e){return false;}}
 function isValidTime(s){return typeof s==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(s);}
 function isValidDate(s){return typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s);}
+/* ── 共通: iOS判定（iOSは a.download非対応のため保存方法を分岐する） ── */
+const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)&&!window.MSStream;
 function _sanitizeImportedData(p){
   if(!p||typeof p!=='object')return false;
   if('title' in p) p.title=sanitize(p.title,LIMIT.title);
@@ -61,7 +79,7 @@ function _sanitizeImportedData(p){
       s.arr=isValidTime(s.arr)?s.arr:'';
       s.dep=isValidTime(s.dep)?s.dep:'';
       s.fuel=!!s.fuel;
-      // mk15新規フィールド（旧データには存在しないためデフォルト付与）
+      // mk16新規フィールド（旧データには存在しないためデフォルト付与）
       s.actArr=isValidTime(s.actArr)?s.actArr:'';
       s.actDep=isValidTime(s.actDep)?s.actDep:'';
       s.log=sanitize(s.log||'',LIMIT.log);

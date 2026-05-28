@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk15 — 08-mode.js
+   旅刻 mk16 — 08-mode.js
    モード管理（テーマ / toggleRide / toggleEdit / 編集フォーム操作）
    依存: 00-constants.js（EC）
    実行時依存: data, isEdit, isRide, editingId, render, renderRide,

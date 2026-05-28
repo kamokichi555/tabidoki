@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk15 — 13-init.js
+   旅刻 mk16 — 13-init.js
    起動シーケンス（最後に読み込む）
    依存: すべてのJSファイル
    Copyright © 鴨吉 All Rights Reserved.
@@ -15,7 +15,7 @@ try{
     const _p=JSON.parse(_raw);
     if(_p&&typeof _p==='object'&&Array.isArray(_p.days)){
       // 旧バージョンからの移行（_applyImportedDataと同じロジック）
-      if(_p.version&&['mk13-v1','mk8-v1','mk7-v2','mk7-v1','mk6-v1','mk5-v1','mk4-v2','mk4-v1'].includes(_p.version)){
+      if(_p.version&&['mk15-v1','mk13-v1','mk8-v1','mk7-v2','mk7-v1','mk6-v1','mk5-v1','mk4-v2','mk4-v1'].includes(_p.version)){
         if(_p.version==='mk4-v1'){
           let mid=null;
           for(const d of _p.days){if(d.currentStopId){mid=d.currentStopId;break;}}
@@ -42,7 +42,7 @@ try{
       }
     }
   }
-}catch(e){console.warn('[旅刻] 自動復元に失敗:',e);}
+}catch(e){console.warn('[旅刻] 自動復元に失敗:',e);_dbgLog('autorestore_failed',{err:String(e&&e.message||e).slice(0,200)});}
 if(!data) data=JSON.parse(JSON.stringify(DEFAULT));
 
 {
@@ -126,15 +126,8 @@ setInterval(()=>{
   const rci=flat.findIndex(s=>s.id===manualCurrentId); // currentDayIdxOf→flatから直接検索
   const vs=flat[rideViewIdx];
   if(rideViewIdx!==rci||!vs?.dep) return;
-  const dm2=toMin(vs.dep);if(dm2===null)return;
-  let diff=dm2-nowMin();if(diff<-720)diff+=1440;if(diff>720)diff-=1440; // 深夜またぎ補正
-  const abs=Math.abs(diff);
-  const hh2=Math.floor(abs/60),mm2=abs%60;
-  const val=hh2>0&&mm2>0?`${hh2}<span style="font-size:.75em">時間</span>${String(mm2).padStart(2,'0')}<span style="font-size:.75em">分</span>`:hh2>0?`${hh2}<span style="font-size:.75em">時間</span>`:`${mm2}<span style="font-size:.75em">分</span>`;
-  let html='';
-  if(diff>2) html=`<div class="ride-dep-cd before"><span class="ride-dep-cd-val">${val}</span><span class="ride-dep-cd-unit">前</span></div>`;
-  else if(diff>=-2) html=`<div class="ride-dep-cd now"><span class="ride-dep-cd-val">出発</span></div>`;
-  else html=`<div class="ride-dep-cd after"><span class="ride-dep-cd-val">${val}</span><span class="ride-dep-cd-unit">超過</span></div>`;
+  const html=_depCountdownHtml(vs.dep);
+  if(!html) return;
   const cd=document.querySelector('.ride-dep-cd');
   if(cd) cd.outerHTML=html;
 },15000);
@@ -180,5 +173,8 @@ window.addEventListener('pageshow',()=>{
   if(isEdit){ _syncTitleInput(); setTimeout(()=>{ if(isEdit) _syncTitleInput(); },120); }
 });
 
-// 縦向き固定（Android Chrome対応・iOS Safariは非対応のため無視）
-screen.orientation?.lock('portrait').catch(()=>{});
+// 縦向き固定（Android Chrome対応・iOS Safari/一部デスクトップはlock未実装のため無視）
+// ※ lock() の呼び出しも optional-chain する。screen.orientation はあるが lock が
+//   関数でない環境（iOS Safari等）で同期TypeErrorが投げられ、起動時にエラートースト
+//   が出るのを防ぐ。戻り値がPromiseでない場合に備え catch も optional-chain。
+try{ screen.orientation?.lock?.('portrait')?.catch?.(()=>{}); }catch(e){}

@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk15 — 06-day.js
+   旅刻 mk16 — 06-day.js
    日程・タブ管理 + データアクセサ
    （stops / dayTabLabel / currentDayFlat / addDay / switchDay 等）
    依存: 00-constants.js（EC）, 02-utils.js（toMin/fromMin/debounce）
@@ -16,7 +16,6 @@ function dayTabLabel(day,idx){
   return `${n}日目\n未設定`;
 }
 
-function allStopsFlat(){return data.days.flatMap((day,di)=>day.stops.map(s=>({...s,dayIdx:di,dayLabel:dayTabLabel(day,di)})));}
 // 走行モード用：現在タブの地点のみ
 function currentDayFlat(){
   const day=data.days[currentDay];
@@ -60,6 +59,20 @@ function _updateStickyTops(){
   const rv=document.getElementById('ride-view');
   if(rv) rv.style.height=h+'px';
 }
+/* ── 共通: 通常ビューを先頭地点が見える位置までスクロール（読込/日程切替で使用） ── */
+function _scrollNormalViewToFirstStop(){
+  _updateStickyTops();
+  const nv=_dom('normal-view');
+  if(!nv) return;
+  const firstStop=nv.querySelector('#timeline .stop-row');
+  if(firstStop){
+    const nvRect=nv.getBoundingClientRect();
+    const stopRect=firstStop.getBoundingClientRect();
+    nv.scrollTo({top:nv.scrollTop+(stopRect.top-nvRect.top)-8,behavior:'instant'});
+  }else{
+    nv.scrollTo({top:0,behavior:'instant'});
+  }
+}
 function renderTabs(){
   const c=document.getElementById('day-tabs');
   c.innerHTML=data.days.map((d,i)=>`<button class="day-tab${i===currentDay?' on':''}" onclick="switchDay(${i})">${dayTabLabel(d,i)}</button>`).join('');
@@ -85,6 +98,7 @@ function saveDayDate(){
   if(_pendingRestore) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
   const v=document.getElementById('inp-day-date').value;
   const old=data.days[currentDay].date;
+  _dbgLog('saveDayDate',{from:old,to:v});
   if(v&&v!==old&&data.days.some((d,i)=>i!==currentDay&&d.date===v)){
     const el=document.getElementById('inp-day-date');
     el.value=old;
@@ -206,25 +220,14 @@ function deleteCurrentDay(){
 function switchDay(i){
   try{
     if(!_confirmLeaveEdit()) return;
+    _dbgLog('switchDay',()=>({to:i,snap:_dbgSnapshot()}));
     _flushRouteSave(); // 入力中のrouteUrlを取りこぼさない
     currentDay=Math.max(0,Math.min(data.days.length-1,i));
     const fi=currentDayIdxOf(manualCurrentId);rideViewIdx=fi!==-1?fi:0;
     if(isEdit)cancelEdit(true);
     syncBorderAddr();save();renderTabs();render();
     // 日程切替後は先頭地点が見えるようにスクロール（edit-area表示中でもtop:0を避ける）
-    requestAnimationFrame(()=>{
-      _updateStickyTops();
-      const nv=_dom('normal-view');
-      if(!nv) return;
-      const firstStop=nv.querySelector('#timeline .stop-row');
-      if(firstStop){
-        const nvRect=nv.getBoundingClientRect();
-        const stopRect=firstStop.getBoundingClientRect();
-        nv.scrollTo({top:nv.scrollTop+(stopRect.top-nvRect.top)-8,behavior:'instant'});
-      }else{
-        nv.scrollTo({top:0,behavior:'instant'});
-      }
-    });
+    requestAnimationFrame(_scrollNormalViewToFirstStop);
   }catch(e){showAppError(EC.DAY_SW,e);}
 }
 

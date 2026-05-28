@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk15 — 10-pickers.js
+   旅刻 mk16 — 10-pickers.js
    施設選択モーダル（高速道路 / 道の駅 / GS / 快活CLUB / トイレ）
    依存: 00-constants.js, 02-utils.js（esc/escJsAttr）, 04-weather.js（_lsSetItem）
    実行時依存: _dbgLog, showInfoToast, _setFuelCheck, _closeOverlay
@@ -211,6 +211,8 @@ const HIGHWAY_FALLBACK=[
 ];
 let HIGHWAY_DATA=HIGHWAY_FALLBACK;
 let _highwayLoading=false;
+/* 一度に描画する施設リストの最大行数（大量ノードの一括innerHTML生成を防ぐ） */
+const PICKER_CAP=150;
 
 /* ── 施設データマージ共通関数 ── */
 function _mergeFacilityData(fallback,online){
@@ -222,6 +224,73 @@ function _mergeFacilityData(fallback,online){
   merged.sort((a,b)=>{const pa=a[1]||'',pb=b[1]||'';return pa<pb?-1:pa>pb?1:0;});
   return merged;
 }
+/* ── 共通: OSMタグから住所(都道府県+市区町村)を抽出 ── */
+function _extractAddr(tags){
+  let addr='';
+  const addrFull=tags?.['addr:full']||'';
+  if(addrFull){const m=addrFull.match(/^(.+?[都道府県].+?[市区町村])/);addr=m?m[1]:'';}
+  if(!addr){
+    const pref=tags?.['addr:prefecture']||tags?.['addr:province']||'';
+    const city=tags?.['addr:city']||tags?.['addr:town']||tags?.['addr:village']||'';
+    addr=pref?(city?pref+city:pref):'';
+  }
+  return addr;
+}
+/* ── 共通: 施設キャッシュ読込（TTL・件数しきい値チェック） → {d,t} or null ── */
+function _readFacilityCache(key,ttlMs,minCount){
+  try{
+    const cached=localStorage.getItem(key);
+    if(cached){
+      const o=JSON.parse(cached);
+      if(o&&Date.now()-o.t<ttlMs&&Array.isArray(o.d)&&o.d.length>minCount) return o;
+    }
+  }catch(e){}
+  return null;
+}
+/* ── 共通: Overpass APIへPOST（120秒タイムアウト） → elements配列 ── */
+async function _overpassFetch(body){
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),120000);
+  try{
+    const resp=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body,signal:ctrl.signal,credentials:'omit'});
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const json=await resp.json();
+    return json.elements||[];
+  }finally{ clearTimeout(timer); }
+}
+
+/* ── 共通: 施設選択ボトムシートを開く（高速/道の駅/GS共通） ──
+   cfg: {prefix, title, heightPct, placeholder, oninput, renderList,
+         hintHtml='', listPadding='8px 0', afterOpen?} */
+function _openPickerModal(cfg){
+  _closeAllOverlays();
+  const id=cfg.prefix;
+  const ov=document.createElement('div');
+  ov.id=id+'-overlay';
+  const applyVp=_makeApplyVp(ov);
+  Object.assign(ov.style,{position:'fixed',top:'0',left:'0',width:'100%',height:'100%',zIndex:'999999',background:'rgba(0,0,0,.88)',display:'flex',alignItems:'flex-end',justifyContent:'center',padding:'0'});
+  ov.innerHTML=`<div style="background:var(--bg2);border-radius:16px 16px 0 0;width:100%;max-width:480px;height:${cfg.heightPct}%;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <span style="font-weight:700;font-size:16px">${cfg.title}</span>
+      <button id="${id}-close-btn" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3)">✕</button>
+    </div>
+    <div style="padding:10px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
+      <input id="${id}-search" type="text" placeholder="${cfg.placeholder}" oninput="${cfg.oninput}" style="width:100%;background:var(--bg3);border:1.5px solid var(--border2);border-radius:10px;color:var(--text);font-size:16px;padding:10px 12px;font-family:inherit">
+    </div>
+    ${cfg.hintHtml||''}
+    <div id="${id}-list" style="overflow-y:auto;flex:1;padding:${cfg.listPadding||'8px 0'};-webkit-overflow-scrolling:touch"></div>
+  </div>`;
+  _lowerHeaderForOverlay();document.body.appendChild(ov);
+  _bindOverlayVp(ov,applyVp);
+  const closeBtn=document.getElementById(id+'-close-btn');
+  if(closeBtn) closeBtn.onclick=()=>{_closeOverlay(id+'-overlay');requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));};
+  if(cfg.afterOpen) cfg.afterOpen();
+  const _q=(document.getElementById('inp-name')?.value||'').trim();
+  const _s=ov.querySelector('#'+id+'-search');
+  if(_s&&_q) _s.value=_q;
+  cfg.renderList(_q);
+  setTimeout(()=>{const el=document.getElementById(id+'-search');if(el){el.focus();if(_q) el.select();}},100);
+}
 
 function _mergeHighwayData(online){
   HIGHWAY_DATA=_mergeFacilityData(HIGHWAY_FALLBACK,online);
@@ -232,51 +301,27 @@ async function _fetchHighwayOnline(){
   _highwayLoading=true;
   const _refresh=()=>{const s=document.getElementById('highway-search');if(s)filterHighway();};
   _refresh();
-  let timer; // try外で宣言してcatchからもアクセスできるようにする
   try{
     const CACHE_KEY='highway_online_v1';
-    try{
-      const cached=localStorage.getItem(CACHE_KEY);
-      if(cached){
-        const {d,t}=JSON.parse(cached);
-        if(Date.now()-t<24*60*60*1000&&Array.isArray(d)&&d.length>30){
-          _mergeHighwayData(d);_highwayLoading=false;_refresh();return;
-        }
-      }
-    }catch(e){}
+    const cached=_readFacilityCache(CACHE_KEY,24*60*60*1000,30);
+    if(cached){_mergeHighwayData(cached.d);return;}
     // Overpass APIで高速道路SA/PA取得
-    const ctrl=new AbortController();
-    timer=setTimeout(()=>ctrl.abort(),120000);
-    const body=`[out:json][timeout:100];\nnwr["highway"="services"]["name"~"SA|PA|サービスエリア|パーキングエリア|オアシス|EXPASA|NEOPASA"](24,122,46,155);\nout center tags;`;
-    const resp=await fetch('https://overpass-api.de/api/interpreter',{
-      method:'POST',body,signal:ctrl.signal,credentials:'omit'
-    });
-    clearTimeout(timer);
-    if(!resp.ok) throw new Error('HTTP '+resp.status);
-    const json=await resp.json();
+    const els=await _overpassFetch(`[out:json][timeout:100];\nnwr["highway"="services"]["name"~"SA|PA|サービスエリア|パーキングエリア|オアシス|EXPASA|NEOPASA"](24,122,46,155);\nout center tags;`);
     const result=[];
     const seen=new Set();
-    for(const el of json.elements){
+    for(const el of els){
       const name=(el.tags?.name||'').trim();
       if(!name||seen.has(name)) continue;
       seen.add(name);
-      let addr='';
-      const addrFull=el.tags?.['addr:full']||'';
-      if(addrFull){const m=addrFull.match(/^(.+?[都道府県].+?[市区町村])/);addr=m?m[1]:'';}
-      if(!addr){
-        const pref=el.tags?.['addr:prefecture']||el.tags?.['addr:province']||'';
-        const city=el.tags?.['addr:city']||el.tags?.['addr:town']||el.tags?.['addr:village']||'';
-        addr=pref?(city?pref+city:pref):'';
-      }
-      result.push([name,addr]);
+      result.push([name,_extractAddr(el.tags)]);
     }
     if(result.length>30){
       const _hwJson=JSON.stringify({d:result,t:Date.now()});if(_hwJson.length<600000)try{_lsSetItem(CACHE_KEY,_hwJson);}catch(e){}
       _mergeHighwayData(result);
     }
   }catch(e){
-    clearTimeout(timer); // fetch失敗時もタイマーをクリア（120秒リーク防止）
     console.log('高速施設オンライン取得失敗（フォールバック使用）:',e?.message);
+    _dbgLog('facility_fetch_failed',{kind:'highway',err:String(e&&e.message||e).slice(0,120)});
   }finally{
     _highwayLoading=false;
     const s=document.getElementById('highway-search');if(s)filterHighway();
@@ -284,63 +329,46 @@ async function _fetchHighwayOnline(){
 }
 
 (function _initHighwayData(){
-  try{
-    const cached=localStorage.getItem('highway_online_v1');
-    if(cached){
-      const {d,t}=JSON.parse(cached);
-      if(Date.now()-t<7*24*60*60*1000&&Array.isArray(d)&&d.length>30){
-        _mergeHighwayData(d);
-        if(Date.now()-t>24*60*60*1000) setTimeout(_fetchHighwayOnline,6000);
-        return;
-      }
-    }
-  }catch(e){}
+  const cached=_readFacilityCache('highway_online_v1',7*24*60*60*1000,30);
+  if(cached){
+    _mergeHighwayData(cached.d);
+    if(Date.now()-cached.t>24*60*60*1000) setTimeout(_fetchHighwayOnline,6000);
+    return;
+  }
   setTimeout(_fetchHighwayOnline,6000);
 })();
 
 function openHighway(){
   _dbgLog('openHighway',()=>({q:(document.getElementById('inp-name')?.value||'').trim(),snap:_dbgSnapshot()}));
-  _closeAllOverlays();
-  const ov=document.createElement('div');
-  ov.id='highway-overlay';
-  const applyVp=_makeApplyVp(ov);
-  Object.assign(ov.style,{position:'fixed',top:'0',left:'0',width:'100%',height:'100%',zIndex:'999999',background:'rgba(0,0,0,.88)',display:'flex',alignItems:'flex-end',justifyContent:'center',padding:'0'});
-  ov.innerHTML=`<div style="background:var(--bg2);border-radius:16px 16px 0 0;width:100%;max-width:480px;height:75%;display:flex;flex-direction:column;overflow:hidden">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0">
-      <span style="font-weight:700;font-size:16px">🛣️ 高速施設を選択</span>
-      <button id="highway-close-btn" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3)">✕</button>
-    </div>
-    <div style="padding:10px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
-      <input id="highway-search" type="text" placeholder="SA名・都道府県で検索…" oninput="filterHighway()" style="width:100%;background:var(--bg3);border:1.5px solid var(--border2);border-radius:10px;color:var(--text);font-size:16px;padding:10px 12px;font-family:inherit">
-    </div>
-    <div id="highway-list" style="overflow-y:auto;flex:1;padding:8px 0;-webkit-overflow-scrolling:touch"></div>
-  </div>`;
-  _lowerHeaderForOverlay();document.body.appendChild(ov);
-  const closeBtn=ov.querySelector('#highway-close-btn');
-  if(closeBtn) closeBtn.onclick=()=>{_closeOverlay('highway-overlay');requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));};
-  _bindOverlayVp(ov,applyVp);
-  if(!_highwayLoading) _fetchHighwayOnline();
-  const _q=(document.getElementById('inp-name')?.value||'').trim();
-  const _s=ov.querySelector('#highway-search');
-  if(_s&&_q) _s.value=_q;
-  renderHighwayList(_q);
-  setTimeout(()=>{const el=document.getElementById('highway-search');if(el){el.focus();if(_q) el.select();}},100);
+  _openPickerModal({
+    prefix:'highway',
+    title:'🛣️ 高速施設を選択',
+    heightPct:75,
+    placeholder:'SA名・都道府県で検索…',
+    oninput:'filterHighwayDebounced()',
+    renderList:renderHighwayList,
+    afterOpen:()=>{if(!_highwayLoading) _fetchHighwayOnline();}
+  });
 }
 function filterHighway(){
   const q=(document.getElementById('highway-search')?.value||'').trim();
   renderHighwayList(q);
 }
+/* キーストロークごとの全件再描画を防ぐためdebounce（モーダルopen時・データ到着時は即時のfilterHighwayを使用） */
+const filterHighwayDebounced=debounce(filterHighway,140);
 function renderHighwayList(q){
   const list=document.getElementById('highway-list');
   if(!list) return;
   const filtered=q?HIGHWAY_DATA.filter(m=>m[0].includes(q)||m[1].includes(q)):HIGHWAY_DATA;
   if(!filtered.length){list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:14px">見つかりません</div>';return;}
   const status=_highwayLoading?'<div style="padding:6px 16px;font-size:11px;color:var(--text3)">🌐 最新データ取得中…</div>':'';
+  const shown=filtered.length>PICKER_CAP?filtered.slice(0,PICKER_CAP):filtered;
+  const capNote=filtered.length>PICKER_CAP?`<div style="padding:10px 16px;font-size:12px;color:var(--text3);text-align:center;border-top:1px solid var(--border)">他 ${filtered.length-PICKER_CAP} 件… 検索で絞り込んでください</div>`:'';
   const footer=`<div style="padding:7px 16px;font-size:11px;color:var(--text3);text-align:right;border-top:1px solid var(--border)">${HIGHWAY_DATA.length}件</div>`;
-  list.innerHTML=status+filtered.map(m=>`<div onclick="selectHighway('${escJsAttr(m[0])}','${escJsAttr(m[1])}','${escJsAttr(m[0])}')" style="padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer">
+  list.innerHTML=status+shown.map(m=>`<div onclick="selectHighway('${escJsAttr(m[0])}','${escJsAttr(m[1])}','${escJsAttr(m[0])}')" style="padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer">
     <div style="font-weight:700;font-size:15px;color:var(--text)">${esc(m[0])}</div>
     <div style="font-size:12px;color:var(--text3);margin-top:2px">${esc(m[1])}</div>
-  </div>`).join('')+footer;
+  </div>`).join('')+capNote+footer;
 }
 function selectHighway(name,addr,fullName){
   _dbgLog('selectHighway',{name:String(fullName||name).slice(0,40),addr:String(addr||'').slice(0,40)});
@@ -601,63 +629,32 @@ async function _fetchMichiOnline(){
   // モーダルが開いていれば「取得中」表示を更新
   const _refreshModal = ()=>{const s=document.getElementById('michi-search');if(s)filterMichi();};
   _refreshModal();
-  let timer; // try外で宣言してcatchからもアクセスできるようにする
   try{
     const CACHE_KEY='michi_online_v2';
-    // キャッシュ確認（7日間有効）
-    try{
-      const cached=localStorage.getItem(CACHE_KEY);
-      if(cached){
-        const {d,t}=JSON.parse(cached);
-        if(Date.now()-t < 24*60*60*1000 && Array.isArray(d) && d.length>100){
-          _mergeMichiData(d);
-          _michiLoading=false;
-          _refreshModal();
-          return;
-        }
-      }
-    }catch(e){}
+    // キャッシュ確認（24時間有効）
+    const cached=_readFacilityCache(CACHE_KEY,24*60*60*1000,100);
+    if(cached){_mergeMichiData(cached.d);return;}
     // Overpass API で全国道の駅取得
-    const ctrl=new AbortController();
-    timer=setTimeout(()=>ctrl.abort(),120000);
-    const body=`[out:json][timeout:100];
+    const els=await _overpassFetch(`[out:json][timeout:100];
 nwr["name"~"^道の駅"](24,122,46,155);
-out center tags;`;
-    const resp=await fetch('https://overpass-api.de/api/interpreter',{
-      method:'POST',body,signal:ctrl.signal,credentials:'omit'
-    });
-    clearTimeout(timer);
-    if(!resp.ok) throw new Error('HTTP '+resp.status);
-    const json=await resp.json();
+out center tags;`);
     const result=[];
     const seen=new Set();
-    for(const el of json.elements){
+    for(const el of els){
       const fullName=el.tags?.name||'';
       if(!fullName.startsWith('道の駅')) continue;
       const shortName=fullName.replace(/^道の駅[\s　]*/,'').trim();
       if(!shortName||seen.has(shortName)) continue;
       seen.add(shortName);
-      // addr:full → prefecture+city → prefecture のみ 順で住所を取得
-      let addr='';
-      const addrFull=el.tags?.['addr:full']||'';
-      if(addrFull){
-        const m=addrFull.match(/^(.+?[都道府県].+?[市区町村])/);
-        addr=m?m[1]:'';
-      }
-      if(!addr){
-        const pref=el.tags?.['addr:prefecture']||el.tags?.['addr:province']||'';
-        const city=el.tags?.['addr:city']||el.tags?.['addr:town']||el.tags?.['addr:village']||'';
-        addr=pref?(city?pref+city:pref):'';
-      }
-      result.push([shortName,addr]);
+      result.push([shortName,_extractAddr(el.tags)]);
     }
     if(result.length>100){
       const _mcJson=JSON.stringify({d:result,t:Date.now()});if(_mcJson.length<600000)try{_lsSetItem('michi_online_v2',_mcJson);}catch(e){}
       _mergeMichiData(result);
     }
   }catch(e){
-    clearTimeout(timer); // fetch失敗時もタイマーをクリア（120秒リーク防止）
     console.log('道の駅一覧オンライン取得失敗（フォールバック使用）:',e?.message);
+    _dbgLog('facility_fetch_failed',{kind:'michi',err:String(e&&e.message||e).slice(0,120)});
   }finally{
     _michiLoading=false;
     // モーダルが開いていれば一覧を更新
@@ -667,68 +664,48 @@ out center tags;`;
 
 // キャッシュがあれば即時反映、なければバックグラウンド取得
 (function _initMichiData(){
-  try{
-    const cached=localStorage.getItem('michi_online_v2');
-    if(cached){
-      const {d,t}=JSON.parse(cached);
-      if(Date.now()-t < 7*24*60*60*1000 && Array.isArray(d) && d.length>100){
-        _mergeMichiData(d);
-        // 1日以上経過していれば裏でリフレッシュ
-        if(Date.now()-t > 24*60*60*1000) setTimeout(_fetchMichiOnline, 5000);
-        return;
-      }
-    }
-  }catch(e){}
+  const cached=_readFacilityCache('michi_online_v2',7*24*60*60*1000,100);
+  if(cached){
+    _mergeMichiData(cached.d);
+    // 1日以上経過していれば裏でリフレッシュ
+    if(Date.now()-cached.t > 24*60*60*1000) setTimeout(_fetchMichiOnline, 5000);
+    return;
+  }
   // キャッシュなし → スプラッシュ後に取得開始
   setTimeout(_fetchMichiOnline, 5000);
 })();
 
 function openMichinoEki(){
   _dbgLog('openMichinoEki',()=>({q:(document.getElementById('inp-name')?.value||'').trim(),snap:_dbgSnapshot()}));
-  _closeAllOverlays();
-  const ov=document.createElement('div');
-  ov.id='michi-overlay';
-  const applyVp=_makeApplyVp(ov);
-  Object.assign(ov.style,{position:'fixed',top:'0',left:'0',width:'100%',height:'100%',zIndex:'999999',background:'rgba(0,0,0,.88)',display:'flex',alignItems:'flex-end',justifyContent:'center',padding:'0'});
-  ov.innerHTML=`<div style="background:var(--bg2);border-radius:16px 16px 0 0;width:100%;max-width:480px;height:75%;display:flex;flex-direction:column;overflow:hidden">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0">
-      <span style="font-weight:700;font-size:16px">🏪 道の駅を選択${_michiLoading?'<span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:8px">🌐取得中…</span>':''}</span>
-      <button id="michi-close-btn" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3)">✕</button>
-    </div>
-    <div style="padding:10px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
-      <input id="michi-search" type="text" placeholder="名前・都道府県で検索…" oninput="filterMichi()" style="width:100%;background:var(--bg3);border:1.5px solid var(--border2);border-radius:10px;color:var(--text);font-size:16px;padding:10px 12px;font-family:inherit">
-    </div>
-    <div id="michi-list" style="overflow-y:auto;flex:1;padding:8px 0;-webkit-overflow-scrolling:touch"></div>
-  </div>`;
-  _lowerHeaderForOverlay();document.body.appendChild(ov);
-  _bindOverlayVp(ov,applyVp);
-  const closeBtn=document.getElementById('michi-close-btn');
-  if(closeBtn) closeBtn.onclick=()=>{
-    _closeOverlay('michi-overlay');
-    requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));
-  };
-  const _q=(document.getElementById('inp-name')?.value||'').trim();
-  const _s=ov.querySelector('#michi-search');
-  if(_s&&_q) _s.value=_q;
-  renderMichiList(_q);
-  setTimeout(()=>{const el=document.getElementById('michi-search');if(el){el.focus();if(_q) el.select();}},100);
+  _openPickerModal({
+    prefix:'michi',
+    title:`🏪 道の駅を選択${_michiLoading?'<span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:8px">🌐取得中…</span>':''}`,
+    heightPct:75,
+    placeholder:'名前・都道府県で検索…',
+    oninput:'filterMichiDebounced()',
+    renderList:renderMichiList
+  });
 }
 function filterMichi(){
   const q=(document.getElementById('michi-search')?.value||'').trim();
   renderMichiList(q);
 }
+/* キーストロークごとの全件再描画を防ぐためdebounce */
+const filterMichiDebounced=debounce(filterMichi,140);
 function renderMichiList(q){
   const list=document.getElementById('michi-list');
   if(!list) return;
   const filtered=q?MICHI_NO_EKI.filter(m=>m[0].includes(q)||m[1].includes(q)):MICHI_NO_EKI;
   if(!filtered.length){list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:14px">見つかりません</div>';return;}
+  const shown=filtered.length>PICKER_CAP?filtered.slice(0,PICKER_CAP):filtered;
+  const capNote=filtered.length>PICKER_CAP?`<div style="padding:10px 16px;font-size:12px;color:var(--text3);text-align:center;border-top:1px solid var(--border)">他 ${filtered.length-PICKER_CAP} 件… 検索で絞り込んでください</div>`:'';
   const footer=_michiLoading
     ?'<div style="padding:10px 16px;font-size:12px;color:var(--text3);text-align:center;border-top:1px solid var(--border)">🌐 最新データを取得中…</div>'
     :`<div style="padding:7px 16px;font-size:11px;color:var(--text3);text-align:right;border-top:1px solid var(--border)">${MICHI_NO_EKI.length}件</div>`;
-  list.innerHTML=filtered.map(m=>`<div onclick="selectMichi('${escJsAttr(m[0])}','${escJsAttr(m[1])}','道の駅 ${escJsAttr(m[0])}')" style="padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer">
+  list.innerHTML=shown.map(m=>`<div onclick="selectMichi('${escJsAttr(m[0])}','${escJsAttr(m[1])}','道の駅 ${escJsAttr(m[0])}')" style="padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer">
     <div style="font-weight:700;font-size:15px;color:var(--text)">道の駅 ${esc(m[0])}</div>
     <div style="font-size:12px;color:var(--text3);margin-top:2px">${esc(m[1])}</div>
-  </div>`).join('')+footer;
+  </div>`).join('')+capNote+footer;
 }
 function selectMichi(name,addr,fullName){
   _dbgLog('selectMichi',{name:String(fullName||name).slice(0,40),addr:String(addr||'').slice(0,40)});
@@ -763,34 +740,16 @@ const GAS_STATION_CHAINS=[
 ];
 function openGasStation(){
   _dbgLog('openGasStation',()=>({q:(document.getElementById('inp-name')?.value||'').trim(),snap:_dbgSnapshot()}));
-  _closeAllOverlays();
-  const ov=document.createElement('div');
-  ov.id='gs-overlay';
-  const applyVp=_makeApplyVp(ov);
-  Object.assign(ov.style,{position:'fixed',top:'0',left:'0',width:'100%',height:'100%',zIndex:'999999',background:'rgba(0,0,0,.88)',display:'flex',alignItems:'flex-end',justifyContent:'center',padding:'0'});
-  ov.innerHTML=`<div style="background:var(--bg2);border-radius:16px 16px 0 0;width:100%;max-width:480px;height:70%;display:flex;flex-direction:column;overflow:hidden">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0">
-      <span style="font-weight:700;font-size:16px">⛽ ガソリンスタンドを選択</span>
-      <button id="gs-close-btn" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3)">✕</button>
-    </div>
-    <div style="padding:10px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
-      <input id="gs-search" type="text" placeholder="チェーン名で検索…" oninput="filterGasStation()" style="width:100%;background:var(--bg3);border:1.5px solid var(--border2);border-radius:10px;color:var(--text);font-size:16px;padding:10px 12px;font-family:inherit">
-    </div>
-    <div style="padding:8px 14px 6px;font-size:12px;color:var(--text3);flex-shrink:0">選択すると給油ポイントが自動でONになります</div>
-    <div id="gs-list" style="overflow-y:auto;flex:1;padding:4px 0 8px;-webkit-overflow-scrolling:touch"></div>
-  </div>`;
-  _lowerHeaderForOverlay();document.body.appendChild(ov);
-  _bindOverlayVp(ov,applyVp);
-  const closeBtn=document.getElementById('gs-close-btn');
-  if(closeBtn) closeBtn.onclick=()=>{
-    _closeOverlay('gs-overlay');
-    requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));
-  };
-  const _q=(document.getElementById('inp-name')?.value||'').trim();
-  const _s=ov.querySelector('#gs-search');
-  if(_s&&_q) _s.value=_q;
-  renderGasStationList(_q);
-  setTimeout(()=>{const el=document.getElementById('gs-search');if(el){el.focus();if(_q) el.select();}},100);
+  _openPickerModal({
+    prefix:'gs',
+    title:'⛽ ガソリンスタンドを選択',
+    heightPct:70,
+    placeholder:'チェーン名で検索…',
+    oninput:'filterGasStation()',
+    hintHtml:'<div style="padding:8px 14px 6px;font-size:12px;color:var(--text3);flex-shrink:0">選択すると給油ポイントが自動でONになります</div>',
+    listPadding:'4px 0 8px',
+    renderList:renderGasStationList
+  });
 }
 function filterGasStation(){
   renderGasStationList((document.getElementById('gs-search')?.value||'').trim());

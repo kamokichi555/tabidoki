@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk15 — 04-weather.js
+   旅刻 mk16 — 04-weather.js
    天気取得・ジオコーディング・キュー管理
    依存: 00-constants.js（WMO）, 02-utils.js（esc/pClass/buildGeoTargets等）
    実行時依存: data, currentDay, isRide, render, renderRide, showInfoToast
@@ -19,16 +19,19 @@ function _lsSetItem(key,val){
     if(e.name==='QuotaExceededError'||e.code===22){
       // 容量超過 → キャッシュ系を優先削除して再試行
       console.warn('[旅刻] localStorage容量超過。キャッシュを削減します');
+      _dbgLog('ls_quota_exceeded',{key});
       try{localStorage.removeItem(GEO_SK);}catch(_){}
       try{localStorage.removeItem('highway_online_v1');}catch(_){}
       try{localStorage.removeItem('michi_online_v2');}catch(_){}
       try{localStorage.setItem(key,val);}catch(e2){
         console.error('[旅刻] localStorage保存失敗（容量不足）:',key);
+        _dbgLog('ls_save_failed',{key,err:String(e2&&e2.name||e2).slice(0,80)});
         if(key===SK) showInfoToast('⚠️ ストレージ容量不足のため自動保存できません',4000);
       }
     }else if(e instanceof DOMException){
       // プライベートモード等でアクセス不可の場合
       console.warn('[旅刻] localStorage利用不可:',e.name,key);
+      _dbgLog('ls_unavailable',{key,name:e.name});
       if(key===SK) showInfoToast('⚠️ このブラウザではデータを自動保存できません（JSONで手動保存してください）',5000);
     }
   }
@@ -52,6 +55,11 @@ const FCST_SK='touring_fcast';
 const fcastCache=(()=>{try{return JSON.parse(sessionStorage.getItem(FCST_SK))||{};}catch(e){return{};}})();
 function _saveFcastCache(){try{sessionStorage.setItem(FCST_SK,JSON.stringify(fcastCache));}catch(e){}}
 const wxStopRes={};
+/* ── 共通: idから地点オブジェクトを取得（onStopWxReady/_showLoadingDomで共用） ── */
+function _stopById(id){
+  for(const day of data.days){for(const s of day.stops){if(s.id===id) return s;}}
+  return null;
+}
 let wxQueueRunning=false;
 let wxGen=0; // 世代トークン：refreshAllWeatherで++し、実行中ループは世代変化で自然離脱する
 const wxQueue=[];
@@ -59,6 +67,10 @@ const wxQueueFast=[];
 // キューが刺さった場合の自動リセット（30秒ごとに監視）
 setInterval(()=>{
   if(wxQueueRunning&&!wxQueue.length&&!wxQueueFast.length) wxQueueRunning=false;
+  // 非表示タブでは監視不要（復帰時に visibilitychange で再取得する）
+  if(document.hidden) return;
+  // loading 状態の地点が1つも無ければ全地点走査はスキップ（通常時のコストを回避）
+  if(!Object.values(wxStopRes).some(v=>v==='loading')) return;
   // 孤立したloading（キューに存在しない＝処理されない）のみリセット再投入。
   // wxQueueIdsに在る地点は処理中/待機中なので触らない（重複投入を防ぐ）
   data.days.forEach((day,di)=>{
@@ -69,10 +81,6 @@ setInterval(()=>{
   });
 },30000);
 
-
-
-
-/* ── 地点天気HTML（行程ビュー内バッジ） ── */
 /* ── 天気タップ再取得 ── */
 function retryStopWeather(stopId){
   const r=wxStopRes[stopId];
@@ -171,9 +179,8 @@ function onStopWxReady(stopId){
   // 通常ビュー：該当地点のwx-要素のみ部分更新
   const el=document.getElementById('wx-'+stopId);
   if(el){
-    let hasAddr=false;
-    outer:for(const day of data.days){for(const s of day.stops){if(s.id===stopId){hasAddr=!!(s.addr);break outer;}}}
-    el.innerHTML=stopWxInner(stopId,hasAddr);
+    const s=_stopById(stopId);
+    el.innerHTML=stopWxInner(stopId,!!(s&&s.addr));
   }
 }
 /* ── 取得開始時に即座にDOM更新（loading表示） ── */
@@ -181,9 +188,8 @@ function _showLoadingDom(stopId){
   const el=document.getElementById('wx-'+stopId);
   if(!el) return;
   // addrがある地点のみloading表示（住所なしは取得しても表示しない）
-  let hasAddr=false;
-  outer:for(const day of data.days){for(const s of day.stops){if(s.id===stopId){hasAddr=!!(s.addr);break outer;}}}
-  if(hasAddr) el.innerHTML='<div class="stop-wx-loading">🌐 取得中…</div>';
+  const s=_stopById(stopId);
+  if(s&&s.addr) el.innerHTML='<div class="stop-wx-loading">🌐 取得中…</div>';
 }
 
 /* ── wttr.in コード → WMO近似変換 ── */
@@ -444,8 +450,10 @@ async function doFetchStop(stop,date){
     const coords=await _geocodeParallel(q,useAddrMode);
     if(coords){lat=coords.lat;lon=coords.lon;_geoCacheSet(q,lat,lon);break;}
   }
-  if(!lat){if(_stopStillValid(stop))wxStopRes[stop.id]={error:true,date,time:Date.now()};return;}
+  if(!lat){if(_stopStillValid(stop)){wxStopRes[stop.id]={error:true,date,time:Date.now()};_dbgLog('wx_geocode_failed',{id:stop.id,q:(geoTargets[0]||'').slice(0,40)});}return;}
   await _fetchForecast(stop,lat,lon,forecastDate);
+  // 予報取得が失敗（全プロバイダ不通）した場合は追跡用に記録
+  if(wxStopRes[stop.id]&&wxStopRes[stop.id].error) _dbgLog('wx_forecast_failed',{id:stop.id});
 }
 
 /* ══ キュー処理（fast:全並列 / slow:1件直列・600msウェイト） ══ */
@@ -536,9 +544,11 @@ function refreshAllWeather(){
   if(isRide) ensureAllWeather(); else ensureDayWeather(currentDay);
 }
 
-// 30分ごと自動更新
-setInterval(refreshAllWeather,30*60*1000);
-// タブ復帰時更新
+// 30分ごと自動更新（非表示タブでは実行しない＝バックグラウンド通信を避ける）
+setInterval(()=>{if(!document.hidden) refreshAllWeather();},30*60*1000);
+// タブ復帰時更新（時計も即時に最新へ）
 document.addEventListener('visibilitychange',()=>{
-  if(!document.hidden) isRide?ensureAllWeather():ensureDayWeather(currentDay);
+  if(document.hidden) return;
+  if(typeof updateClock==='function') updateClock();
+  isRide?ensureAllWeather():ensureDayWeather(currentDay);
 });

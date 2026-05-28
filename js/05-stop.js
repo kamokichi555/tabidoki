@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk15 — 05-stop.js
+   旅刻 mk16 — 05-stop.js
    地点管理（saveStop / delStop / cascadeFrom / sort / getStatus）
    依存: 00-constants.js（EC/LIMIT）, 02-utils.js（sanitize/toMin等）
    実行時依存: data, currentDay, editingId, wxStopRes, wxQueueIds,
@@ -14,7 +14,8 @@ function cascadeFrom(di,si,oldDep){
 function getStatus(s,idx,ds,cdi){
   if(manualCurrentId===null) return idx===0?'current':'upcoming';
   if(cdi===-1) return idx===0?'current':'upcoming';
-  if(currentDay!==cdi) return currentDay<cdi?'upcoming':'past';
+  // 表示中の日(currentDay)が現在地のある日(cdi)より前なら通過済み=past、後なら未到達=upcoming
+  if(currentDay!==cdi) return currentDay<cdi?'past':'upcoming';
   if(s.id===manualCurrentId) return 'current';
   const ci=ds.findIndex(x=>x.id===manualCurrentId);
   if(ci!==-1) return idx<ci?'past':'upcoming';
@@ -53,8 +54,9 @@ function saveStop(){
       const newId=Date.now().toString(36)+Math.random().toString(36).slice(2);
       ds.push({id:newId,name,addr,arr:newArr,dep:newDep,note,log,actArr,actDep,fuel});
       // B案: 追加した地点は末尾に置き、並び順はユーザーのドラッグに委ねる（自動で並べ替えない）
-      ['inp-name','inp-addr','inp-note','inp-log'].forEach(id=>_dom(id).value='');
-      ['inp-arr','inp-dep','inp-act-arr','inp-act-dep'].forEach(id=>_dom(id).value='');
+      // フォームを完全リセット（編集分岐と同じ挙動）。給油チェック・詳細パネル・時刻エラー表示・
+      // 滞在時間プレビューも初期化し、次の追加に給油ON等が継承されないようにする。
+      setFormAdd();
       syncBorderAddr();save();render();
       // キーボードを閉じてから追加地点へスクロール
       requestAnimationFrame(()=>{
@@ -89,6 +91,7 @@ function delStop(id){
   }catch(e){showAppError(EC.STOP,e);}
 }
 function setCurrentStop(id){
+  _dbgLog('setCurrentStop',{id});
   manualCurrentId=id;_cachedCdiForId=null; // cdiキャッシュ無効化
   const fi=currentDayIdxOf(id);if(fi!==-1)rideViewIdx=fi;
   save();if(isRide)renderRide();else render();
