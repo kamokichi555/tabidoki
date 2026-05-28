@@ -100,16 +100,35 @@ function _scrollFocusedInputIntoView(){
   if(el.tagName==='INPUT'&&_NO_KB_TYPES.has((el.type||'').toLowerCase())) return;
   const sc=_scrollableAncestor(el);
   if(!sc) return;
-  const target=el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 12;
-  sc.scrollTo({top:Math.max(0,target),behavior:'smooth'});
+  // 可視帯（visualViewport）をレイアウト座標で把握する。
+  // resizes-visual では visualViewport.offsetTop の分ずれるため考慮する。
+  const vv=window.visualViewport;
+  const vTop=vv?vv.offsetTop:0;
+  const vBottom=vTop+(vv?vv.height:window.innerHeight); // ＝キーボード上端
+  const r=el.getBoundingClientRect();
+  const scTop=sc.getBoundingClientRect().top;           // スクロール領域上端＝ヘッダー/見出し直下
+  const visTop=Math.max(scTop,vTop);                    // 入力が見えてよい上端
+  // 既に余裕をもって見えているなら何もしない（既定スクロールとの競合・過剰スクロール防止）
+  if(r.top>=visTop+4 && r.bottom<=vBottom-8) return;
+  const margin=16;
+  const desiredTop=visTop+margin; // 入力欄の上端をここに合わせる＝常にキーボードより上
+  const newTop=Math.max(0, sc.scrollTop + (r.top - desiredTop));
+  // smoothはビューポート変化やブラウザ既定スクロールと競合して中断されやすいので即時で確実に動かす
+  if(Math.abs(newTop - sc.scrollTop)>1) sc.scrollTop=newTop;
+}
+// キーボード/ビューポートが落ち着くタイミングが端末ごとにまちまちなので、
+// 即時スクロールを複数回リトライして確実に可視化する（可視になれば上のガードで以降は無動作）。
+let _kbScrollTimers=[];
+function _scheduleKbScroll(){
+  _kbScrollTimers.forEach(clearTimeout); _kbScrollTimers=[];
+  requestAnimationFrame(_scrollFocusedInputIntoView);
+  [80,200,380,600].forEach(d=>_kbScrollTimers.push(setTimeout(_scrollFocusedInputIntoView,d)));
 }
 // visualViewport resize: sticky高さ再計算 + フォーカス中の入力欄を可視位置へ
 (window.visualViewport||window).addEventListener('resize',()=>{
   _updateStickyTops();
   const el=document.activeElement;
-  if(el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA')){
-    setTimeout(_scrollFocusedInputIntoView,150);
-  }
+  if(el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA')) _scheduleKbScroll();
 });
 // focusin: 時計を非表示にしてヘッダー高さを削減（メイン画面のみ）→ normal-view 表示領域を確保
 document.addEventListener('focusin',e=>{
@@ -121,7 +140,7 @@ document.addEventListener('focusin',e=>{
     requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));
   }
   // キーボードが既に開いた状態で別の入力欄へ移ったとき（resizeが発火しない）にも追従させる
-  setTimeout(_scrollFocusedInputIntoView,300);
+  _scheduleKbScroll();
 },true);
 // focusout: フォーカスが外れたら時計を復元
 document.addEventListener('focusout',()=>{
