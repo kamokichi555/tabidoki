@@ -80,7 +80,10 @@ requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));
 _renderSplash();
 // ── キーボード表示対応 ──────────────────────────────
 // 入力欄の最も近いスクロール可能な祖先要素を返す（なければ null）
-const _NO_KB_TYPES=new Set(['checkbox','radio','range','file','button','submit','reset','color','image','hidden']);
+// キーボードを出さない入力＝スクロール不要。チェックボックス等に加え、
+// 日付/時刻系はネイティブのピッカー（ダイアログ）が重なって開きキーボードを出さないため対象外。
+// （type=number は数値キーボードが出るので対象に含める＝ここには入れない）
+const _NO_KB_TYPES=new Set(['checkbox','radio','range','file','button','submit','reset','color','image','hidden','date','time','datetime-local','month','week']);
 function _scrollableAncestor(el){
   let n=el&&el.parentElement;
   while(n&&n!==document.body&&n!==document.documentElement){
@@ -104,15 +107,19 @@ function _scrollFocusedInputIntoView(){
   // resizes-visual では visualViewport.offsetTop の分ずれるため考慮する。
   const vv=window.visualViewport;
   const vTop=vv?vv.offsetTop:0;
-  const vBottom=vTop+(vv?vv.height:window.innerHeight); // ＝キーボード上端
+  const vBottom=vTop+(vv?vv.height:window.innerHeight); // ＝キーボード（IME）上端
   const r=el.getBoundingClientRect();
   const scTop=sc.getBoundingClientRect().top;           // スクロール領域上端＝ヘッダー/見出し直下
   const visTop=Math.max(scTop,vTop);                    // 入力が見えてよい上端
-  // 既に余裕をもって見えているなら何もしない（既定スクロールとの競合・過剰スクロール防止）
-  if(r.top>=visTop+4 && r.bottom<=vBottom-8) return;
-  const margin=16;
-  const desiredTop=visTop+margin; // 入力欄の上端をここに合わせる＝常にキーボードより上
-  const newTop=Math.max(0, sc.scrollTop + (r.top - desiredTop));
+  const gap=24; // 入力欄の下端をキーボードの少し上に置くための余白
+  // 既に「下端がキーボードより上」かつ「上端がヘッダーより下」に収まっていれば何もしない
+  if(r.bottom<=vBottom-gap && r.top>=visTop+4) return;
+  // 目標: 入力欄の下端を (キーボード上端 − gap) に合わせる（scrollTopを増やすと内容が上へ動く）
+  let newTop = sc.scrollTop + (r.bottom - (vBottom-gap));
+  // 上に行き過ぎて入力欄の上端がヘッダー直下より上へ潜らないようクランプ
+  const maxForTop = sc.scrollTop + (r.top - (visTop+8));
+  if(newTop>maxForTop) newTop=maxForTop;
+  newTop=Math.max(0,newTop);
   // smoothはビューポート変化やブラウザ既定スクロールと競合して中断されやすいので即時で確実に動かす
   if(Math.abs(newTop - sc.scrollTop)>1) sc.scrollTop=newTop;
 }
