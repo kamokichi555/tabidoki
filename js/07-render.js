@@ -204,6 +204,7 @@ function _urgentRideFetch(flat){
     // → data.days から元の参照を引き当てて使う
     const stop=day.stops.find(s=>s.id===flatStop.id);
     if(!stop) return;
+    if(!(stop.addr||'').trim()) return; // 住所なしは取得しない（表示もしないため）
     const r=wxStopRes[stop.id];
     if(r&&r!=='loading'&&!r.error) return; // 取得済
     if(r==='loading') return;               // 取得中

@@ -82,7 +82,7 @@ function retryStopWeather(stopId){
     if(s){stop=s;date=data.days[di].date||_isoToday(di);break;}
   }
   if(!stop){return;}
-  if(!(stop.addr||'').trim()&&!(stop.name||'').trim()){showInfoToast('⚠️ 住所がないため取得できません',2000);return;}
+  if(!(stop.addr||'').trim()){showInfoToast('⚠️ 住所がないため取得できません',2000);return;}
   delete wxStopRes[stopId];
   wxQueueIds.delete(stopId);
   enqueueStop(stop,date);
@@ -93,11 +93,12 @@ function retryStopWeather(stopId){
 }
 
 function stopWxInner(stopId,hasAddr){
+  if(!hasAddr) return '';  // 住所なしは一切表示しない
   const r=wxStopRes[stopId];
-  if(!r) return hasAddr?'<div class="stop-wx-loading">🌐 取得中…</div>':'';
+  if(!r) return '<div class="stop-wx-loading">🌐 取得中…</div>';
   if(r==='loading') return '<div class="stop-wx-loading">🌐 取得中…</div>';
   if(r.outOfRange) return '<div class="stop-wx-loading" title="予報は16日先まで取得できます">📅 予報期間外</div>';
-  if(r.error) return hasAddr?`<div class="stop-wx-loading" onclick="retryStopWeather('${stopId}')" style="cursor:pointer" title="タップして再取得">⚠️ 再取得</div>`:'';
+  if(r.error) return `<div class="stop-wx-loading" onclick="retryStopWeather('${stopId}')" style="cursor:pointer" title="タップして再取得">⚠️ 再取得</div>`;
   const w=WMO[r.wcode]??{e:'🌡️',t:'不明'};
   const p=r.precip??null;
   const pStr=p!==null?`${p}%`:'--';
@@ -161,7 +162,7 @@ function onStopWxReady(stopId){
   const el=document.getElementById('wx-'+stopId);
   if(el){
     let hasAddr=false;
-    outer:for(const day of data.days){for(const s of day.stops){if(s.id===stopId){hasAddr=!!(s.addr||s.name);break outer;}}}
+    outer:for(const day of data.days){for(const s of day.stops){if(s.id===stopId){hasAddr=!!(s.addr);break outer;}}}
     el.innerHTML=stopWxInner(stopId,hasAddr);
   }
   if(isRide){
@@ -174,7 +175,11 @@ function onStopWxReady(stopId){
 /* ── 取得開始時に即座にDOM更新（loading表示） ── */
 function _showLoadingDom(stopId){
   const el=document.getElementById('wx-'+stopId);
-  if(el) el.innerHTML='<div class="stop-wx-loading">🌐 取得中…</div>';
+  if(!el) return;
+  // addrがある地点のみloading表示（住所なしは取得しても表示しない）
+  let hasAddr=false;
+  outer:for(const day of data.days){for(const s of day.stops){if(s.id===stopId){hasAddr=!!(s.addr);break outer;}}}
+  if(hasAddr) el.innerHTML='<div class="stop-wx-loading">🌐 取得中…</div>';
 }
 
 /* ── wttr.in コード → WMO近似変換 ── */
@@ -467,8 +472,8 @@ async function runWxQueue(){
 
 const wxQueueIds=new Set(); // O(1)重複チェック用
 function enqueueStop(stop,date){
-  // addrがなくてもnameでジオコーディングできるので両方空の場合だけスキップ
-  if(!(stop.addr||'').trim()&&!(stop.name||'').trim()) return;
+  // 住所がある地点のみ天気取得（住所なしは表示しないため取得もしない）
+  if(!(stop.addr||'').trim()) return;
   const r=wxStopRes[stop.id];
   const STALE=2*60*60*1000;
   if(r&&r!=='loading'&&r.date===date&&!r.error&&!r.outOfRange&&r.precip!=null&&Date.now()-r.time<STALE) return;
