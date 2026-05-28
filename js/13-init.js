@@ -79,31 +79,49 @@ requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));
 // スプラッシュ画面のエピソード・タイトルを描画
 _renderSplash();
 // ── キーボード表示対応 ──────────────────────────────
-// visualViewport resize: sticky高さ再計算 + edit-area先頭をnormal-view上端に揃える
+// 入力欄の最も近いスクロール可能な祖先要素を返す（なければ null）
+const _NO_KB_TYPES=new Set(['checkbox','radio','range','file','button','submit','reset','color','image','hidden']);
+function _scrollableAncestor(el){
+  let n=el&&el.parentElement;
+  while(n&&n!==document.body&&n!==document.documentElement){
+    const oy=getComputedStyle(n).overflowY;
+    if(oy==='auto'||oy==='scroll') return n;
+    n=n.parentElement;
+  }
+  return null;
+}
+// フォーカス中の入力欄を、そのスクロール領域の上端付近まで送ってキーボードに隠れないようにする。
+// normal-view・設定オーバーレイなど「スクロール領域内の入力」に共通で適用。
+// ヘッダーの日付/ルートURLやピッカーの検索欄はスクロール領域を持たない＝常に可視なので何もしない。
+function _scrollFocusedInputIntoView(){
+  const el=document.activeElement;
+  if(!el||(el.tagName!=='INPUT'&&el.tagName!=='TEXTAREA')) return;
+  // キーボードを出さない入力（チェックボックス等）は対象外
+  if(el.tagName==='INPUT'&&_NO_KB_TYPES.has((el.type||'').toLowerCase())) return;
+  const sc=_scrollableAncestor(el);
+  if(!sc) return;
+  const target=el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 12;
+  sc.scrollTo({top:Math.max(0,target),behavior:'smooth'});
+}
+// visualViewport resize: sticky高さ再計算 + フォーカス中の入力欄を可視位置へ
 (window.visualViewport||window).addEventListener('resize',()=>{
   _updateStickyTops();
   const el=document.activeElement;
-  const nv=document.getElementById('normal-view');
-  if(el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA')&&!el.closest('[id$="-overlay"]')){
-    setTimeout(()=>{
-      const ea=document.getElementById('edit-area');
-      if(nv&&ea){
-        const target=ea.getBoundingClientRect().top - nv.getBoundingClientRect().top + nv.scrollTop - 8;
-        nv.scrollTo({top:Math.max(0,target),behavior:'smooth'});
-      } else {
-        el.scrollIntoView({behavior:'smooth',block:'start'});
-      }
-    },150);
+  if(el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA')){
+    setTimeout(_scrollFocusedInputIntoView,150);
   }
 });
-// focusin: 時計を非表示にしてヘッダー高さを約150px削減 → normal-view 表示領域を確保
+// focusin: 時計を非表示にしてヘッダー高さを削減（メイン画面のみ）→ normal-view 表示領域を確保
 document.addEventListener('focusin',e=>{
   const el=e.target;
-  if((el.tagName==='INPUT'||el.tagName==='TEXTAREA')&&!el.closest('[id$="-overlay"]')){
+  if(el.tagName!=='INPUT'&&el.tagName!=='TEXTAREA') return;
+  if(!el.closest('[id$="-overlay"]')){
     const clk=document.querySelector('.header-clock');
     if(clk) clk.style.display='none';
     requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));
   }
+  // キーボードが既に開いた状態で別の入力欄へ移ったとき（resizeが発火しない）にも追従させる
+  setTimeout(_scrollFocusedInputIntoView,300);
 },true);
 // focusout: フォーカスが外れたら時計を復元
 document.addEventListener('focusout',()=>{
