@@ -2,7 +2,7 @@
    旅刻 mk16 — 04-weather.js
    天気取得・ジオコーディング・キュー管理
    依存: 00-constants.js（WMO）, 02-utils.js（esc/pClass/buildGeoTargets等）
-   実行時依存: data, currentDay, isRide, render, renderRide, showInfoToast
+   実行時依存: data, S.currentDay, S.isRide, render, renderRide, showInfoToast
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
 
@@ -171,10 +171,10 @@ function rideWxCompact(stopId,hasAddr){
 /* ── 取得完了後 DOM部分更新 ── */
 function onStopWxReady(stopId){
   wxQueueIds.delete(stopId);
-  if(isRide){
+  if(S.isRide){
     // 走行ビューはwx-ラッパーを持たない → 現在地/次地点の更新時のみrenderRideで再描画
     const flat=currentDayFlat();
-    const vs=flat[rideViewIdx],ns=flat[rideViewIdx+1];
+    const vs=flat[S.rideViewIdx],ns=flat[S.rideViewIdx+1];
     if((vs&&vs.id===stopId)||(ns&&ns.id===stopId)) renderRide();
     return;
   }
@@ -557,7 +557,7 @@ function refreshAllWeather(){
   Object.keys(wxStopRes).forEach(k=>delete wxStopRes[k]);
   wxQueueIds.clear();wxQueue.length=0;wxQueueFast.length=0;
   // wxQueueRunning は触らない（古いループが世代チェックで離脱し、finallyで新ループを再起動する）
-  if(isRide) ensureAllWeather(); else ensureDayWeather(currentDay);
+  if(S.isRide) ensureAllWeather(); else ensureDayWeather(S.currentDay);
 }
 
 // 30分ごと自動更新（非表示タブでは実行しない＝バックグラウンド通信を避ける）
@@ -566,5 +566,5 @@ setInterval(()=>{if(!document.hidden) refreshAllWeather();},30*60*1000);
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden) return;
   if(typeof updateClock==='function') updateClock();
-  isRide?ensureAllWeather():ensureDayWeather(currentDay);
+  S.isRide?ensureAllWeather():ensureDayWeather(S.currentDay);
 });

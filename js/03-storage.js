@@ -2,19 +2,19 @@
    旅刻 mk16 — 03-storage.js
    データ管理（save / share / saveJSON / saveRecord / load / migration）
    依存: 00-constants.js（SK/DEFAULT/LIMIT）, 02-utils.js（sanitize等）
-   実行時依存: data, currentDay, render, showInfoToast, showAppError
+   実行時依存: data, S.currentDay, render, showInfoToast, showAppError
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
 
 /* ══ データ管理（localStorage） ══ */
 
 function save(){
-  // 起動時の復元確認が保留中（_pendingRestore）は、まだ「新規開始/復元」が未確定。
+  // 起動時の復元確認が保留中（S._pendingRestore）は、まだ「新規開始/復元」が未確定。
   // この間に空のdataをlocalStorageへ書き込むと前回データを破壊してしまうため保存しない。
-  // 確認に応答すると 13-init.js が _pendingRestore=null にしてからsave/restoreを行う。
-  if(_pendingRestore) return;
+  // 確認に応答すると 13-init.js が S._pendingRestore=null にしてからsave/restoreを行う。
+  if(!_canEditData()) return;
   try{
-    data.currentStopId=manualCurrentId;
+    data.currentStopId=S.manualCurrentId;
     data.version=DEFAULT.version;
     _lsSetItem(SK,JSON.stringify(data));
   }catch(e){showAppError(EC.SAVE,e);}
@@ -106,7 +106,7 @@ function saveJSON(){
       showInfoToast('⚠️ 地点が登録されていません。1件以上追加してから保存してください',3500);
       return;
     }
-    data.currentStopId=manualCurrentId;
+    data.currentStopId=S.manualCurrentId;
     data.version=DEFAULT.version;
     const json=JSON.stringify(data,null,2);
     const title=(data.title||'ツーリング行程').replace(/[\\/:*?"<>|]/g,'_');
@@ -200,20 +200,20 @@ function _applyImportedData(p,titleFallback,skipConfirm){
   data=p;
   // ユーザーが明示的にデータを読み込んだ時点で、起動時の復元確認は不要になる。
   // 保留を解除して以後のsave()を有効化し、未確定状態を残さない。
-  _pendingRestore=null;
-  manualCurrentId=_resolveCurrentStopId(data); // currentStopId 解決＋実在チェック（02-utils）
-  currentDay=0;editingId=null;activeEditStopId=null;
+  S._pendingRestore=null;
+  S.manualCurrentId=_resolveCurrentStopId(data); // currentStopId 解決＋実在チェック（02-utils）
+  S.currentDay=0;S.editingId=null;S.activeEditStopId=null;
   Object.keys(wxStopRes).forEach(k=>delete wxStopRes[k]);
   wxGen++; // 実行中の天気取得ループを世代変化で無効化（強制終了させない＝並行実行を防ぐ）
   wxQueueIds.clear();wxQueue.length=0;wxQueueFast.length=0;
   _cachedCdiForId=null;
   save(); // 読み込んだデータを即座にlocalStorageへ反映（読み込み直後にタブを閉じても残るように）
   requestAnimationFrame(()=>{
-    if(isRide){isRide=false;if(typeof _gpsOnRideEnd==='function')_gpsOnRideEnd();document.body.classList.remove('ride-mode');_dom('normal-view').style.display='block';_dom('ride-view').classList.remove('active');_dom('ride-btn').classList.remove('on');_dom('ride-btn').textContent='🏍️';_dom('day-tabs').style.display='';_dom('day-manage').style.display='none';_dom('cancel-ride-btn').style.display='none';}
-    if(!isEdit){isEdit=true;_dom('edit-area').style.display='block';}
+    if(S.isRide){S.isRide=false;if(typeof _gpsOnRideEnd==='function')_gpsOnRideEnd();document.body.classList.remove('ride-mode');_dom('normal-view').style.display='block';_dom('ride-view').classList.remove('active');_dom('ride-btn').classList.remove('on');_dom('ride-btn').textContent='🏍️';_dom('day-tabs').style.display='';_dom('day-manage').style.display='none';_dom('cancel-ride-btn').style.display='none';}
+    if(!S.isEdit){S.isEdit=true;_dom('edit-area').style.display='block';}
     _syncTitleInput(); // 読み込んだタイトルをツーリング名欄に反映
-    setFormAdd(); // isEdit状態に関わらず常にフォームをリセット（既存編集中のロード時に古い入力値が残るのを防ぐ）
-    editingId=null;activeEditStopId=null;
+    setFormAdd(); // S.isEdit状態に関わらず常にフォームをリセット（既存編集中のロード時に古い入力値が残るのを防ぐ）
+    S.editingId=null;S.activeEditStopId=null;
     renderTabs();render();hideInfoToast();
     if(_truncated)showInfoToast(`⚠️ 1日${LIMIT.stopsPerDay}件を超える地点は読み込みませんでした`,4000);
     else showInfoToast(`🗺️ 「${title}」を読み込みました`,3000);

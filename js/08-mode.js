@@ -2,7 +2,7 @@
    旅刻 mk16 — 08-mode.js
    モード管理（テーマ / toggleRide / toggleEdit / 編集フォーム操作）
    依存: 00-constants.js（EC）
-   実行時依存: data, isEdit, isRide, editingId, render, renderRide,
+   実行時依存: data, S.isEdit, S.isRide, S.editingId, render, renderRide,
               save, showAppError, _dbgLog, _closeAllOverlays
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
@@ -32,31 +32,31 @@ function _toggleTheme(){
 setInterval(()=>{if(!_themeManual)_applyTheme(_isDayTime());},60000);
 function toggleRide(){
   _closeAllOverlays();
-  // 編集中にライドモードへ切り替える場合は確認（新設計では常にisEdit=trueのため毎回出る）
-  if(!isRide&&isEdit){const msg=_formHasData()?'入力中のデータが保存されていません。\n走行モードに切り替えますか？':'走行モードに切り替えます。よろしいですか？';if(!confirm(msg))return;}
-  _flushRouteSave(); // 入力中のrouteUrlを取りこぼさない（currentDay変更前に保存）
+  // 編集中にライドモードへ切り替える場合は確認（新設計では常にS.isEdit=trueのため毎回出る）
+  if(!S.isRide&&S.isEdit){const msg=_formHasData()?'入力中のデータが保存されていません。\n走行モードに切り替えますか？':'走行モードに切り替えます。よろしいですか？';if(!confirm(msg))return;}
+  _flushRouteSave(); // 入力中のrouteUrlを取りこぼさない（S.currentDay変更前に保存）
   _dbgLog('toggleRide:in', _dbgSnapshot);
-  isRide=!isRide;
+  S.isRide=!S.isRide;
   _lastClockTs=''; // 走行モード切替時に時計サイズを即時更新
   updateClock();   // キャッシュリセット後すぐに再描画
-  document.body.classList.toggle('ride-mode',isRide);
-  if(isRide&&isEdit){isEdit=false;_dom('edit-area').style.display='none';}
-  _dom('normal-view').style.display=isRide?'none':'block';
-  _dom('ride-view').classList.toggle('active',isRide);
-  _dom('ride-btn').classList.toggle('on',isRide);
-  _dom('ride-btn').textContent=isRide?'📋':'🏍️';
+  document.body.classList.toggle('ride-mode',S.isRide);
+  if(S.isRide&&S.isEdit){S.isEdit=false;_dom('edit-area').style.display='none';}
+  _dom('normal-view').style.display=S.isRide?'none':'block';
+  _dom('ride-view').classList.toggle('active',S.isRide);
+  _dom('ride-btn').classList.toggle('on',S.isRide);
+  _dom('ride-btn').textContent=S.isRide?'📋':'🏍️';
   _dom('edit-btn').style.display='';
   _dom('edit-btn').textContent='✏️'; // ✅ボタン廃止につき常に✏️
-  _dom('day-tabs').style.display=isRide?'none':'';
-  _dom('day-manage').style.display=isRide?'none':isEdit?'flex':'none'; // 走行終了時はisEditの状態に従う
-  if(isRide){
+  _dom('day-tabs').style.display=S.isRide?'none':'';
+  _dom('day-manage').style.display=S.isRide?'none':S.isEdit?'flex':'none'; // 走行終了時はS.isEditの状態に従う
+  if(S.isRide){
     // 現在地が別の日程にある場合、その日程に自動切り替え
     const cdi=_getCdi();
-    if(cdi!==-1&&cdi!==currentDay){currentDay=cdi;renderTabs();}
-    const fi=currentDayIdxOf(manualCurrentId);rideViewIdx=fi!==-1?fi:0;
-    rideActionVisible=false;
+    if(cdi!==-1&&cdi!==S.currentDay){S.currentDay=cdi;renderTabs();}
+    const fi=currentDayIdxOf(S.manualCurrentId);S.rideViewIdx=fi!==-1?fi:0;
+    S.rideActionVisible=false;
     _updateStickyTops();
-    ensureDayWeather(currentDay);
+    ensureDayWeather(S.currentDay);
     renderRide();
     if(typeof _gpsOnRideStart==='function') _gpsOnRideStart(); // GPS自動追跡開始
   }else{
@@ -68,27 +68,27 @@ function toggleRide(){
 }
 
 function onEditBtnClick(){
-  if(isRide){
-    // rideViewIdxはcurrentDayFlat基準なのでcurrentDayFlatを使用
+  if(S.isRide){
+    // S.rideViewIdxはcurrentDayFlat基準なのでcurrentDayFlatを使用
     const flat=currentDayFlat();
-    const vs=flat[Math.max(0,Math.min(flat.length-1,rideViewIdx))];
+    const vs=flat[Math.max(0,Math.min(flat.length-1,S.rideViewIdx))];
     toggleRide();
-    if(vs) currentDay=vs.dayIdx;
-    renderTabs(); // render()は直後のtoggleEdit()が正しいisEdit状態で呼ぶため不要
+    if(vs) S.currentDay=vs.dayIdx;
+    renderTabs(); // render()は直後のtoggleEdit()が正しいS.isEdit状態で呼ぶため不要
   }
-  if(!isEdit) toggleEdit();
+  if(!S.isEdit) toggleEdit();
 }
 function cancelToRide(){
   if(!_confirmLeaveEdit()) return;
-  if(isEdit){cancelEdit();isEdit=false;_dom('edit-area').style.display='none';}
+  if(S.isEdit){cancelEdit();S.isEdit=false;_dom('edit-area').style.display='none';}
   _dom('cancel-ride-btn').style.display='none';_dom('ride-btn').style.display='';
-  if(isRide) toggleRide(); // isRide=trueのときだけtoggleRide（内部でisRide=falseにする）
+  if(S.isRide) toggleRide(); // S.isRide=trueのときだけtoggleRide（内部でS.isRide=falseにする）
 }
 function toggleEdit(){
   _closeAllOverlays();
   _dbgLog('toggleEdit:in', _dbgSnapshot);
-  if(isEdit) return; // 既に編集中なら何もしない（✅ボタン削除により不要な呼び出しを防ぐ）
-  isEdit=true;
+  if(S.isEdit) return; // 既に編集中なら何もしない（✅ボタン削除により不要な呼び出しを防ぐ）
+  S.isEdit=true;
   _dom('edit-area').style.display='block';
   _syncTitleInput(); // ツーリング名欄に現在のタイトルを反映
   setFormAdd();
@@ -98,9 +98,9 @@ function toggleEdit(){
   render();
   _dbgLog('toggleEdit:out', _dbgSnapshot);
 }
-function updateDragHint(){const h=_dom('drag-hint');if(!h)return;if(editingId!==null){h.innerHTML='✏️ 地点を保存またはキャンセル後に並び替えできます';h.style.color='var(--amber)';}else{h.innerHTML='地点をドラッグして行程を並び替え（PCはマウスドラッグ）';h.style.color='';}}
+function updateDragHint(){const h=_dom('drag-hint');if(!h)return;if(S.editingId!==null){h.innerHTML='✏️ 地点を保存またはキャンセル後に並び替えできます';h.style.color='var(--amber)';}else{h.innerHTML='地点をドラッグして行程を並び替え（PCはマウスドラッグ）';h.style.color='';}}
 function setFormAdd(){
-  editingId=null;
+  S.editingId=null;
   _dom('form-title').textContent='地点を追加';
   _dom('save-btn').textContent='＋ 追加';
   ['inp-name','inp-addr','inp-note','inp-log'].forEach(id=>_dom(id).value='');
@@ -118,7 +118,7 @@ function openEditStop(id){
   _dbgLog('openEditStop',()=>({id,snap:_dbgSnapshot()}));
   try{
     const ds=stops(),s=ds.find(s=>s.id===id);if(!s)return;
-    editingId=id;_dom('form-title').textContent='✏️ '+s.name;_dom('save-btn').textContent='✅ 更新';
+    S.editingId=id;_dom('form-title').textContent='✏️ '+s.name;_dom('save-btn').textContent='✅ 更新';
     _dom('inp-name').value=s.name;_dom('inp-addr').value=s.addr||'';_dom('inp-arr').value=s.arr||'';_dom('inp-dep').value=s.dep||'';_dom('inp-note').value=s.note||'';_dom('inp-log').value=s.log||'';
     const _actArr=_dom('inp-act-arr'),_actDep=_dom('inp-act-dep');
     if(_actArr)_actArr.value=s.actArr||'';if(_actDep)_actDep.value=s.actDep||'';
@@ -131,10 +131,10 @@ function openEditStop(id){
   }catch(e){showAppError(EC.EDIT_OPEN,e);}
 }
 function tapStopInEdit(id){
-  activeEditStopId=(activeEditStopId===id?null:id);
+  S.activeEditStopId=(S.activeEditStopId===id?null:id);
   render();
 }
-function cancelEdit(noRender){setFormAdd();activeEditStopId=null;if(!noRender)render();}
+function cancelEdit(noRender){setFormAdd();S.activeEditStopId=null;if(!noRender)render();}
 
 // 行程データ（地点）が1件以上存在するか判定
 function _hasAnyStops(){
@@ -143,7 +143,7 @@ function _hasAnyStops(){
 
 // フォームに未保存の入力データがあるか判定
 function _formHasData(){
-  if(editingId!==null) return true; // 既存地点の編集中は常に確認
+  if(S.editingId!==null) return true; // 既存地点の編集中は常に確認
   return ['inp-name','inp-addr','inp-arr','inp-dep','inp-note','inp-log','inp-act-arr','inp-act-dep'].some(id=>{
     const el=_dom(id); return el&&el.value.trim()!=='';
   });
@@ -151,8 +151,8 @@ function _formHasData(){
 
 // 編集画面から離れる前にデータ保存確認。離れてよければ true を返す
 function _confirmLeaveEdit(){
-  if(!isEdit||!_formHasData()) return true;
-  const msg=editingId!==null
+  if(!S.isEdit||!_formHasData()) return true;
+  const msg=S.editingId!==null
     ?'地点の編集内容が保存されていません。\n保存せずに移動しますか？'
     :'入力中のデータが保存されていません。\n移動すると入力内容が失われます。\n移動しますか？';
   return confirm(msg);

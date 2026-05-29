@@ -3,7 +3,7 @@
    描画系（7セグ / updateClock / renderTabs / renderRide / render）
    + エラー・トースト UI（showAppError / showInfoToast）
    依存: 00-constants.js（EC/WMO）, 02-utils.js（esc/toMin等）
-   実行時依存: data, isEdit, isRide, currentDay, wxStopRes
+   実行時依存: data, S.isEdit, S.isRide, S.currentDay, wxStopRes
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
 
@@ -79,7 +79,7 @@ function _seg7svg(ts){
     }
   }
   const svgW=cx-7;
-  return `<svg viewBox="0 0 ${svgW} ${H}" style="height:${isRide?'clamp(36px,14vw,72px)':'clamp(28px,7vw,42px)'};width:auto;display:block;overflow:visible"><defs>${GLOW}</defs>${body}</svg>`;
+  return `<svg viewBox="0 0 ${svgW} ${H}" style="height:${S.isRide?'clamp(36px,14vw,72px)':'clamp(28px,7vw,42px)'};width:auto;display:block;overflow:visible"><defs>${GLOW}</defs>${body}</svg>`;
 }
 
 let _lastClockTs=''; // updateClock用キャッシュ：前回と同じ分ならSVG再生成をスキップ
@@ -92,7 +92,7 @@ function updateClock(){
 }
 
 /* ══ ライドアクション表示切替 ══ */
-function toggleRideAction(){rideActionVisible=!rideActionVisible;renderRide();}
+function toggleRideAction(){S.rideActionVisible=!S.rideActionVisible;renderRide();}
 
 /* ── 共通: 出発カウントダウンのHTML（走行カード・15秒更新の両方で使用） ── */
 function _depCountdownHtml(dep){
@@ -113,13 +113,13 @@ function renderRide(){
   const bar=_dom('ride-swipe-bar');
   const flat=currentDayFlat();
   if(!flat.length){el.innerHTML='<div style="text-align:center;color:var(--text3);padding:3rem 1rem;font-size:20px">🗺️<br><br>行程を追加してください</div>';bar.style.display='none';const _pb=_rideBannerEl();if(_pb){_pb.innerHTML='';_pb.style.display='none';}return;}
-  rideViewIdx=Math.max(0,Math.min(flat.length-1,rideViewIdx));
+  S.rideViewIdx=Math.max(0,Math.min(flat.length-1,S.rideViewIdx));
   _urgentRideFetch(flat); // 先に現在/次地点を最優先取得（ensureDayWeatherが全件キューに入れる前に）
-  ensureDayWeather(currentDay);
-  const rci=flat.findIndex(s=>s.id===manualCurrentId); // currentDayIdxOf→flatから直接検索
+  ensureDayWeather(S.currentDay);
+  const rci=flat.findIndex(s=>s.id===S.manualCurrentId); // currentDayIdxOf→flatから直接検索
   bar.style.display='flex';
-  _dom('sw-arr-l').classList.toggle('dim',rideViewIdx===0);
-  _dom('sw-arr-r').classList.toggle('dim',rideViewIdx===flat.length-1);
+  _dom('sw-arr-l').classList.toggle('dim',S.rideViewIdx===0);
+  _dom('sw-arr-r').classList.toggle('dim',S.rideViewIdx===flat.length-1);
   /* ── ライドカード共通パーツ ── */
   const _mapLink=s=>s.addr?`<a class="ride-route-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 マップで確認</a>`:'';
   const _fuelBadge=(s,extra='')=>s.fuel?`<div class="stop-fuel-badge" style="width:100%;justify-content:center${extra}">⛽ 給油ポイント</div>`:'';
@@ -130,7 +130,7 @@ function renderRide(){
         ${s.dep?`<div class="ride-chip"><div class="ride-chip-label">発</div><div class="${cls}">${s.dep}</div>${_sd?`<div style="font-size:12px;color:var(--text3);font-weight:600;align-self:center;margin-left:2px">${_sd}</div>`:''}</div>`:''}`;
   };
   let h='';
-  const vs=flat[rideViewIdx];
+  const vs=flat[S.rideViewIdx];
   // 日付未設定の日は今日+N日として天気を取得しているため注記する（表示中地点の所属日で判定）。
   // バナーは ride-content の外（スワイプアニメーション対象外）に描画し、地点切替時にスライドしないようにする
   const _pbEl=_rideBannerEl();
@@ -139,7 +139,7 @@ function renderRide(){
     _pbEl.innerHTML=_bh;
     _pbEl.style.display=_bh?'':'none'; // 空のときは要素ごと隠す（CSSの:empty未反映時のフォールバック）
   }
-  const isCurr=(rideViewIdx===rci),isPast=(rci!==-1&&rideViewIdx<rci);
+  const isCurr=(S.rideViewIdx===rci),isPast=(rci!==-1&&S.rideViewIdx<rci);
   const vsUrl=data.days[vs.dayIdx]?.routeUrl||'';
   // routeUrlをnew URL()で正規化（"等の不正文字を%22にエンコード）してからHTMLエスケープ
   const vsUrlSafe=vsUrl?(()=>{try{return new URL(vsUrl).href;}catch(e){return '';}})():'';
@@ -152,7 +152,7 @@ function renderRide(){
       <div class="ride-times-row">${_chips(vs)}${depCd}</div>
       ${rideWxCompact(vs.id,!!(vs.addr))}
       ${_fuelBadge(vs,';font-size:16px;padding:8px')}${_noteCompact(vs)}
-      ${rideActionVisible?`${_logHtml(vs)}${vsRouteBtn}${_mapLink(vs)}`:''}
+      ${S.rideActionVisible?`${_logHtml(vs)}${vsRouteBtn}${_mapLink(vs)}`:''}
     </div>`;
   }else{
     const tag=isPast?'✓ 通過済み':'◎ 閲覧中';
@@ -162,10 +162,10 @@ function renderRide(){
       <div class="ride-times-row">${_chips(vs,'next-chip-val')}</div>
       ${rideWxCompact(vs.id,!!(vs.addr))}
       ${_fuelBadge(vs,';font-size:16px;padding:8px')}${_noteCompact(vs)}
-      ${rideActionVisible?`${_logHtml(vs)}${vsRouteBtn}${_mapLink(vs)}<button class="ride-set-curr-btn" onclick="event.stopPropagation();setCurrentStop('${vs.id}')">📍 ここを現在地にする</button>`:''}
+      ${S.rideActionVisible?`${_logHtml(vs)}${vsRouteBtn}${_mapLink(vs)}<button class="ride-set-curr-btn" onclick="event.stopPropagation();setCurrentStop('${vs.id}')">📍 ここを現在地にする</button>`:''}
     </div>`;
   }
-  const ni=rideViewIdx+1;
+  const ni=S.rideViewIdx+1;
   if(ni<flat.length){
     const ns=flat[ni];
     const _mdr=moveDurRide(vs.dep,ns.arr);
@@ -208,16 +208,16 @@ function initNormalSwipe(){
   const fi=()=>{const a=document.activeElement;return a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT');};
   nv.addEventListener('touchstart',e=>{if(fi())return;nx=e.touches[0].clientX;ny=e.touches[0].clientY;na=true;},{passive:true});
   nv.addEventListener('touchmove',e=>{if(!na)return;if(Math.abs(e.touches[0].clientY-ny)>Math.abs(e.touches[0].clientX-nx)*1.2)na=false;},{passive:true});
-  nv.addEventListener('touchend',e=>{if(!na){na=false;return;}na=false;if(fi()||editingId!==null)return;const dx=e.changedTouches[0].clientX-nx,dy=e.changedTouches[0].clientY-ny;if(Math.abs(dx)<50||Math.abs(dy)>Math.abs(dx)*0.85)return;const to=currentDay+(dx<0?1:-1);if(to>=0&&to<data.days.length)switchDay(to);},{passive:true});
+  nv.addEventListener('touchend',e=>{if(!na){na=false;return;}na=false;if(fi()||S.editingId!==null)return;const dx=e.changedTouches[0].clientX-nx,dy=e.changedTouches[0].clientY-ny;if(Math.abs(dx)<50||Math.abs(dy)>Math.abs(dx)*0.85)return;const to=S.currentDay+(dx<0?1:-1);if(to>=0&&to<data.days.length)switchDay(to);},{passive:true});
   nv.addEventListener('touchcancel',()=>{na=false;},{passive:true});
 }
 /* 現在・次地点の天気をキュー先頭へ優先投入（単一レート制限ループ経由でNominatimバーストを防ぐ） */
 function _urgentRideFetch(flat){
-  const day=data.days[currentDay];
+  const day=data.days[S.currentDay];
   if(!day) return;
-  const date=day.date||_isoToday(currentDay);
+  const date=day.date||_isoToday(S.currentDay);
   // 次地点を先にenqueue→現在地を後にenqueueすると、unshiftにより現在地がキュー最前列に来る
-  [flat[rideViewIdx+1],flat[rideViewIdx]].filter(Boolean).forEach(flatStop=>{
+  [flat[S.rideViewIdx+1],flat[S.rideViewIdx]].filter(Boolean).forEach(flatStop=>{
     // flat は currentDayFlat() のスプレッドコピーのため、data.days から元の参照を引き当てる
     const stop=day.stops.find(s=>s.id===flatStop.id);
     if(!stop) return;
@@ -227,15 +227,15 @@ function _urgentRideFetch(flat){
 }
 function rideNavigate(dir){
   if(_swAnim)return;const flat=currentDayFlat();if(flat.length<2)return;
-  const to=Math.max(0,Math.min(flat.length-1,rideViewIdx+dir));if(to===rideViewIdx)return;
+  const to=Math.max(0,Math.min(flat.length-1,S.rideViewIdx+dir));if(to===S.rideViewIdx)return;
   if(typeof _gpsNotifySwipe==='function') _gpsNotifySwipe(); // 手動スワイプ→GPS表示追従を一時停止
-  rideActionVisible=false;
+  S.rideActionVisible=false;
   _swAnim=true;const el=document.getElementById('ride-content');
   const ec=dir>0?'sw-exit-left':'sw-exit-right',nc=dir>0?'sw-enter-left':'sw-enter-right';
   el.classList.add(ec);
   setTimeout(()=>{
-    if(!isRide){_swAnim=false;return;} // モード切替済みなら無駄なrenderRide/fetchを走らせない
-    rideViewIdx=to;el.style.transition='none';el.classList.remove(ec);el.classList.add(nc);
+    if(!S.isRide){_swAnim=false;return;} // モード切替済みなら無駄なrenderRide/fetchを走らせない
+    S.rideViewIdx=to;el.style.transition='none';el.classList.remove(ec);el.classList.add(nc);
     renderRide();el.offsetHeight;el.style.transition='';el.classList.remove(nc);setTimeout(()=>{_swAnim=false;},260);},240);
 }
 
@@ -324,23 +324,23 @@ function provisionalDateBanner(dayIdx){
 /* ══ render（通常ビュー） ══ */
 function render(){
   try{
-  if(isRide){renderRide();return;}
+  if(S.isRide){renderRide();return;}
   const tl=document.getElementById('timeline'),em=document.getElementById('empty-state'),ds=stops();
-  tl.className=isEdit&&editingId===null?'timeline edit-mode':'timeline';
+  tl.className=S.isEdit&&S.editingId===null?'timeline edit-mode':'timeline';
   if(!ds.length){tl.innerHTML='';em.style.display='block';return;}
   em.style.display='none';
   // cdiをキャッシュ利用
   const cdi=_getCdi();
   // 天気フェッチ（日付未設定でも住所があれば取得）
-  ensureDayWeather(currentDay);
+  ensureDayWeather(S.currentDay);
   // 日付未設定の日は今日+N日として天気を取得しているため、その旨を一度だけ注記する
-  const provisionalBanner=provisionalDateBanner(currentDay);
+  const provisionalBanner=provisionalDateBanner(S.currentDay);
   tl.innerHTML=provisionalBanner+ds.map((s,i)=>{
     const st=getStatus(s,i,ds,cdi),isLast=i===ds.length-1,isDM=s.note&&s.note.includes('🩸'),_sdur=stayDur(s.arr,s.dep),_mdur=!isLast?moveDur(s.dep,ds[i+1].arr):'',_mlv=!isLast?moveDurLevel(s.dep,ds[i+1].arr):-1;
     return`<div class="stop-row ${st}" data-id="${s.id}">
   <div class="stop-line-col"><div class="stop-dot"></div>${!isLast?'<div class="stop-connector"></div>':''}</div>
-  ${isEdit&&editingId===null?`<div class="drag-handle" data-drag-id="${s.id}" ontouchstart="onTouchDragStart(event,'${s.id}')" ontouchmove="onTouchDragMove(event)" ontouchend="onTouchDragEnd(event)" ontouchcancel="_cancelTouchDrag()" onmousedown="onMouseDragStart(event,'${s.id}')">⠿</div>`:''}
-  <div class="stop-body"${isEdit&&editingId===null?` onclick="tapStopInEdit('${s.id}')"`:''}>    <div class="stop-name-row"><span class="stop-name-text">${esc(s.name)}</span>${isEdit&&editingId===null?`<span style="font-size:13px;color:var(--text3);margin-left:auto">▾</span>`:''}</div>
+  ${S.isEdit&&S.editingId===null?`<div class="drag-handle" data-drag-id="${s.id}" ontouchstart="onTouchDragStart(event,'${s.id}')" ontouchmove="onTouchDragMove(event)" ontouchend="onTouchDragEnd(event)" ontouchcancel="_cancelTouchDrag()" onmousedown="onMouseDragStart(event,'${s.id}')">⠿</div>`:''}
+  <div class="stop-body"${S.isEdit&&S.editingId===null?` onclick="tapStopInEdit('${s.id}')"`:''}>    <div class="stop-name-row"><span class="stop-name-text">${esc(s.name)}</span>${S.isEdit&&S.editingId===null?`<span style="font-size:13px;color:var(--text3);margin-left:auto">▾</span>`:''}</div>
     ${s.addr?`<div class="stop-addr">📍 ${esc(s.addr)}</div>`:''}
     <div class="stop-times">
       ${s.arr?`<div class="time-chip"><span class="time-label">着</span><span class="time-value">${s.arr}</span></div>`:''}
@@ -354,7 +354,7 @@ function render(){
     ${s.log?`<div class="stop-log">📝 ${esc(s.log)}</div>`:''}
     ${st==='current'?'<div class="current-badge">▶ 現在地</div>':''}
     ${!isLast&&_mdur?`<div class="move-dur-label${_mlv>=0?' lv'+_mlv:''}">→ 次まで ${_mdur}</div>`:''}
-    ${isEdit&&editingId===null&&activeEditStopId===s.id?`<div class="stop-edit-row">      <button class="small amber-outline" onclick="event.stopPropagation();setCurrentStop('${s.id}')">📍 現在</button>
+    ${S.isEdit&&S.editingId===null&&S.activeEditStopId===s.id?`<div class="stop-edit-row">      <button class="small amber-outline" onclick="event.stopPropagation();setCurrentStop('${s.id}')">📍 現在</button>
       <button class="small amber-outline" onclick="event.stopPropagation();openEditStop('${s.id}')">✏️ 編集</button>
       ${s.addr?`<a class="map-link-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener">🗺 マップ</a>`:''}
       <button class="small danger" onclick="event.stopPropagation();delStop('${s.id}')">削除</button>

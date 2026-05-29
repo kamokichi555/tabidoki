@@ -4,7 +4,7 @@
    依存: 00-constants.js, 02-utils.js（buildGeoTargets/_geoCacheGet）,
         04-weather.js（_geocodeParallel/_geoCacheSet）,
         05-stop.js（setCurrentStop）, 06-day.js（currentDayFlat/_getCdi）
-   実行時依存: data, isRide, manualCurrentId, rideViewIdx, currentDay,
+   実行時依存: data, S.isRide, S.manualCurrentId, S.rideViewIdx, S.currentDay,
               renderRide, showInfoToast, _dbgLog
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
@@ -51,9 +51,9 @@ function _gpsStopCoords(stop){
    座標は共有 geoCache に入るので、GPSはそれを参照するだけでよい（Nominatim二重叩き回避）。*/
 function _gpsPrefetchCoords(){
   try{
-    const day=data.days[currentDay];
+    const day=data.days[S.currentDay];
     if(!day) return;
-    const date=day.date||(typeof _isoToday==='function'?_isoToday(currentDay):'');
+    const date=day.date||(typeof _isoToday==='function'?_isoToday(S.currentDay):'');
     (day.stops||[]).forEach(s=>{
       if(!(s.addr||'').trim()) return;       // 住所なしは座標取得できない
       if(_gpsStopCoords(s)) return;          // 既にキャッシュ済み
@@ -72,15 +72,15 @@ function _gpsFmtDist(m){
 }
 
 /* ══ 現在地→次の地点 の残り直線距離をカードに反映 ══
-   「現在地」を表示中(rideViewIdx===rci)のときだけ、その次の地点までの距離を出す。
+   「現在地」を表示中(S.rideViewIdx===rci)のときだけ、その次の地点までの距離を出す。
    GPS位置・座標キャッシュのどちらかが欠ければ空表示（誤情報を出さない）。*/
 function _gpsUpdateNextDist(){
   const el=document.getElementById('ride-next-dist');
   if(!el) return;
-  if(!isRide||!_gpsEnabled||!_gpsLastPos){el.textContent='';return;}
+  if(!S.isRide||!_gpsEnabled||!_gpsLastPos){el.textContent='';return;}
   const flat=currentDayFlat();
-  const rci=flat.findIndex(s=>s.id===manualCurrentId);
-  if(rci===-1||rideViewIdx!==rci){el.textContent='';return;} // 現在地を見ているときだけ
+  const rci=flat.findIndex(s=>s.id===S.manualCurrentId);
+  if(rci===-1||S.rideViewIdx!==rci){el.textContent='';return;} // 現在地を見ているときだけ
   const ns=flat[rci+1];
   if(!ns){el.textContent='';return;}                          // 次の地点がない（最終地点）
   const c=_gpsStopCoords(ns);
@@ -111,7 +111,7 @@ function _gpsNotifySwipe(){
 
 /* ══ GPS位置更新ハンドラ ══ */
 function _gpsOnPosition(pos){
-  if(!isRide||!_gpsEnabled) return;
+  if(!S.isRide||!_gpsEnabled) return;
   const lat=pos.coords.latitude,lon=pos.coords.longitude,acc=pos.coords.accuracy;
   _gpsLastPos={lat,lon,acc,ts:Date.now()};
   _gpsUpdateStatus();
@@ -132,7 +132,7 @@ function _gpsOnPosition(pos){
   }
   if(nearestIdx===-1) return; // 座標を持つ地点がない
   if(nearestDist>GPS_ARRIVE_M) return; // どの地点にも近づいていない
-  const rci=flat.findIndex(s=>s.id===manualCurrentId);
+  const rci=flat.findIndex(s=>s.id===S.manualCurrentId);
   // 「前」の地点には戻らない（既に通過した地点へ自動で戻さない）
   if(rci!==-1&&nearestIdx<rci) return;
   if(nearestIdx===rci) return; // 既に現在地
@@ -186,7 +186,7 @@ function toggleGps(){
   _gpsEnabled=!_gpsEnabled;
   try{localStorage.setItem('touring_gps',_gpsEnabled?'1':'0');}catch(e){}
   if(_gpsEnabled){
-    if(isRide) _gpsStart();
+    if(S.isRide) _gpsStart();
     showInfoToast('📍 GPS自動追跡をオンにしました',2500);
   }else{
     _gpsStop();
@@ -212,7 +212,7 @@ function _gpsUpdateBtn(){
 function _gpsUpdateStatus(){
   const el=document.getElementById('gps-status');
   if(!el) return;
-  if(!isRide||!_gpsEnabled){el.style.display='none';return;}
+  if(!S.isRide||!_gpsEnabled){el.style.display='none';return;}
   el.style.display='';
   if(!_gpsLastPos){el.textContent='📡 GPS取得中';el.className='gps-status';return;}
   if(_gpsLastPos.acc>GPS_ACC_MAX){el.textContent='⚠️ GPS精度低';el.className='gps-status warn';return;}

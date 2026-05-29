@@ -3,11 +3,11 @@
    日程・タブ管理 + データアクセサ
    （stops / dayTabLabel / currentDayFlat / addDay / switchDay 等）
    依存: 00-constants.js（EC）, 02-utils.js（toMin/fromMin/debounce）
-   実行時依存: data, currentDay, isEdit, save, render, showAppError
+   実行時依存: data, S.currentDay, S.isEdit, save, render, showAppError
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
 
-function stops(){return data.days[currentDay].stops;}
+function stops(){return data.days[S.currentDay].stops;}
 
 function dayTabLabel(day,idx){
   const n=idx+1;
@@ -18,10 +18,10 @@ function dayTabLabel(day,idx){
 
 // 走行モード用：現在タブの地点のみ
 function currentDayFlat(){
-  const day=data.days[currentDay];
+  const day=data.days[S.currentDay];
   if(!day) return [];
-  const dayLabel=dayTabLabel(day,currentDay); // 全stopで同一のラベルを1回だけ計算
-  return (day.stops||[]).map(s=>({...s,dayIdx:currentDay,dayLabel}));
+  const dayLabel=dayTabLabel(day,S.currentDay); // 全stopで同一のラベルを1回だけ計算
+  return (day.stops||[]).map(s=>({...s,dayIdx:S.currentDay,dayLabel}));
 }
 function currentDayIdxOf(id){return currentDayFlat().findIndex(s=>s.id===id);}
 function _updateRecordBtn(){
@@ -35,13 +35,13 @@ function _updateRecordBtn(){
 
 let _cachedCdi=-1,_cachedCdiForId=null;
 function _getCdi(){
-  if(manualCurrentId===null) return -1; // null時はキャッシュ歩哨曖昧性を避けるため即-1返却
-  if(manualCurrentId===_cachedCdiForId) return _cachedCdi;
-  _cachedCdiForId=manualCurrentId;
+  if(S.manualCurrentId===null) return -1; // null時はキャッシュ歩哨曖昧性を避けるため即-1返却
+  if(S.manualCurrentId===_cachedCdiForId) return _cachedCdi;
+  _cachedCdiForId=S.manualCurrentId;
   _cachedCdi=-1;
-  if(manualCurrentId!==null){
+  if(S.manualCurrentId!==null){
     for(let di=0;di<data.days.length;di++){
-      if(data.days[di].stops.some(x=>x.id===manualCurrentId)){_cachedCdi=di;break;}
+      if(data.days[di].stops.some(x=>x.id===S.manualCurrentId)){_cachedCdi=di;break;}
     }
   }
   return _cachedCdi;
@@ -76,31 +76,31 @@ function _scrollNormalViewToFirstStop(){
 }
 function renderTabs(){
   const c=document.getElementById('day-tabs');
-  c.innerHTML=data.days.map((d,i)=>`<button class="day-tab${i===currentDay?' on':''}" onclick="switchDay(${i})">${dayTabLabel(d,i)}</button>`).join('');
-  document.getElementById('day-manage').style.display=isEdit?'flex':'none';
-  const ri=document.getElementById('inp-route-url');if(ri) ri.value=data.days[currentDay].routeUrl||'';
-  const di=document.getElementById('inp-day-date');if(di) di.value=data.days[currentDay].date||'';
+  c.innerHTML=data.days.map((d,i)=>`<button class="day-tab${i===S.currentDay?' on':''}" onclick="switchDay(${i})">${dayTabLabel(d,i)}</button>`).join('');
+  document.getElementById('day-manage').style.display=S.isEdit?'flex':'none';
+  const ri=document.getElementById('inp-route-url');if(ri) ri.value=data.days[S.currentDay].routeUrl||'';
+  const di=document.getElementById('inp-day-date');if(di) di.value=data.days[S.currentDay].date||'';
   _updateStickyTops();
 }
 
 function _sortDays(){
-  const saved=data.days[currentDay];
+  const saved=data.days[S.currentDay];
   data.days.sort((a,b)=>{
     if(!a.date&&!b.date) return 0;
     if(!a.date) return 1;
     if(!b.date) return -1;
     return a.date<b.date?-1:a.date>b.date?1:0;
   });
-  currentDay=data.days.indexOf(saved);
-  if(currentDay<0) currentDay=0;
+  S.currentDay=data.days.indexOf(saved);
+  if(S.currentDay<0) S.currentDay=0;
   _cachedCdiForId=null; // 並び替え後はdayIndexが変わるためcdiキャッシュを無効化
 }
 function saveDayDate(){
-  if(_pendingRestore) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
+  if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
   const v=document.getElementById('inp-day-date').value;
-  const old=data.days[currentDay].date;
+  const old=data.days[S.currentDay].date;
   _dbgLog('saveDayDate',{from:old,to:v});
-  if(v&&v!==old&&data.days.some((d,i)=>i!==currentDay&&d.date===v)){
+  if(v&&v!==old&&data.days.some((d,i)=>i!==S.currentDay&&d.date===v)){
     const el=document.getElementById('inp-day-date');
     el.value=old;
     el.style.borderColor='var(--red)';
@@ -110,25 +110,25 @@ function saveDayDate(){
     return;
   }
   _flushRouteSave(); // 入力中のrouteUrlを取りこぼさない（後続のrenderTabsで上書きされる前に保存）
-  data.days[currentDay].date=v;
+  data.days[S.currentDay].date=v;
   if(old!==v){
-    for(const s of data.days[currentDay].stops){delete wxStopRes[s.id];wxQueueIds.delete(s.id);}
+    for(const s of data.days[S.currentDay].stops){delete wxStopRes[s.id];wxQueueIds.delete(s.id);}
     if(v) _sortDays();
   }
   save();renderTabs();render();
 }
 
 const _saveRouteDebounced=debounce(()=>{
-  if(_pendingRestore) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
+  if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
   const v=document.getElementById('inp-route-url').value.trim().slice(0,LIMIT.url);
   if(!isSafeUrl(v)){showUrlError('URLはhttpまたはhttpsで始まるものを入力してください');return;}
-  try{data.days[currentDay].routeUrl=v;save();}catch(e){showAppError(EC.ROUTE,e);}
+  try{data.days[S.currentDay].routeUrl=v;save();}catch(e){showAppError(EC.ROUTE,e);}
 },400);
 
 /* ── ツーリング名（行程全体のタイトル）── */
 // 入力をdata.titleへ保存（保存ファイル名・共有テキスト・走行記録に反映される）
 const _saveTitleDebounced=debounce(()=>{
-  if(_pendingRestore) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
+  if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
   const el=document.getElementById('inp-title');
   if(!el) return;
   const v=sanitize(el.value,LIMIT.title);
@@ -141,7 +141,7 @@ function _syncTitleInput(){
 }
 // debounce未確定のツーリング名入力を即時data.titleへ反映（保存/共有/記録の前に呼ぶ）
 function _flushTitle(){
-  if(_pendingRestore) return; // 復元確認が保留中はdataを変更しない（save()非経由のため個別ガード）
+  if(!_canEditData()) return; // 復元確認が保留中はdataを変更しない（save()非経由のため個別ガード）
   const el=document.getElementById('inp-title');
   if(!el) return;
   const v=sanitize(el.value,LIMIT.title);
@@ -149,30 +149,30 @@ function _flushTitle(){
 }
 // フォーカスを外した時点で確定保存（debounce待ちの取りこぼし・離脱直前の未保存を防ぐ）
 function _commitTitle(){
-  if(_pendingRestore) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
+  if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
   const el=document.getElementById('inp-title');
   if(!el) return;
   const v=sanitize(el.value,LIMIT.title);
   try{if(data.title!==v){data.title=v;save();}}catch(e){showAppError(EC.SAVE,e);}
 }
 
-// debounce未確定のルートURL入力を即時データに反映（currentDay変更前に呼ぶ）
+// debounce未確定のルートURL入力を即時データに反映（S.currentDay変更前に呼ぶ）
 function _flushRouteSave(){
-  if(_pendingRestore) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
+  if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
   const ri=document.getElementById('inp-route-url');
-  if(!ri || !data.days[currentDay]) return;
+  if(!ri || !data.days[S.currentDay]) return;
   const v=ri.value.trim().slice(0,LIMIT.url);
   if(!isSafeUrl(v)) return;
-  if(data.days[currentDay].routeUrl!==v) data.days[currentDay].routeUrl=v;
+  if(data.days[S.currentDay].routeUrl!==v) data.days[S.currentDay].routeUrl=v;
 }
 
 function addDay(){
   _dbgLog('addDay', _dbgSnapshot);
-  if(_pendingRestore) return; // 起動時の復元確認が保留中はdataを変更しない（汚染防止）
+  if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（汚染防止）
   try{
     if(data.days.length>=7){alert('最大7日間までです');return;}
     if(!_confirmLeaveEdit()) return; // 編集中の入力を保護
-    if(isEdit) cancelEdit(true); // 編集状態をクリアして新日に切替時の dangling editingId を防ぐ
+    if(S.isEdit) cancelEdit(true); // 編集状態をクリアして新日に切替時の dangling S.editingId を防ぐ
     _flushRouteSave(); // 入力中のrouteUrlを取りこぼさない
     const prev=data.days[data.days.length-1];
     let nextDate='';
@@ -188,7 +188,7 @@ function addDay(){
       arr:'', dep:'', note:'', log:'', actArr:'', actDep:'', fuel:false,
     }] : [];
     data.days.push({label:`${data.days.length+1}日目\n未設定`,date:nextDate,routeUrl:'',stops:inheritStop});
-    currentDay=data.days.length-1;
+    S.currentDay=data.days.length-1;
     if(nextDate) _sortDays();
     syncBorderAddr();save();renderTabs();render();
   }catch(e){showAppError(EC.DAY_ADD,e);}
@@ -196,23 +196,23 @@ function addDay(){
 
 function deleteCurrentDay(){
   _dbgLog('deleteCurrentDay', _dbgSnapshot);
-  if(_pendingRestore) return; // 起動時の復元確認が保留中はdataを変更しない（汚染防止）
+  if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（汚染防止）
   try{
     if(data.days.length<=1){
       const day=data.days[0];
       if(!day.stops.length){alert("地点がありません");return;}
       if(!confirm("登録されている地点をすべて削除しますか?"))return;
-      if(day.stops.some(s=>s.id===manualCurrentId)){manualCurrentId=null;_cachedCdiForId=null;}
+      if(day.stops.some(s=>s.id===S.manualCurrentId)){S.manualCurrentId=null;_cachedCdiForId=null;}
       day.stops.forEach(s=>{delete wxStopRes[s.id];wxQueueIds.delete(s.id);});
       day.stops=[];day.date="";day.routeUrl="";
       setFormAdd();save();syncBorderAddr();renderTabs();render();
       return;
     }
-    if(!confirm(`「${dayTabLabel(data.days[currentDay],currentDay)}」を削除しますか？`))return;
-    if(editingId!==null) setFormAdd(); // 編集中の地点が削除対象日に含まれる場合のdangling editingId防止
-    if(data.days[currentDay].stops.some(s=>s.id===manualCurrentId)){manualCurrentId=null;_cachedCdiForId=null;}
-    for(const s of data.days[currentDay].stops){delete wxStopRes[s.id];wxQueueIds.delete(s.id);}
-    data.days.splice(currentDay,1);currentDay=Math.max(0,currentDay-1);
+    if(!confirm(`「${dayTabLabel(data.days[S.currentDay],S.currentDay)}」を削除しますか？`))return;
+    if(S.editingId!==null) setFormAdd(); // 編集中の地点が削除対象日に含まれる場合のdangling S.editingId防止
+    if(data.days[S.currentDay].stops.some(s=>s.id===S.manualCurrentId)){S.manualCurrentId=null;_cachedCdiForId=null;}
+    for(const s of data.days[S.currentDay].stops){delete wxStopRes[s.id];wxQueueIds.delete(s.id);}
+    data.days.splice(S.currentDay,1);S.currentDay=Math.max(0,S.currentDay-1);
     _cachedCdiForId=null; // splice後は後続dayのインデックスがズレるためcdiキャッシュを必ず無効化
     save();renderTabs();render();
   }catch(e){showAppError(EC.DAY_DEL,e);}
@@ -223,9 +223,9 @@ function switchDay(i){
     if(!_confirmLeaveEdit()) return;
     _dbgLog('switchDay',()=>({to:i,snap:_dbgSnapshot()}));
     _flushRouteSave(); // 入力中のrouteUrlを取りこぼさない
-    currentDay=Math.max(0,Math.min(data.days.length-1,i));
-    const fi=currentDayIdxOf(manualCurrentId);rideViewIdx=fi!==-1?fi:0;
-    if(isEdit)cancelEdit(true);
+    S.currentDay=Math.max(0,Math.min(data.days.length-1,i));
+    const fi=currentDayIdxOf(S.manualCurrentId);S.rideViewIdx=fi!==-1?fi:0;
+    if(S.isEdit)cancelEdit(true);
     syncBorderAddr();save();renderTabs();render();
     // 日程切替後は先頭地点が見えるようにスクロール（edit-area表示中でもtop:0を避ける）
     requestAnimationFrame(_scrollNormalViewToFirstStop);

@@ -32,12 +32,12 @@ function _dbgSnapshot(){
   try{
     const h=document.querySelector('header');
     return {
-      isEdit:typeof isEdit!=='undefined'?isEdit:null,
-      isRide:typeof isRide!=='undefined'?isRide:null,
-      cd:typeof currentDay!=='undefined'?currentDay:null,
-      mId:typeof manualCurrentId!=='undefined'?manualCurrentId:null,
-      aId:typeof activeEditStopId!=='undefined'?activeEditStopId:null,
-      eId:typeof editingId!=='undefined'?editingId:null,
+      isEdit:typeof S.isEdit!=='undefined'?S.isEdit:null,
+      isRide:typeof S.isRide!=='undefined'?S.isRide:null,
+      cd:typeof S.currentDay!=='undefined'?S.currentDay:null,
+      mId:typeof S.manualCurrentId!=='undefined'?S.manualCurrentId:null,
+      aId:typeof S.activeEditStopId!=='undefined'?S.activeEditStopId:null,
+      eId:typeof S.editingId!=='undefined'?S.editingId:null,
       days:(typeof data!=='undefined'&&data?.days)?data.days.length:0,
       hh:h?.offsetHeight||0,
       vw:window.innerWidth,vh:window.innerHeight,

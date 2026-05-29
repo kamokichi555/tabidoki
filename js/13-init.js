@@ -6,9 +6,9 @@
    ══════════════════════════════════════════════════════ */
 
 /* ── localStorageからの自動復元 ── */
-// _pendingRestore は 01-state.js で宣言済み（保存系から参照するためグローバル共有）
+// S._pendingRestore は 01-state.js で宣言済み（保存系から参照するためグローバル共有）
 let data;
-_pendingRestore=null;
+S._pendingRestore=null;
 try{
   const _raw=localStorage.getItem(SK);
   if(_raw){
@@ -25,7 +25,7 @@ try{
       }else{
         // 地点あり: 同期confirmは初回描画前（白画面）に出てしまうため、
         // ここでは適用せず保留にし、スプラッシュ描画後にアプリ上で確認する
-        _pendingRestore=_p;
+        S._pendingRestore=_p;
       }
     }
   }
@@ -33,7 +33,7 @@ try{
 if(!data) data=JSON.parse(JSON.stringify(DEFAULT));
 
 {
-  manualCurrentId=_resolveCurrentStopId(data); // currentStopId 解決＋実在チェック（02-utils、_applyImportedDataと共用）
+  S.manualCurrentId=_resolveCurrentStopId(data); // currentStopId 解決＋実在チェック（02-utils、_applyImportedDataと共用）
 }
 // スプラッシュ表示中に天気取得を先行開始（DOM構築より先に通信を走らせる）
 setTimeout(()=>ensureAllWeather(),0);
@@ -45,7 +45,7 @@ if(typeof _gpsInit==='function') _gpsInit();
 
 syncBorderAddr();
 // 復元の確認が保留中は保存データを上書きしないよう初期saveをスキップ
-if(!_pendingRestore) save();
+if(!S._pendingRestore) save();
 initRideSwipe();
 initNormalSwipe();
 renderTabs();
@@ -140,32 +140,32 @@ document.addEventListener('focusout',()=>{
 // 時刻は15秒ごと更新（renderRide全再描画しない）
 setInterval(()=>{
   updateClock();
-  if(!isRide) return;
+  if(!S.isRide) return;
   // 発車カウントダウンのみ差し替え（全再描画なし）
   const flat=currentDayFlat();
   if(!flat.length) return;
-  const rci=flat.findIndex(s=>s.id===manualCurrentId); // currentDayIdxOf→flatから直接検索
-  const vs=flat[rideViewIdx];
-  if(rideViewIdx!==rci||!vs?.dep) return;
+  const rci=flat.findIndex(s=>s.id===S.manualCurrentId); // currentDayIdxOf→flatから直接検索
+  const vs=flat[S.rideViewIdx];
+  if(S.rideViewIdx!==rci||!vs?.dep) return;
   const html=_depCountdownHtml(vs.dep);
   if(!html) return;
   const cd=document.querySelector('.ride-dep-cd');
   if(cd) cd.outerHTML=html;
 },15000);
-if(!isEdit&&!isRide){
+if(!S.isEdit&&!S.isRide){
   toggleEdit();
   // ブラウザのフォーム値復元（bfcache/オートフィル）がdata.titleと食い違うのを防ぐため、
   // 描画が落ち着いた後にもう一度data.titleで入力欄を上書き同期する
   requestAnimationFrame(()=>requestAnimationFrame(()=>_syncTitleInput()));
-  if(_pendingRestore){
+  if(!_canEditData()){
     // 初回描画（スプラッシュ表示）が済んでから確認する。
     // 少し遅延させることで白画面ではなくスプラッシュ上にダイアログが出る。
     setTimeout(()=>{
       // 待機中にファイル/サンプル読込などで保留が解除された場合は確認不要（null参照も防ぐ）
-      if(!_pendingRestore) return;
-      const _total=_pendingRestore.days.reduce((s,d)=>s+(d.stops?.length||0),0);
+      if(!S._pendingRestore) return;
+      const _total=S._pendingRestore.days.reduce((s,d)=>s+(d.stops?.length||0),0);
       const _ok=confirm(`前回の行程データが保存されています（${_total}地点）。\n読み込みますか？`);
-      _pendingRestore=null; // 確認に応答したので保留解除（以降の保存系ガードを外す）
+      S._pendingRestore=null; // 確認に応答したので保留解除（以降の保存系ガードを外す）
       if(_ok){
         restoreFromStorage(); // localStorageは保持済みなので再読込で適用
       }else{
@@ -191,7 +191,7 @@ if(!isEdit&&!isRide){
 window.addEventListener('pageshow',()=>{
   // ブラウザのフォーム値復元はpageshow後に非同期で行われることがあるため、
   // 少し遅延させて確実にその後でdata.titleへ上書き同期する
-  if(isEdit){ _syncTitleInput(); setTimeout(()=>{ if(isEdit) _syncTitleInput(); },120); }
+  if(S.isEdit){ _syncTitleInput(); setTimeout(()=>{ if(S.isEdit) _syncTitleInput(); },120); }
 });
 
 // 縦向き固定（Android Chrome対応・iOS Safari/一部デスクトップはlock未実装のため無視）

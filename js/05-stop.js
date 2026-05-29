@@ -2,7 +2,7 @@
    旅刻 mk16 — 05-stop.js
    地点管理（saveStop / delStop / cascadeFrom / sort / getStatus）
    依存: 00-constants.js（EC/LIMIT）, 02-utils.js（sanitize/toMin等）
-   実行時依存: data, currentDay, editingId, wxStopRes, wxQueueIds,
+   実行時依存: data, S.currentDay, S.editingId, wxStopRes, wxQueueIds,
               save, render, syncBorderAddr, showAppError, showInfoToast
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
@@ -12,18 +12,18 @@ function cascadeFrom(di,si,oldDep){
   catch(e){showAppError(EC.CASCADE,e);}
 }
 function getStatus(s,idx,ds,cdi){
-  if(manualCurrentId===null) return idx===0?'current':'upcoming';
+  if(S.manualCurrentId===null) return idx===0?'current':'upcoming';
   if(cdi===-1) return idx===0?'current':'upcoming';
-  // 表示中の日(currentDay)が現在地のある日(cdi)より前なら通過済み=past、後なら未到達=upcoming
-  if(currentDay!==cdi) return currentDay<cdi?'past':'upcoming';
-  if(s.id===manualCurrentId) return 'current';
-  const ci=ds.findIndex(x=>x.id===manualCurrentId);
+  // 表示中の日(S.currentDay)が現在地のある日(cdi)より前なら通過済み=past、後なら未到達=upcoming
+  if(S.currentDay!==cdi) return S.currentDay<cdi?'past':'upcoming';
+  if(s.id===S.manualCurrentId) return 'current';
+  const ci=ds.findIndex(x=>x.id===S.manualCurrentId);
   if(ci!==-1) return idx<ci?'past':'upcoming';
   return idx===0?'current':'upcoming';
 }
 function saveStop(){
   _dbgLog('saveStop:in', _dbgSnapshot);
-  if(_pendingRestore) return; // 起動時の復元確認が保留中はdataを変更しない（汚染防止）
+  if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（汚染防止）
   const name=sanitize(_dom('inp-name').value,LIMIT.name);
   if(!name){showValError('地点名を入力してください');return;}
   const addr=sanitize(_dom('inp-addr').value,LIMIT.addr);
@@ -36,19 +36,19 @@ function saveStop(){
   const fuel=_dom('fuel-check-box')?.classList.contains('checked')||false;
   const old=_dom('val-error');if(old)old.remove();
   try{
-    const ds=data.days[currentDay].stops;
-    let updatedId=null; // 更新時のID退避（setFormAdd()でeditingId=nullになるため事前に保存）
-    if(editingId!==null){
-      updatedId=editingId;
-      const idx=ds.findIndex(s=>s.id===editingId);
+    const ds=data.days[S.currentDay].stops;
+    let updatedId=null; // 更新時のID退避（setFormAdd()でS.editingId=nullになるため事前に保存）
+    if(S.editingId!==null){
+      updatedId=S.editingId;
+      const idx=ds.findIndex(s=>s.id===S.editingId);
       if(idx===-1){showAppError(EC.STOP,new Error('編集中の地点が見つかりません'));setFormAdd();return;}
       const oldDep=ds[idx].dep;
       ds[idx]={...ds[idx],name,addr,arr:newArr,dep:newDep,note,log,actArr,actDep,fuel};
       // 住所または日付が変わった可能性があるためキャッシュクリア
-      delete wxStopRes[editingId];wxQueueIds.delete(editingId);
-      if(newDep&&oldDep!==newDep)cascadeFrom(currentDay,idx,oldDep);
+      delete wxStopRes[S.editingId];wxQueueIds.delete(S.editingId);
+      if(newDep&&oldDep!==newDep)cascadeFrom(S.currentDay,idx,oldDep);
       // B案: 編集しても並び順は変えない（順序はユーザーのドラッグ/整列ボタンに委ねる）
-      setFormAdd();activeEditStopId=null;
+      setFormAdd();S.activeEditStopId=null;
     }else{
       if(ds.length>=LIMIT.stopsPerDay){showValError(`地点は1日${LIMIT.stopsPerDay}件までです`);return;}
       const newId=Date.now().toString(36)+Math.random().toString(36).slice(2);
@@ -81,21 +81,21 @@ function saveStop(){
 }
 function delStop(id){
   _dbgLog('delStop',()=>({id,snap:_dbgSnapshot()}));
-  if(_pendingRestore) return; // 起動時の復元確認が保留中はdataを変更しない（汚染防止）
+  if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（汚染防止）
   try{
     delete wxStopRes[id];wxQueueIds.delete(id);
-    data.days[currentDay].stops=data.days[currentDay].stops.filter(s=>s.id!==id);
-    if(id===manualCurrentId){manualCurrentId=null;_cachedCdiForId=null;}
-    if(editingId===id)setFormAdd();syncBorderAddr();save();render();
+    data.days[S.currentDay].stops=data.days[S.currentDay].stops.filter(s=>s.id!==id);
+    if(id===S.manualCurrentId){S.manualCurrentId=null;_cachedCdiForId=null;}
+    if(S.editingId===id)setFormAdd();syncBorderAddr();save();render();
     showInfoToast('🗑️ 地点を削除しました',2000);
   }catch(e){showAppError(EC.STOP,e);}
 }
 function setCurrentStop(id,fromGps,keepView){
   _dbgLog('setCurrentStop',{id,fromGps:!!fromGps,keepView:!!keepView});
-  manualCurrentId=id;_cachedCdiForId=null; // cdiキャッシュ無効化
-  // keepView=true のときは表示中ページ(rideViewIdx)を動かさない（手動スワイプ後の表示固定を尊重）
-  if(!keepView){const fi=currentDayIdxOf(id);if(fi!==-1)rideViewIdx=fi;}
+  S.manualCurrentId=id;_cachedCdiForId=null; // cdiキャッシュ無効化
+  // keepView=true のときは表示中ページ(S.rideViewIdx)を動かさない（手動スワイプ後の表示固定を尊重）
+  if(!keepView){const fi=currentDayIdxOf(id);if(fi!==-1)S.rideViewIdx=fi;}
   // GPS由来でない（=ユーザーの手動操作）ときだけGPS自動切替を一時抑制する
   if(!fromGps&&typeof _gpsNotifyManualSet==='function') _gpsNotifyManualSet();
-  save();if(isRide)renderRide();else render();
+  save();if(S.isRide)renderRide();else render();
 }

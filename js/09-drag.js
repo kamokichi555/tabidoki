@@ -1,7 +1,7 @@
 /* ══════════════════════════════════════════════════════
    旅刻 mk16 — 09-drag.js
    タッチ / マウス ドラッグ並び替え
-   実行時依存: data, currentDay, editingId, save, render, updateDragHint
+   実行時依存: data, S.currentDay, S.editingId, save, render, updateDragHint
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
 
@@ -15,7 +15,7 @@
 function _commitReorder(fromId,toId){
   if(!toId||fromId===toId) return;
   try{
-    const ds=data.days[currentDay].stops;
+    const ds=data.days[S.currentDay].stops;
     const si=ds.findIndex(s=>s.id===fromId),ti=ds.findIndex(s=>s.id===toId);
     if(si>=0&&ti>=0){
       const[m]=ds.splice(si,1);
@@ -38,7 +38,7 @@ function _cancelTouchDrag(){
   updateDragHint();
 }
 // 開始: 複製ゴーストを生成して指に追従させる準備
-function onTouchDragStart(e,id){if(_pendingRestore)return;if(editingId!==null)return;e.stopPropagation();tDragId=id;tDragEl=document.querySelector(`.stop-row[data-id="${id}"]`);if(!tDragEl){tDragId=null;return;}tStartY=e.touches[0].clientY;tStopRows=document.querySelectorAll('.stop-row');tGhost=tDragEl.cloneNode(true);const r=tDragEl.getBoundingClientRect();Object.assign(tGhost.style,{position:'fixed',left:r.left+'px',top:r.top+'px',width:r.width+'px',opacity:'.7',pointerEvents:'none',zIndex:'9999',transform:'scale(1.02)',background:'var(--bg2)',borderRadius:'10px',boxShadow:'0 8px 32px rgba(0,0,0,.5)',transition:'none'});document.body.appendChild(tGhost);tDragEl.classList.add('dragging');updateDragHint();}
+function onTouchDragStart(e,id){if(!_canEditData())return;if(S.editingId!==null)return;e.stopPropagation();tDragId=id;tDragEl=document.querySelector(`.stop-row[data-id="${id}"]`);if(!tDragEl){tDragId=null;return;}tStartY=e.touches[0].clientY;tStopRows=document.querySelectorAll('.stop-row');tGhost=tDragEl.cloneNode(true);const r=tDragEl.getBoundingClientRect();Object.assign(tGhost.style,{position:'fixed',left:r.left+'px',top:r.top+'px',width:r.width+'px',opacity:'.7',pointerEvents:'none',zIndex:'9999',transform:'scale(1.02)',background:'var(--bg2)',borderRadius:'10px',boxShadow:'0 8px 32px rgba(0,0,0,.5)',transition:'none'});document.body.appendChild(tGhost);tDragEl.classList.add('dragging');updateDragHint();}
 // 移動: ゴーストを追従させ、指の下の行に .drag-over を付与
 function onTouchDragMove(e){if(!tGhost)return;e.preventDefault();e.stopPropagation();const t=e.touches[0];const dy=t.clientY-tStartY;const r=tDragEl.getBoundingClientRect();tGhost.style.top=(r.top+dy)+'px';tStopRows.forEach(row=>row.classList.remove('drag-over'));const el=document.elementFromPoint(t.clientX,t.clientY);if(!el)return;const row=el.closest('.stop-row');if(row&&row!==tDragEl)row.classList.add('drag-over');}
 // 終了: 指の下の行を確定先として _commitReorder で並び替え
@@ -47,8 +47,8 @@ function onTouchDragEnd(e){if(!tGhost)return;e.stopPropagation();const t=e.chang
 /* ── PC マウスドラッグ（タッチ版と同じ仕組み。mousemove/mouseupはdocumentに登録し終了時に解除） ── */
 let mDragId=null,mDragEl=null,mStopRows=null,mGhost=null,mStartY=0,mOffsetY=0;
 function onMouseDragStart(e,id){
-  if(_pendingRestore)return; // 起動時の復元確認が保留中はdataを変更しない（汚染防止）
-  if(editingId!==null)return;
+  if(!_canEditData())return; // 起動時の復元確認が保留中はdataを変更しない（汚染防止）
+  if(S.editingId!==null)return;
   if(mGhost)return; // 既にドラッグ中 → mousemove/mouseup リスナーの重複登録を防ぐ
   e.preventDefault();
   mDragId=id;
