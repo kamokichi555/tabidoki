@@ -105,7 +105,7 @@ body{
 <body>
 <div id="stage">
   <div id="progress"></div>
-  <iframe id="app" src="index.html"></iframe>
+  <iframe id="app" src="about:blank"></iframe>
 
   <!-- テロップ -->
   <div id="telop"></div>
@@ -287,6 +287,9 @@ function dragReorder(fromName,toName,dropBefore){
 function play(){
   if(running)clearAll();
   running=true;
+  // 前回の行程データを消す（iframe内index.htmlと同一オリジンならlocalStorageを共有するため、
+  // これで起動時の「前回データを読み込みますか？」ダイアログが出なくなる）
+  try{ localStorage.removeItem('touring_data'); }catch(e){}
   $('replay').classList.remove('show');
   $('end-card').classList.remove('show');
   $('title-card').classList.remove('show'); // 独自タイトルは使わず本物のスプラッシュを見せる
@@ -306,28 +309,33 @@ function play(){
 
 // メインデモ（本物のスプラッシュ→アプリ操作）
 function startMainDemo(){
-  // iframeをリロードしてまっさらから（onloadは1回だけ処理）
   const ifr=$('app');
   let booted=false;
-  ifr.onload=()=>{
+
+  // 本体(index.html)読み込み後の初期化
+  ifr.addEventListener('load',function onAppReady(){
     if(booted)return; booted=true;
-    // 空データから開始（本物のスプラッシュはそのまま再生させる）
+    ifr.removeEventListener('load',onAppReady);
     exec(`(function(){
       try{
         // SW登録失敗のエラートーストをデモ中は抑制
         if(typeof showAppError==='function'){ window.showAppError=function(){}; }
         var et=document.getElementById('app-error-toast'); if(et){et.style.display='none';}
-        // デモ中は確認ダイアログ（走行モード切替など）を出さない＝自動進行を止めない
+        // デモ中は確認ダイアログ（復元/走行モード切替など）を一切出さない＝自動進行を止めない
         window.confirm=function(){return true;};
+        try{ localStorage.removeItem('touring_data'); }catch(e){}
+        // 空データから開始（本物のスプラッシュはそのまま再生させる）
         data={version:'demo',title:'',currentStopId:null,days:[{label:'1日目\\n神奈川→山梨',date:'',routeUrl:'',stops:[]}]};
         currentDay=0;manualCurrentId=null;_pendingRestore=null;rideViewIdx=0;
         render();
-        // ※ スプラッシュは消さない：本物の起動演出（約5秒）をデモ冒頭で見せる
       }catch(e){console.warn('init',e);}
     })()`);
     runScenario();
-  };
-  ifr.src='index.html';
+  },{once:true});
+
+  // 前回データは play() 冒頭で親localStorageから削除済み（同一オリジン共有）。
+  // 念のためcache無効化のためタイムスタンプを付けて本体を読み込む。
+  ifr.src='index.html?demo='+Date.now();
 }
 
 function runScenario(){
