@@ -1,22 +1,26 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk16 — 12-debug.js
+   旅刻 mk17 — 12-debug.js
    デバッグログ機構・バッジ・トースト
    依存: 00-constants.js（EC）, 04-weather.js（_lsSetItem）
    実行時依存: showAppError
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
 
+/* --- 自動生成: モジュール依存のインポート --- */
+import { S, data } from './01-state.js';
+import { EC } from './00-constants.js';
+import { showAppError, showInfoToast } from './07-render.js';
 /* ══ デバッグログ機構 ══ */
-const DBG_KEY='dbg_log_v1';
-const DBG_ENABLED_KEY='dbg_enabled_v1';
-const DBG_MAX=500;
-let _dbgEnabled=false;
-let _dbgErrCount=0;
-let _dbgBuf=[];
-let _dbgPersistTimer=null;
-let _dbgDirty=false;
+export const DBG_KEY='dbg_log_v1';
+export const DBG_ENABLED_KEY='dbg_enabled_v1';
+export const DBG_MAX=500;
+export let _dbgEnabled=false;
+export let _dbgErrCount=0;
+export let _dbgBuf=[];
+export let _dbgPersistTimer=null;
+export let _dbgDirty=false;
 
-function _dbgPersistSchedule(){
+export function _dbgPersistSchedule(){
   _dbgDirty=true;
   if(_dbgPersistTimer) return;
   _dbgPersistTimer=setTimeout(()=>{
@@ -28,7 +32,7 @@ function _dbgPersistSchedule(){
   },3000);
 }
 
-function _dbgSnapshot(){
+export function _dbgSnapshot(){
   try{
     const h=document.querySelector('header');
     return {
@@ -47,7 +51,7 @@ function _dbgSnapshot(){
   }catch(e){return {snapErr:String(e).slice(0,60)};}
 }
 
-function _dbgLog(event,data){
+export function _dbgLog(event,data){
   if(!_dbgEnabled) return;
   try{
     // dataが関数なら有効時のみ評価（早期評価によるDOM計測コストを回避）
@@ -61,9 +65,9 @@ function _dbgLog(event,data){
   }catch(e){}
 }
 
-function _dbgFmtAll(){
+export function _dbgFmtAll(){
   const env={
-    app:'tabidoki mk16',
+    app:'tabidoki mk17',
     now:new Date().toISOString(),
     ua:navigator.userAgent,
     vw:window.innerWidth,vh:window.innerHeight,
@@ -71,19 +75,19 @@ function _dbgFmtAll(){
     err:_dbgErrCount,entries:_dbgBuf.length,
     snap:_dbgSnapshot(),
   };
-  const head='# 旅刻mk16 デバッグログ\n## 環境\n'+JSON.stringify(env,null,2)+'\n\n## イベント (古い→新しい)\n';
+  const head='# 旅刻mk17 デバッグログ\n## 環境\n'+JSON.stringify(env,null,2)+'\n\n## イベント (古い→新しい)\n';
   const lines=_dbgBuf.map(en=>`[${en.t}] ${en.e}${en.d?' '+JSON.stringify(en.d):''}`).join('\n');
   return head+lines+'\n';
 }
 
-function _dbgCopy(){
+export function _dbgCopy(){
   const t=_dbgFmtAll();
   const done=()=>{try{showInfoToast('📋 ログをコピーしました',1800);}catch(e){}};
   if(navigator.clipboard?.writeText){
     navigator.clipboard.writeText(t).then(done).catch(()=>_dbgFallbackCopy(t,done));
   }else _dbgFallbackCopy(t,done);
 }
-function _dbgFallbackCopy(t,done){
+export function _dbgFallbackCopy(t,done){
   try{
     const ta=document.createElement('textarea');
     ta.value=t;ta.style.position='fixed';ta.style.opacity='0';
@@ -93,7 +97,7 @@ function _dbgFallbackCopy(t,done){
   }catch(e){alert('コピーに失敗しました');}
 }
 
-function _dbgDownload(){
+export function _dbgDownload(){
   try{
     const t=_dbgFmtAll();
     const blob=new Blob([t],{type:'text/plain;charset=utf-8'});
@@ -106,7 +110,7 @@ function _dbgDownload(){
   }catch(e){alert('保存に失敗しました: '+e.message);}
 }
 
-function _dbgClear(){
+export function _dbgClear(){
   if(!confirm('デバッグログをすべて削除しますか？')) return;
   _dbgBuf=[];_dbgErrCount=0;_dbgDirty=true;
   try{localStorage.removeItem(DBG_KEY);}catch(e){}
@@ -115,7 +119,7 @@ function _dbgClear(){
   try{showInfoToast('🗑️ ログを消去しました',1500);}catch(e){}
 }
 
-function _dbgSetEnabled(on){
+export function _dbgSetEnabled(on){
   _dbgEnabled=!!on;
   try{localStorage.setItem(DBG_ENABLED_KEY,on?'1':'0');}catch(e){}
   if(on){
@@ -132,7 +136,7 @@ function _dbgSetEnabled(on){
   _dbgRefreshSettings();
 }
 
-function _dbgUpdateBadge(){
+export function _dbgUpdateBadge(){
   const b=document.getElementById('dbg-badge');
   const t=document.getElementById('dbg-badge-text');
   if(!b||!t) return;
@@ -143,12 +147,12 @@ function _dbgUpdateBadge(){
   }else b.classList.remove('show');
 }
 
-function _dbgRefreshSettings(){
+export function _dbgRefreshSettings(){
   const c=document.getElementById('dbg-count');
   if(c) c.textContent=`${_dbgBuf.length}件 / エラー${_dbgErrCount}件`;
 }
 
-function _dbgInit(){
+export function _dbgInit(){
   try{_dbgEnabled=localStorage.getItem(DBG_ENABLED_KEY)==='1';}catch(e){}
   try{
     const raw=localStorage.getItem(DBG_KEY);

@@ -1,18 +1,25 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk16 — 04-weather.js
+   旅刻 mk17 — 04-weather.js
    天気取得・ジオコーディング・キュー管理
    依存: 00-constants.js（WMO）, 02-utils.js（esc/pClass/buildGeoTargets等）
    実行時依存: data, S.currentDay, S.isRide, render, renderRide, showInfoToast
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
 
+/* --- 自動生成: モジュール依存のインポート --- */
+import { S, data } from './01-state.js';
+import { SK, WMO } from './00-constants.js';
+import { buildGeoTargets, hasCachedCoords, pClass } from './02-utils.js';
+import { currentDayFlat } from './06-day.js';
+import { renderRide, showInfoToast, updateClock } from './07-render.js';
+import { _dbgLog } from './12-debug.js';
 /* ══ 天気キャッシュ ══
    geoCache   : クエリ文字列 → {lat,lon}  ※localStorageに永続化
    fcastCache : "lat2,lon2_date" → {wcode,tmax,tmin,precip,time}
    wxStopRes  : stopId → result | 'loading' | null
 */
 /* ══ localStorage ユーティリティ（容量管理） ══ */
-function _lsSetItem(key,val){
+export function _lsSetItem(key,val){
   try{
     localStorage.setItem(key,val);
   }catch(e){
@@ -37,12 +44,12 @@ function _lsSetItem(key,val){
   }
 }
 
-const GEO_SK='touring_geo';
-const GEO_MAX=80; // LRU上限
-const geoCache=(()=>{try{return JSON.parse(localStorage.getItem(GEO_SK))||{};}catch(e){return{};}})();
-function _geoCacheGet(q){const e=geoCache[q];if(!e)return null;e.ts=Date.now();return e;}
-function _geoCacheSet(q,lat,lon){geoCache[q]={lat,lon,ts:Date.now()};_saveGeoCache();}
-function _saveGeoCache(){try{
+export const GEO_SK='touring_geo';
+export const GEO_MAX=80; // LRU上限
+export const geoCache=(()=>{try{return JSON.parse(localStorage.getItem(GEO_SK))||{};}catch(e){return{};}})();
+export function _geoCacheGet(q){const e=geoCache[q];if(!e)return null;e.ts=Date.now();return e;}
+export function _geoCacheSet(q,lat,lon){geoCache[q]={lat,lon,ts:Date.now()};_saveGeoCache();}
+export function _saveGeoCache(){try{
   const keys=Object.keys(geoCache);
   if(keys.length>GEO_MAX){
     // LRU: tsが古い順に削除
@@ -51,19 +58,20 @@ function _saveGeoCache(){try{
   }
   _lsSetItem(GEO_SK,JSON.stringify(geoCache));
 }catch(e){}}
-const FCST_SK='touring_fcast';
-const fcastCache=(()=>{try{return JSON.parse(sessionStorage.getItem(FCST_SK))||{};}catch(e){return{};}})();
-function _saveFcastCache(){try{sessionStorage.setItem(FCST_SK,JSON.stringify(fcastCache));}catch(e){}}
-const wxStopRes={};
+export const FCST_SK='touring_fcast';
+export const fcastCache=(()=>{try{return JSON.parse(sessionStorage.getItem(FCST_SK))||{};}catch(e){return{};}})();
+export function _saveFcastCache(){try{sessionStorage.setItem(FCST_SK,JSON.stringify(fcastCache));}catch(e){}}
+export const wxStopRes={};
 /* ── 共通: idから地点オブジェクトを取得（onStopWxReady/_showLoadingDomで共用） ── */
-function _stopById(id){
+export function _stopById(id){
   for(const day of data.days){for(const s of day.stops){if(s.id===id) return s;}}
   return null;
 }
-let wxQueueRunning=false;
-let wxGen=0; // 世代トークン：refreshAllWeatherで++し、実行中ループは世代変化で自然離脱する
-const wxQueue=[];
-const wxQueueFast=[];
+export let wxQueueRunning=false;
+export let wxGen=0; // 世代トークン：refreshAllWeatherで++し、実行中ループは世代変化で自然離脱する
+export function _bumpWxGen(){ wxGen++; } // 他モジュールからの世代更新用（importは再代入不可のため）
+export const wxQueue=[];
+export const wxQueueFast=[];
 // キューが刺さった場合の自動リセット（30秒ごとに監視）
 setInterval(()=>{
   if(wxQueueRunning&&!wxQueue.length&&!wxQueueFast.length) wxQueueRunning=false;
@@ -82,7 +90,7 @@ setInterval(()=>{
 },30000);
 
 /* ── 天気タップ再取得 ── */
-function retryStopWeather(stopId){
+export function retryStopWeather(stopId){
   const r=wxStopRes[stopId];
   if(r==='loading'||wxQueueIds.has(stopId)){showInfoToast('🌐 取得中です',1500);return;}
   // 対象地点とその日付を取得
@@ -102,7 +110,7 @@ function retryStopWeather(stopId){
   showInfoToast('🌐 天気を再取得します',2000);
 }
 
-function stopWxInner(stopId,hasAddr){
+export function stopWxInner(stopId,hasAddr){
   if(!hasAddr) return '';  // 住所なしは一切表示しない
   const r=wxStopRes[stopId];
   if(!r) return '<div class="stop-wx-loading">🌐 取得中…</div>';
@@ -136,7 +144,7 @@ function stopWxInner(stopId,hasAddr){
 }
 
 /* 走行画面 天気表示（2行レイアウト） */
-function rideWxCompact(stopId,hasAddr){
+export function rideWxCompact(stopId,hasAddr){
   const r=wxStopRes[stopId];
   if(!hasAddr) return '';
   const _state=(icon,msg)=>`<div class="ride-wx-compact"><div class="cw-row1"><span class="cw-icon">${icon}</span><span class="cw-cond" style="opacity:.5">${msg}</span></div></div>`;
@@ -169,7 +177,7 @@ function rideWxCompact(stopId,hasAddr){
 }
 
 /* ── 取得完了後 DOM部分更新 ── */
-function onStopWxReady(stopId){
+export function onStopWxReady(stopId){
   wxQueueIds.delete(stopId);
   if(S.isRide){
     // 走行ビューはwx-ラッパーを持たない → 現在地/次地点の更新時のみrenderRideで再描画
@@ -186,7 +194,7 @@ function onStopWxReady(stopId){
   }
 }
 /* ── 取得開始時に即座にDOM更新（loading表示） ── */
-function _showLoadingDom(stopId){
+export function _showLoadingDom(stopId){
   const el=document.getElementById('wx-'+stopId);
   if(!el) return;
   // addrがある地点のみloading表示（住所なしは取得しても表示しない）
@@ -195,7 +203,7 @@ function _showLoadingDom(stopId){
 }
 
 /* ── wttr.in コード → WMO近似変換 ── */
-function _wttrToWmo(c){
+export function _wttrToWmo(c){
   if(c===113) return 0;
   if(c===116) return 2;
   if(c===119||c===122) return 3;
@@ -210,7 +218,7 @@ function _wttrToWmo(c){
 }
 
 /* ── wttr.in フォールバックフェッチ ── */
-async function _fetchWttr(lat,lon,date,arrHour){
+export async function _fetchWttr(lat,lon,date,arrHour){
   const ctrl=new AbortController();
   const t=setTimeout(()=>ctrl.abort(),8000);
   try{
@@ -244,7 +252,7 @@ async function _fetchWttr(lat,lon,date,arrHour){
 }
 
 /* ── 予報フェッチ（Open-Meteoはレート制限なし） ── */
-async function _fetchForecast(stop,lat,lon,date){
+export async function _fetchForecast(stop,lat,lon,date){
   // 到着時刻がある場合はhourlyで時間帯の天気を取得（なければ出発時刻で代替）
   const arrTime=stop.arr||stop.dep||null; // "HH:MM" or null
   const arrHour=arrTime?parseInt(arrTime.split(':')[0]):null;
@@ -346,7 +354,7 @@ async function _fetchForecast(stop,lat,lon,date){
 }
 
 /* ── ジオコーディング（国土地理院→Nominatim フォールバック） ── */
-async function _geocodeGSI(q){
+export async function _geocodeGSI(q){
   // 国土地理院 住所検索API（日本住所専用・CORS完全対応・APIキー不要）
   const ctrl=new AbortController();
   const t=setTimeout(()=>ctrl.abort(),6000);
@@ -368,7 +376,7 @@ async function _geocodeGSI(q){
   }catch(e){clearTimeout(t);}
   return null;
 }
-async function _geocodeNominatim(q){
+export async function _geocodeNominatim(q){
   const ctrl=new AbortController();
   const t=setTimeout(()=>ctrl.abort(),6000);
   try{
@@ -386,7 +394,7 @@ async function _geocodeNominatim(q){
 }
 
 /* ══ 地点名クリーニング → 複数ジオクエリ候補を生成 ══ */
-function buildNameTargets(name){
+export function buildNameTargets(name){
   // 絵文字・記号除去
   const emojiRe=/(?:[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF\u2B50\u231A-\u231B\u23E9-\u23F3\u23F8-\u23FA\u25AA-\u25AB\u25B6\u25C0\u25FB-\u25FE\u2614-\u2615\u2648-\u2653\u267F\u2693\u26A1\u26AA-\u26AB\u26BD-\u26BE\u26C4-\u26C5\u26CE\u26D4\u26EA\u26F2-\u26F3\u26F5\u26FA\u26FD\u2702\u2705\u2708-\u270D\u270F\u2712\u2714\u2716\u271D\u2721\u2728\u2733-\u2734\u2744\u2747\u274C\u274E\u2753-\u2755\u2757\u2763-\u2764\u2795-\u2797\u27A1\u27B0\u27BF\u2934-\u2935\u2B05-\u2B07\u2B1B-\u2B1C\u2B55\u3030\u303D\u3297\u3299])/g;
   const clean=name.replace(emojiRe,"").replace(/[\u2605\u2606\u25CE\u25CB\u25CF\u25C6\u25C7\u25A0\u25A1\u25B2\u25B3\u25BC\u25BD]/g,"").trim();
@@ -405,7 +413,7 @@ function buildNameTargets(name){
 
 /* ══ 1地点フェッチ（geocoding + forecast） ══ */
 // 地点オブジェクトが編集/削除されていないかチェック（saveStopが ds[idx]={...} で新オブジェクトに差し替えるため、参照同一性で判定可能）
-function _stopStillValid(stop){
+export function _stopStillValid(stop){
   for(const d of data.days){
     for(const s of d.stops){
       if(s===stop) return true;
@@ -414,7 +422,7 @@ function _stopStillValid(stop){
   return false;
 }
 /* ── 並列ジオコーディング（GSI + Nominatim を同時実行・先勝ち） ── */
-async function _geocodeParallel(q,useAddrMode){
+export async function _geocodeParallel(q,useAddrMode){
   if(useAddrMode){
     // 住所モード: GSI優先（日本住所に強い）
     // GSIを先に投げ、500ms経過してもまだ返らなければNominatimも並列実行
@@ -439,7 +447,7 @@ async function _geocodeParallel(q,useAddrMode){
   }
 }
 
-async function doFetchStop(stop,date){
+export async function doFetchStop(stop,date){
   // 既に編集（別オブジェクトに差し替え）/削除された地点はネットワーク取得しない（無駄なジオコーディング・予報フェッチ防止）
   if(!_stopStillValid(stop)) return;
   const addr=(stop.addr||"").trim();
@@ -467,7 +475,7 @@ async function doFetchStop(stop,date){
 }
 
 /* ══ キュー処理（fast:全並列 / slow:1件直列・600msウェイト） ══ */
-async function runWxQueue(){
+export async function runWxQueue(){
   if(wxQueueRunning)return;
   wxQueueRunning=true;
   const myGen=wxGen; // このループの世代を記録。refreshAllWeatherで世代が進んだら離脱
@@ -506,8 +514,8 @@ async function runWxQueue(){
   }
 }
 
-const wxQueueIds=new Set(); // O(1)重複チェック用
-function enqueueStop(stop,date,priority){
+export const wxQueueIds=new Set(); // O(1)重複チェック用
+export function enqueueStop(stop,date,priority){
   // 住所がある地点のみ天気取得（住所なしは表示しないため取得もしない）
   if(!(stop.addr||'').trim()) return;
   const r=wxStopRes[stop.id];
@@ -535,22 +543,22 @@ function enqueueStop(stop,date,priority){
   runWxQueue();
 }
 
-function _isoToday(offset=0){
+export function _isoToday(offset=0){
   const d=new Date();d.setDate(d.getDate()+offset);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
-function ensureDayWeather(dayIdx){
+export function ensureDayWeather(dayIdx){
   const day=data.days[dayIdx];
   if(!day||!day.stops.length) return;
   const date=day.date||_isoToday(dayIdx); // 日付未設定なら今日+N日
   day.stops.forEach(s=>enqueueStop(s,date));
 }
 
-function ensureAllWeather(){
+export function ensureAllWeather(){
   data.days.forEach((_,i)=>ensureDayWeather(i));
 }
 
-function refreshAllWeather(){
+export function refreshAllWeather(){
   wxGen++; // 世代を進めて実行中ループを無効化（強制終了させず自然離脱させる）
   Object.keys(fcastCache).forEach(k=>delete fcastCache[k]);
   try{sessionStorage.removeItem(FCST_SK);}catch(e){}

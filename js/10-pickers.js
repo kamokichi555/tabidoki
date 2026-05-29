@@ -1,13 +1,21 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk16 — 10-pickers.js
+   旅刻 mk17 — 10-pickers.js
    施設選択モーダル（高速道路 / 道の駅 / GS / 快活CLUB / トイレ）
    依存: 00-constants.js, 02-utils.js（esc/escJsAttr）, 04-weather.js（_lsSetItem）
    実行時依存: _dbgLog, showInfoToast, _setFuelCheck, _closeOverlay
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
 
+/* --- 自動生成: モジュール依存のインポート --- */
+import { debounce, esc, escJsAttr } from './02-utils.js';
+import { _lsSetItem } from './04-weather.js';
+import { _updateStickyTops } from './06-day.js';
+import { _bindOverlayVp, _closeAllOverlays, _closeOverlay, _lowerHeaderForOverlay, _makeApplyVp, _setDetailsOpen, _setFuelCheck } from './11-overlays.js';
+import { _dbgLog, _dbgSnapshot } from './12-debug.js';
+
+
 /* ══ 高速道路施設選択モーダル（Overpass API + localStorageキャッシュ） ══ */
-const HIGHWAY_FALLBACK=[
+export const HIGHWAY_FALLBACK=[
   ['海老名SA（上り）','神奈川県海老名市'],['海老名SA（下り）','神奈川県海老名市'],
   ['足柄SA（上り）','静岡県小山町'],['足柄SA（下り）','静岡県小山町'],
   ['駿河湾沼津SA（上り）','静岡県沼津市'],['駿河湾沼津SA（下り）','静岡県沼津市'],
@@ -209,13 +217,13 @@ const HIGHWAY_FALLBACK=[
   ['熊本IC','熊本県熊本市北区'],
   ['鹿児島IC','鹿児島県鹿児島市'],
 ];
-let HIGHWAY_DATA=HIGHWAY_FALLBACK;
-let _highwayLoading=false;
+export let HIGHWAY_DATA=HIGHWAY_FALLBACK;
+export let _highwayLoading=false;
 /* 一度に描画する施設リストの最大行数（大量ノードの一括innerHTML生成を防ぐ） */
-const PICKER_CAP=150;
+export const PICKER_CAP=150;
 
 /* ── 施設データマージ共通関数 ── */
-function _mergeFacilityData(fallback,online){
+export function _mergeFacilityData(fallback,online){
   const merged=fallback.slice();
   const existing=new Set(merged.map(m=>m[0]));
   for(const entry of online){
@@ -225,7 +233,7 @@ function _mergeFacilityData(fallback,online){
   return merged;
 }
 /* ── 共通: OSMタグから住所(都道府県+市区町村)を抽出 ── */
-function _extractAddr(tags){
+export function _extractAddr(tags){
   let addr='';
   const addrFull=tags?.['addr:full']||'';
   if(addrFull){const m=addrFull.match(/^(.+?[都道府県].+?[市区町村])/);addr=m?m[1]:'';}
@@ -237,7 +245,7 @@ function _extractAddr(tags){
   return addr;
 }
 /* ── 共通: 施設キャッシュ読込（TTL・件数しきい値チェック） → {d,t} or null ── */
-function _readFacilityCache(key,ttlMs,minCount){
+export function _readFacilityCache(key,ttlMs,minCount){
   try{
     const cached=localStorage.getItem(key);
     if(cached){
@@ -248,7 +256,7 @@ function _readFacilityCache(key,ttlMs,minCount){
   return null;
 }
 /* ── 共通: Overpass APIへPOST（120秒タイムアウト） → elements配列 ── */
-async function _overpassFetch(body){
+export async function _overpassFetch(body){
   const ctrl=new AbortController();
   const timer=setTimeout(()=>ctrl.abort(),120000);
   try{
@@ -262,7 +270,7 @@ async function _overpassFetch(body){
 /* ── 共通: 施設選択ボトムシートを開く（高速/道の駅/GS共通） ──
    cfg: {prefix, title, heightPct, placeholder, oninput, renderList,
          hintHtml='', listPadding='8px 0', afterOpen?} */
-function _openPickerModal(cfg){
+export function _openPickerModal(cfg){
   _closeAllOverlays();
   const id=cfg.prefix;
   const ov=document.createElement('div');
@@ -292,11 +300,11 @@ function _openPickerModal(cfg){
   setTimeout(()=>{const el=document.getElementById(id+'-search');if(el){el.focus();if(_q) el.select();}},100);
 }
 
-function _mergeHighwayData(online){
+export function _mergeHighwayData(online){
   HIGHWAY_DATA=_mergeFacilityData(HIGHWAY_FALLBACK,online);
 }
 
-async function _fetchHighwayOnline(){
+export async function _fetchHighwayOnline(){
   if(_highwayLoading) return;
   _highwayLoading=true;
   const _refresh=()=>{const s=document.getElementById('highway-search');if(s)filterHighway();};
@@ -338,7 +346,7 @@ async function _fetchHighwayOnline(){
   setTimeout(_fetchHighwayOnline,6000);
 })();
 
-function openHighway(){
+export function openHighway(){
   _dbgLog('openHighway',()=>({q:(document.getElementById('inp-name')?.value||'').trim(),snap:_dbgSnapshot()}));
   _openPickerModal({
     prefix:'highway',
@@ -350,13 +358,13 @@ function openHighway(){
     afterOpen:()=>{if(!_highwayLoading) _fetchHighwayOnline();}
   });
 }
-function filterHighway(){
+export function filterHighway(){
   const q=(document.getElementById('highway-search')?.value||'').trim();
   renderHighwayList(q);
 }
 /* キーストロークごとの全件再描画を防ぐためdebounce（モーダルopen時・データ到着時は即時のfilterHighwayを使用） */
-const filterHighwayDebounced=debounce(filterHighway,140);
-function renderHighwayList(q){
+export const filterHighwayDebounced=debounce(filterHighway,140);
+export function renderHighwayList(q){
   const list=document.getElementById('highway-list');
   if(!list) return;
   const filtered=q?HIGHWAY_DATA.filter(m=>m[0].includes(q)||m[1].includes(q)):HIGHWAY_DATA;
@@ -370,7 +378,7 @@ function renderHighwayList(q){
     <div style="font-size:12px;color:var(--text3);margin-top:2px">${esc(m[1])}</div>
   </div>`).join('')+capNote+footer;
 }
-function selectHighway(name,addr,fullName){
+export function selectHighway(name,addr,fullName){
   _dbgLog('selectHighway',{name:String(fullName||name).slice(0,40),addr:String(addr||'').slice(0,40)});
   const ni=document.getElementById('inp-name');
   const ai=document.getElementById('inp-addr');
@@ -385,7 +393,7 @@ function selectHighway(name,addr,fullName){
 }
 
 /* ══ 道の駅選択モーダル ══ */
-const MICHI_NO_EKI_FALLBACK=[
+export const MICHI_NO_EKI_FALLBACK=[
   // 北海道
   ['オホーツク紋別','北海道紋別市'],['流氷街道網走','北海道網走市'],['知床・らうす','北海道目梨郡羅臼町'],
   ['うとろ・シリエトク','北海道斜里町'],['摩周温泉','北海道川上郡弟子屈町'],['阿寒丹頂の里','北海道釧路市'],
@@ -616,14 +624,14 @@ const MICHI_NO_EKI_FALLBACK=[
 ];
 
 /* ══ 道の駅 動的取得（Overpass API + localStorageキャッシュ） ══ */
-let MICHI_NO_EKI = MICHI_NO_EKI_FALLBACK;
-let _michiLoading = false;
+export let MICHI_NO_EKI = MICHI_NO_EKI_FALLBACK;
+export let _michiLoading = false;
 
-function _mergeMichiData(online){
+export function _mergeMichiData(online){
   MICHI_NO_EKI=_mergeFacilityData(MICHI_NO_EKI_FALLBACK,online);
 }
 
-async function _fetchMichiOnline(){
+export async function _fetchMichiOnline(){
   if(_michiLoading) return;
   _michiLoading = true;
   // モーダルが開いていれば「取得中」表示を更新
@@ -675,7 +683,7 @@ out center tags;`);
   setTimeout(_fetchMichiOnline, 5000);
 })();
 
-function openMichinoEki(){
+export function openMichinoEki(){
   _dbgLog('openMichinoEki',()=>({q:(document.getElementById('inp-name')?.value||'').trim(),snap:_dbgSnapshot()}));
   _openPickerModal({
     prefix:'michi',
@@ -686,13 +694,13 @@ function openMichinoEki(){
     renderList:renderMichiList
   });
 }
-function filterMichi(){
+export function filterMichi(){
   const q=(document.getElementById('michi-search')?.value||'').trim();
   renderMichiList(q);
 }
 /* キーストロークごとの全件再描画を防ぐためdebounce */
-const filterMichiDebounced=debounce(filterMichi,140);
-function renderMichiList(q){
+export const filterMichiDebounced=debounce(filterMichi,140);
+export function renderMichiList(q){
   const list=document.getElementById('michi-list');
   if(!list) return;
   const filtered=q?MICHI_NO_EKI.filter(m=>m[0].includes(q)||m[1].includes(q)):MICHI_NO_EKI;
@@ -707,7 +715,7 @@ function renderMichiList(q){
     <div style="font-size:12px;color:var(--text3);margin-top:2px">${esc(m[1])}</div>
   </div>`).join('')+capNote+footer;
 }
-function selectMichi(name,addr,fullName){
+export function selectMichi(name,addr,fullName){
   _dbgLog('selectMichi',{name:String(fullName||name).slice(0,40),addr:String(addr||'').slice(0,40)});
   const ni=document.getElementById('inp-name');
   const ai=document.getElementById('inp-addr');
@@ -722,7 +730,7 @@ function selectMichi(name,addr,fullName){
 }
 
 /* ══ ガソリンスタンド選択 ══ */
-const GAS_STATION_CHAINS=[
+export const GAS_STATION_CHAINS=[
   ['ENEOS','ENEOSホールディングス系列（旧日石・旧JOMOほか）'],
   ['apollostation','出光・昭和シェル統合ブランド'],
   ['出光','出光興産系列'],
@@ -738,7 +746,7 @@ const GAS_STATION_CHAINS=[
   ['セルフSS','チェーン不明（セルフ）'],
   ['ガソリンスタンド','チェーン不明'],
 ];
-function openGasStation(){
+export function openGasStation(){
   _dbgLog('openGasStation',()=>({q:(document.getElementById('inp-name')?.value||'').trim(),snap:_dbgSnapshot()}));
   _openPickerModal({
     prefix:'gs',
@@ -751,10 +759,10 @@ function openGasStation(){
     renderList:renderGasStationList
   });
 }
-function filterGasStation(){
+export function filterGasStation(){
   renderGasStationList((document.getElementById('gs-search')?.value||'').trim());
 }
-function renderGasStationList(q){
+export function renderGasStationList(q){
   const list=document.getElementById('gs-list');
   if(!list) return;
   const filtered=q?GAS_STATION_CHAINS.filter(g=>g[0].includes(q)||g[1].includes(q)):GAS_STATION_CHAINS;
@@ -764,7 +772,7 @@ function renderGasStationList(q){
     <div style="font-size:12px;color:var(--text3);margin-top:2px">${esc(g[1])}</div>
   </div>`).join('');
 }
-function selectGasStation(chain){
+export function selectGasStation(chain){
   _dbgLog('selectGasStation',{chain});
   const ni=document.getElementById('inp-name');
   if(ni) ni.value=chain+' SS';
@@ -777,14 +785,14 @@ function selectGasStation(chain){
 }
 
 /* ══ 近くの快活CLUB検索（Googleマップ直接遷移） ══ */
-function openKaikatsu(){
+export function openKaikatsu(){
   _dbgLog('openKaikatsu',{});
   window.open('https://maps.google.com/?q=快活CLUB','_blank','noopener');
 }
 
 
 /* ══ 近くのトイレ検索（Googleマップ直接遷移） ══ */
-function openToiletMap(){
+export function openToiletMap(){
   _dbgLog('openToiletMap',{});
   window.open('https://maps.google.com/?q=トイレ','_blank','noopener');
 }

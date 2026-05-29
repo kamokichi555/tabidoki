@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk16 — 06-day.js
+   旅刻 mk17 — 06-day.js
    日程・タブ管理 + データアクセサ
    （stops / dayTabLabel / currentDayFlat / addDay / switchDay 等）
    依存: 00-constants.js（EC）, 02-utils.js（toMin/fromMin/debounce）
@@ -7,9 +7,18 @@
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
 
-function stops(){return data.days[S.currentDay].stops;}
+/* --- 自動生成: モジュール依存のインポート --- */
+import { EC, LIMIT } from './00-constants.js';
+import { S, _canEditData, _dom, data } from './01-state.js';
+import { debounce, isSafeUrl, sanitize } from './02-utils.js';
+import { save } from './03-storage.js';
+import { wxQueueIds, wxStopRes } from './04-weather.js';
+import { render, showAppError, showInfoToast, showUrlError } from './07-render.js';
+import { _confirmLeaveEdit, cancelEdit, setFormAdd } from './08-mode.js';
+import { _dbgLog, _dbgSnapshot } from './12-debug.js';
+export function stops(){return data.days[S.currentDay].stops;}
 
-function dayTabLabel(day,idx){
+export function dayTabLabel(day,idx){
   const n=idx+1;
   if(!day.stops||!day.stops.length) return `${n}日目\n未設定`;
   if(day.date){try{const d=new Date(day.date+'T12:00:00');if(isNaN(d.getTime()))return `${n}日目\n未設定`;const m=d.getMonth()+1,dd=d.getDate();const w=['日','月','火','水','木','金','土'][d.getDay()];return `${n}日目\n${m}/${dd}(${w})`;}catch(e){}}
@@ -17,14 +26,14 @@ function dayTabLabel(day,idx){
 }
 
 // 走行モード用：現在タブの地点のみ
-function currentDayFlat(){
+export function currentDayFlat(){
   const day=data.days[S.currentDay];
   if(!day) return [];
   const dayLabel=dayTabLabel(day,S.currentDay); // 全stopで同一のラベルを1回だけ計算
   return (day.stops||[]).map(s=>({...s,dayIdx:S.currentDay,dayLabel}));
 }
-function currentDayIdxOf(id){return currentDayFlat().findIndex(s=>s.id===id);}
-function _updateRecordBtn(){
+export function currentDayIdxOf(id){return currentDayFlat().findIndex(s=>s.id===id);}
+export function _updateRecordBtn(){
   const btn=document.getElementById('record-save-btn');
   if(!btn) return;
   try{
@@ -33,8 +42,9 @@ function _updateRecordBtn(){
   }catch(e){/* ボタン状態更新失敗は無視 */}
 }
 
-let _cachedCdi=-1,_cachedCdiForId=null;
-function _getCdi(){
+export let _cachedCdi=-1,_cachedCdiForId=null;
+export function _invalidateCdi(){ _cachedCdiForId=null; } // cdiキャッシュ無効化（他モジュール用）
+export function _getCdi(){
   if(S.manualCurrentId===null) return -1; // null時はキャッシュ歩哨曖昧性を避けるため即-1返却
   if(S.manualCurrentId===_cachedCdiForId) return _cachedCdi;
   _cachedCdiForId=S.manualCurrentId;
@@ -46,7 +56,7 @@ function _getCdi(){
   }
   return _cachedCdi;
 }
-function _updateStickyTops(){
+export function _updateStickyTops(){
   const hh=document.querySelector('header')?.offsetHeight||62;
   const vv=window.visualViewport;
   const vh=vv?vv.height:window.innerHeight;
@@ -61,7 +71,7 @@ function _updateStickyTops(){
   if(rv) rv.style.height=h+'px';
 }
 /* ── 共通: 通常ビューを先頭地点が見える位置までスクロール（読込/日程切替で使用） ── */
-function _scrollNormalViewToFirstStop(){
+export function _scrollNormalViewToFirstStop(){
   _updateStickyTops();
   const nv=_dom('normal-view');
   if(!nv) return;
@@ -74,7 +84,7 @@ function _scrollNormalViewToFirstStop(){
     nv.scrollTo({top:0,behavior:'instant'});
   }
 }
-function renderTabs(){
+export function renderTabs(){
   const c=document.getElementById('day-tabs');
   c.innerHTML=data.days.map((d,i)=>`<button class="day-tab${i===S.currentDay?' on':''}" onclick="switchDay(${i})">${dayTabLabel(d,i)}</button>`).join('');
   document.getElementById('day-manage').style.display=S.isEdit?'flex':'none';
@@ -83,7 +93,7 @@ function renderTabs(){
   _updateStickyTops();
 }
 
-function _sortDays(){
+export function _sortDays(){
   const saved=data.days[S.currentDay];
   data.days.sort((a,b)=>{
     if(!a.date&&!b.date) return 0;
@@ -95,7 +105,7 @@ function _sortDays(){
   if(S.currentDay<0) S.currentDay=0;
   _cachedCdiForId=null; // 並び替え後はdayIndexが変わるためcdiキャッシュを無効化
 }
-function saveDayDate(){
+export function saveDayDate(){
   if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
   const v=document.getElementById('inp-day-date').value;
   const old=data.days[S.currentDay].date;
@@ -118,7 +128,7 @@ function saveDayDate(){
   save();renderTabs();render();
 }
 
-const _saveRouteDebounced=debounce(()=>{
+export const _saveRouteDebounced=debounce(()=>{
   if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
   const v=document.getElementById('inp-route-url').value.trim().slice(0,LIMIT.url);
   if(!isSafeUrl(v)){showUrlError('URLはhttpまたはhttpsで始まるものを入力してください');return;}
@@ -127,7 +137,7 @@ const _saveRouteDebounced=debounce(()=>{
 
 /* ── ツーリング名（行程全体のタイトル）── */
 // 入力をdata.titleへ保存（保存ファイル名・共有テキスト・走行記録に反映される）
-const _saveTitleDebounced=debounce(()=>{
+export const _saveTitleDebounced=debounce(()=>{
   if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
   const el=document.getElementById('inp-title');
   if(!el) return;
@@ -135,12 +145,12 @@ const _saveTitleDebounced=debounce(()=>{
   try{if(data.title!==v){data.title=v;save();}}catch(e){showAppError(EC.SAVE,e);}
 },400);
 // 入力欄に現在のdata.titleを反映（編集開始時・読込時などに呼ぶ）
-function _syncTitleInput(){
+export function _syncTitleInput(){
   const el=document.getElementById('inp-title');
   if(el) el.value=data.title||'';
 }
 // debounce未確定のツーリング名入力を即時data.titleへ反映（保存/共有/記録の前に呼ぶ）
-function _flushTitle(){
+export function _flushTitle(){
   if(!_canEditData()) return; // 復元確認が保留中はdataを変更しない（save()非経由のため個別ガード）
   const el=document.getElementById('inp-title');
   if(!el) return;
@@ -148,7 +158,7 @@ function _flushTitle(){
   if(data.title!==v) data.title=v;
 }
 // フォーカスを外した時点で確定保存（debounce待ちの取りこぼし・離脱直前の未保存を防ぐ）
-function _commitTitle(){
+export function _commitTitle(){
   if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
   const el=document.getElementById('inp-title');
   if(!el) return;
@@ -157,7 +167,7 @@ function _commitTitle(){
 }
 
 // debounce未確定のルートURL入力を即時データに反映（S.currentDay変更前に呼ぶ）
-function _flushRouteSave(){
+export function _flushRouteSave(){
   if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
   const ri=document.getElementById('inp-route-url');
   if(!ri || !data.days[S.currentDay]) return;
@@ -166,7 +176,7 @@ function _flushRouteSave(){
   if(data.days[S.currentDay].routeUrl!==v) data.days[S.currentDay].routeUrl=v;
 }
 
-function addDay(){
+export function addDay(){
   _dbgLog('addDay', _dbgSnapshot);
   if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（汚染防止）
   try{
@@ -194,7 +204,7 @@ function addDay(){
   }catch(e){showAppError(EC.DAY_ADD,e);}
 }
 
-function deleteCurrentDay(){
+export function deleteCurrentDay(){
   _dbgLog('deleteCurrentDay', _dbgSnapshot);
   if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（汚染防止）
   try{
@@ -218,7 +228,7 @@ function deleteCurrentDay(){
   }catch(e){showAppError(EC.DAY_DEL,e);}
 }
 
-function switchDay(i){
+export function switchDay(i){
   try{
     if(!_confirmLeaveEdit()) return;
     _dbgLog('switchDay',()=>({to:i,snap:_dbgSnapshot()}));
@@ -233,7 +243,7 @@ function switchDay(i){
 }
 
 // タブ境界の地点名が一致する場合、前タブの住所を次タブにコピー
-function syncBorderAddr(){
+export function syncBorderAddr(){
   for(let i=0;i<data.days.length-1;i++){
     const cur=data.days[i].stops,nxt=data.days[i+1].stops;
     if(!cur.length||!nxt.length)continue;

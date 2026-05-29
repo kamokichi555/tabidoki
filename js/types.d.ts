@@ -52,6 +52,6 @@ interface AppState {
    このアプリは getElementById で取得した要素から .value/.checked を
    キャストせず直接読む。// @ts-check の誤検知を抑えるための意図的な緩め。
    （データ構造の検査が主目的で、DOM要素種別の厳密化は狙いではない） */
-interface HTMLElement { value?: string | number; checked?: boolean; }
+interface HTMLElement { value?: any; checked?: boolean; }
 interface Window { MSStream?: unknown; }
 interface ScreenOrientation { lock?(orientation: string): Promise<void>; }

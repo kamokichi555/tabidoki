@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk16 — 14-gps.js
+   旅刻 mk17 — 14-gps.js
    GPS自動追跡（走行モードで現在地に近い地点へ自動切替）
    依存: 00-constants.js, 02-utils.js（buildGeoTargets/_geoCacheGet）,
         04-weather.js（_geocodeParallel/_geoCacheSet）,
@@ -9,24 +9,32 @@
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
 
+/* --- 自動生成: モジュール依存のインポート --- */
+import { S, data } from './01-state.js';
+import { buildGeoTargets } from './02-utils.js';
+import { _geoCacheGet, _isoToday, enqueueStop } from './04-weather.js';
+import { setCurrentStop } from './05-stop.js';
+import { currentDayFlat } from './06-day.js';
+import { showInfoToast } from './07-render.js';
+import { _dbgLog } from './12-debug.js';
 /* ══ GPS状態変数 ══ */
-let _gpsEnabled=false;          // GPS自動追跡 ON/OFF（ユーザー設定）
-let _gpsPollTimer=null;         // ポーリング用タイマー
-let _gpsManualOverride=false;   // 手動で現在地設定後の自動切替抑制フラグ
-let _gpsManualOverrideTimer=null;
-let _gpsViewLock=false;         // 手動スワイプ後の表示位置固定フラグ
-let _gpsViewLockTimer=null;
-let _gpsLastPos=null;           // 直近のGPS座標 {lat,lon,acc,ts}
+export let _gpsEnabled=false;          // GPS自動追跡 ON/OFF（ユーザー設定）
+export let _gpsPollTimer=null;         // ポーリング用タイマー
+export let _gpsManualOverride=false;   // 手動で現在地設定後の自動切替抑制フラグ
+export let _gpsManualOverrideTimer=null;
+export let _gpsViewLock=false;         // 手動スワイプ後の表示位置固定フラグ
+export let _gpsViewLockTimer=null;
+export let _gpsLastPos=null;           // 直近のGPS座標 {lat,lon,acc,ts}
 
 /* ══ 調整パラメータ ══ */
-const GPS_POLL_MS=30000;        // 位置取得間隔（ms）
-const GPS_ARRIVE_M=300;         // 到着とみなす距離（m）
-const GPS_ACC_MAX=100;          // この精度(m)より悪いGPSは自動切替に使わない
-const GPS_MANUAL_LOCK_MS=60000; // 手動現在地設定後の抑制時間（ms）
-const GPS_VIEW_LOCK_MS=30000;   // 手動スワイプ後の表示固定時間（ms）
+export const GPS_POLL_MS=30000;        // 位置取得間隔（ms）
+export const GPS_ARRIVE_M=300;         // 到着とみなす距離（m）
+export const GPS_ACC_MAX=100;          // この精度(m)より悪いGPSは自動切替に使わない
+export const GPS_MANUAL_LOCK_MS=60000; // 手動現在地設定後の抑制時間（ms）
+export const GPS_VIEW_LOCK_MS=30000;   // 手動スワイプ後の表示固定時間（ms）
 
 /* ══ Haversine: 2点間の距離(m) ══ */
-function _gpsDistance(lat1,lon1,lat2,lon2){
+export function _gpsDistance(lat1,lon1,lat2,lon2){
   const R=6371000;
   const toRad=d=>d*Math.PI/180;
   const dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1);
@@ -35,7 +43,7 @@ function _gpsDistance(lat1,lon1,lat2,lon2){
 }
 
 /* ══ 地点の座標をキャッシュから取得（なければnull） ══ */
-function _gpsStopCoords(stop){
+export function _gpsStopCoords(stop){
   const addr=(stop.addr||'').trim();
   if(!addr) return null;
   for(const q of buildGeoTargets(addr)){
@@ -49,7 +57,7 @@ function _gpsStopCoords(stop){
    独自にジオコーディングせず、天気側のレート制限付きキュー(enqueueStop)に委譲する。
    enqueueStop は wxQueueIds で重複を弾くため、ensureDayWeather と二重に投げても安全。
    座標は共有 geoCache に入るので、GPSはそれを参照するだけでよい（Nominatim二重叩き回避）。*/
-function _gpsPrefetchCoords(){
+export function _gpsPrefetchCoords(){
   try{
     const day=data.days[S.currentDay];
     if(!day) return;
@@ -65,7 +73,7 @@ function _gpsPrefetchCoords(){
 }
 
 /* ══ 残り距離フォーマット ══ */
-function _gpsFmtDist(m){
+export function _gpsFmtDist(m){
   if(m<1000) return Math.round(m/10)*10+' m';      // 1km未満は10m刻み
   if(m<10000) return (m/1000).toFixed(1)+' km';     // 10km未満は0.1km刻み
   return Math.round(m/1000)+' km';                  // それ以上は1km刻み
@@ -74,7 +82,7 @@ function _gpsFmtDist(m){
 /* ══ 現在地→次の地点 の残り直線距離をカードに反映 ══
    「現在地」を表示中(S.rideViewIdx===rci)のときだけ、その次の地点までの距離を出す。
    GPS位置・座標キャッシュのどちらかが欠ければ空表示（誤情報を出さない）。*/
-function _gpsUpdateNextDist(){
+export function _gpsUpdateNextDist(){
   const el=document.getElementById('ride-next-dist');
   if(!el) return;
   if(!S.isRide||!_gpsEnabled||!_gpsLastPos){el.textContent='';return;}
@@ -90,7 +98,7 @@ function _gpsUpdateNextDist(){
 }
 
 
-function _gpsNotifyManualSet(){
+export function _gpsNotifyManualSet(){
   if(!_gpsEnabled) return;
   _gpsManualOverride=true;
   if(_gpsManualOverrideTimer) clearTimeout(_gpsManualOverrideTimer);
@@ -100,7 +108,7 @@ function _gpsNotifyManualSet(){
 }
 
 /* ══ 手動スワイプが呼ばれたとき（07-render.jsから通知） ══ */
-function _gpsNotifySwipe(){
+export function _gpsNotifySwipe(){
   if(!_gpsEnabled) return;
   _gpsViewLock=true;
   if(_gpsViewLockTimer) clearTimeout(_gpsViewLockTimer);
@@ -110,7 +118,7 @@ function _gpsNotifySwipe(){
 }
 
 /* ══ GPS位置更新ハンドラ ══ */
-function _gpsOnPosition(pos){
+export function _gpsOnPosition(pos){
   if(!S.isRide||!_gpsEnabled) return;
   const lat=pos.coords.latitude,lon=pos.coords.longitude,acc=pos.coords.accuracy;
   _gpsLastPos={lat,lon,acc,ts:Date.now()};
@@ -143,7 +151,7 @@ function _gpsOnPosition(pos){
   _dbgLog('gps_auto_switch',{id:target.id,name:target.name,dist:Math.round(nearestDist)});
 }
 
-function _gpsOnError(err){
+export function _gpsOnError(err){
   _dbgLog('gps_error',{code:err.code,msg:err.message});
   if(err.code===1){ // PERMISSION_DENIED
     _gpsEnabled=false;
@@ -156,7 +164,7 @@ function _gpsOnError(err){
 }
 
 /* ══ GPS監視 開始 / 停止 ══ */
-function _gpsStart(){
+export function _gpsStart(){
   if(!('geolocation' in navigator)){
     showInfoToast('⚠️ この端末はGPS非対応です',4000);
     _gpsEnabled=false;_gpsUpdateBtn();
@@ -173,7 +181,7 @@ function _gpsStart(){
   _gpsPollTimer=setInterval(poll,GPS_POLL_MS);
   _gpsUpdateStatus();
 }
-function _gpsStop(){
+export function _gpsStop(){
   if(_gpsPollTimer){clearInterval(_gpsPollTimer);_gpsPollTimer=null;}
   if(_gpsManualOverrideTimer){clearTimeout(_gpsManualOverrideTimer);_gpsManualOverrideTimer=null;}
   if(_gpsViewLockTimer){clearTimeout(_gpsViewLockTimer);_gpsViewLockTimer=null;}
@@ -182,7 +190,7 @@ function _gpsStop(){
 }
 
 /* ══ ユーザーがGPSボタンを押したとき ══ */
-function toggleGps(){
+export function toggleGps(){
   _gpsEnabled=!_gpsEnabled;
   try{localStorage.setItem('touring_gps',_gpsEnabled?'1':'0');}catch(e){}
   if(_gpsEnabled){
@@ -197,19 +205,19 @@ function toggleGps(){
 }
 
 /* ══ 走行モード開始/終了から呼ばれる ══ */
-function _gpsOnRideStart(){
+export function _gpsOnRideStart(){
   if(_gpsEnabled) _gpsStart();
 }
-function _gpsOnRideEnd(){
+export function _gpsOnRideEnd(){
   _gpsStop();
 }
 
 /* ══ UI更新 ══ */
-function _gpsUpdateBtn(){
+export function _gpsUpdateBtn(){
   const btn=document.getElementById('gps-btn');
   if(btn) btn.classList.toggle('on',_gpsEnabled);
 }
-function _gpsUpdateStatus(){
+export function _gpsUpdateStatus(){
   const el=document.getElementById('gps-status');
   if(!el) return;
   if(!S.isRide||!_gpsEnabled){el.style.display='none';return;}
@@ -220,7 +228,7 @@ function _gpsUpdateStatus(){
 }
 
 /* ══ 初期化（localStorageから設定復元） ══ */
-function _gpsInit(){
+export function _gpsInit(){
   try{_gpsEnabled=localStorage.getItem('touring_gps')==='1';}catch(e){_gpsEnabled=false;}
   _gpsUpdateBtn();
 }

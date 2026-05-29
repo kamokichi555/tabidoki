@@ -1,14 +1,27 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk16 — 13-init.js
+   旅刻 mk17 — 13-init.js
    起動シーケンス（最後に読み込む）
    依存: すべてのJSファイル
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
 
+/* --- 自動生成: モジュール依存のインポート --- */
+import { DEFAULT, SK } from './00-constants.js';
+import { S, _canEditData, data, setData } from './01-state.js';
+import { _migrateData, _resolveCurrentStopId, _sanitizeImportedData } from './02-utils.js';
+import { restoreFromStorage, save } from './03-storage.js';
+import { ensureAllWeather } from './04-weather.js';
+import { _syncTitleInput, _updateStickyTops, currentDayFlat, renderTabs, syncBorderAddr } from './06-day.js';
+import { _depCountdownHtml, initNormalSwipe, initRideSwipe, render, showInfoToast, updateClock } from './07-render.js';
+import { _initTheme, toggleEdit } from './08-mode.js';
+import { _renderSplash } from './11-overlays.js';
+import { _dbgLog } from './12-debug.js';
+import { _gpsInit } from './14-gps.js';
+import './_expose.js'; // インラインハンドラを window 公開＋09-drag/10-pickersを読み込む（副作用import）
+
+
 /* ── localStorageからの自動復元 ── */
 // S._pendingRestore は 01-state.js で宣言済み（保存系から参照するためグローバル共有）
-/** @type {TouringData} */
-let data;
 S._pendingRestore=null;
 try{
   const _raw=localStorage.getItem(SK);
@@ -22,7 +35,7 @@ try{
       const _hasStops=(_p.days||[]).some(d=>d.stops&&d.stops.length>0);
       if(!_hasStops){
         // 地点なし（空データ）はそのまま読み込む
-        data=_p;
+        setData(_p);
       }else{
         // 地点あり: 同期confirmは初回描画前（白画面）に出てしまうため、
         // ここでは適用せず保留にし、スプラッシュ描画後にアプリ上で確認する
@@ -31,7 +44,7 @@ try{
     }
   }
 }catch(e){console.warn('[旅刻] 自動復元に失敗:',e);_dbgLog('autorestore_failed',{err:String(e&&e.message||e).slice(0,200)});}
-if(!data) data=JSON.parse(JSON.stringify(DEFAULT));
+if(!data) setData(JSON.parse(JSON.stringify(DEFAULT)));
 
 {
   S.manualCurrentId=_resolveCurrentStopId(data); // currentStopId 解決＋実在チェック（02-utils、_applyImportedDataと共用）
@@ -61,8 +74,8 @@ _renderSplash();
 // キーボードを出さない入力＝スクロール不要。チェックボックス等に加え、
 // 日付/時刻系はネイティブのピッカー（ダイアログ）が重なって開きキーボードを出さないため対象外。
 // （type=number は数値キーボードが出るので対象に含める＝ここには入れない）
-const _NO_KB_TYPES=new Set(['checkbox','radio','range','file','button','submit','reset','color','image','hidden','date','time','datetime-local','month','week']);
-function _scrollableAncestor(el){
+export const _NO_KB_TYPES=new Set(['checkbox','radio','range','file','button','submit','reset','color','image','hidden','date','time','datetime-local','month','week']);
+export function _scrollableAncestor(el){
   let n=el&&el.parentElement;
   while(n&&n!==document.body&&n!==document.documentElement){
     const oy=getComputedStyle(n).overflowY;
@@ -74,7 +87,7 @@ function _scrollableAncestor(el){
 // フォーカス中の入力欄を、そのスクロール領域の上端付近まで送ってキーボードに隠れないようにする。
 // normal-view・設定オーバーレイなど「スクロール領域内の入力」に共通で適用。
 // ヘッダーの日付/ルートURLやピッカーの検索欄はスクロール領域を持たない＝常に可視なので何もしない。
-function _scrollFocusedInputIntoView(){
+export function _scrollFocusedInputIntoView(){
   const el=document.activeElement;
   if(!el||(el.tagName!=='INPUT'&&el.tagName!=='TEXTAREA')) return;
   // キーボードを出さない入力（チェックボックス等）は対象外
@@ -103,8 +116,8 @@ function _scrollFocusedInputIntoView(){
 }
 // キーボード/ビューポートが落ち着くタイミングが端末ごとにまちまちなので、
 // 即時スクロールを複数回リトライして確実に可視化する（可視になれば上のガードで以降は無動作）。
-let _kbScrollTimers=[];
-function _scheduleKbScroll(){
+export let _kbScrollTimers=[];
+export function _scheduleKbScroll(){
   _kbScrollTimers.forEach(clearTimeout); _kbScrollTimers=[];
   requestAnimationFrame(_scrollFocusedInputIntoView);
   [80,200,380,600].forEach(d=>_kbScrollTimers.push(setTimeout(_scrollFocusedInputIntoView,d)));

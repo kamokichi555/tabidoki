@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk16 — 03-storage.js
+   旅刻 mk17 — 03-storage.js
    データ管理（save / share / saveJSON / saveRecord / load / migration）
    依存: 00-constants.js（SK/DEFAULT/LIMIT）, 02-utils.js（sanitize等）
    実行時依存: data, S.currentDay, render, showInfoToast, showAppError
@@ -7,9 +7,22 @@
    ══════════════════════════════════════════════════════ */
 // @ts-check
 
+/* --- 自動生成: モジュール依存のインポート --- */
+import { DEFAULT, EC, LIMIT, SK } from './00-constants.js';
+import { S, _canEditData, _dom, data, setData } from './01-state.js';
+import { IS_IOS, _migrateData, _resolveCurrentStopId, _sanitizeImportedData, actDiff, stayDur } from './02-utils.js';
+import { _bumpWxGen, _lsSetItem, wxGen, wxQueue, wxQueueFast, wxQueueIds, wxStopRes } from './04-weather.js';
+import { _cachedCdiForId, _flushTitle, _invalidateCdi, _scrollNormalViewToFirstStop, _syncTitleInput, renderTabs } from './06-day.js';
+import { _lastClockTs, _resetClockTs, hideInfoToast, render, showAppError, showInfoToast, updateClock } from './07-render.js';
+import { _hasAnyStops, setFormAdd } from './08-mode.js';
+import { _closeAllOverlays, _closeOverlay, _lowerHeaderForOverlay } from './11-overlays.js';
+import { _dbgLog, _dbgSnapshot } from './12-debug.js';
+import { _gpsOnRideEnd } from './14-gps.js';
+
+
 /* ══ データ管理（localStorage） ══ */
 
-function save(){
+export function save(){
   // 起動時の復元確認が保留中（S._pendingRestore）は、まだ「新規開始/復元」が未確定。
   // この間に空のdataをlocalStorageへ書き込むと前回データを破壊してしまうため保存しない。
   // 確認に応答すると 13-init.js が S._pendingRestore=null にしてからsave/restoreを行う。
@@ -21,7 +34,7 @@ function save(){
   }catch(e){showAppError(EC.SAVE,e);}
 }
 
-function shareItinerary(){
+export function shareItinerary(){
   _closeAllOverlays();
   _flushTitle(); // 入力中のツーリング名を確定してから共有文を生成
   const WEEK=['日','月','火','水','木','金','土'];
@@ -74,16 +87,16 @@ function shareItinerary(){
   document.getElementById('share-text').textContent=text;
 }
 
-/* ── 共通: テキストをファイルとして保存（iOSはdata:URLで新タブ、PCはBlob+aタグ） ──
+/* ── 共通: テキストをファイルとして保存 ──
+   PC: Blob+aタグでダウンロード。
+   iOS: タブを開く方式(data:/blob: URL)はSafari/PWAでブロックや空白タブになるため、
+        shareItineraryと同じ画面内オーバーレイで全文表示し、コピー/共有(ネイティブ共有シート)で取り出す。
    opt: {text, filename, blobType, dataMime, btnId, iosBtnText, desktopToast} */
-function downloadTextFile(opt){
+export function downloadTextFile(opt){
   const btn=opt.btnId?document.getElementById(opt.btnId):null;
   const flash=(t,bg,ms)=>{if(!btn)return;const orig=btn.textContent;btn.textContent=t;btn.style.background=bg;btn.style.color='#000';setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},ms);};
   if(IS_IOS){
-    // iOS Safari: data:URLで新しいタブを開いて長押し保存を促す
-    window.open('data:'+opt.dataMime+','+encodeURIComponent(opt.text),'_blank');
-    flash(opt.iosBtnText||'📄','var(--blue,#4da6ff)',3500);
-    showInfoToast('📄 開いたタブで長押し→「保存」してください',4000);
+    _openExportOverlay(opt.text,opt.filename,opt.blobType);
   }else{
     const blob=new Blob([opt.text],{type:opt.blobType});
     const url=URL.createObjectURL(blob);
@@ -96,7 +109,76 @@ function downloadTextFile(opt){
   }
 }
 
-function saveJSON(){
+/* ── iOS向け: テキスト書き出しオーバーレイ（shareItineraryと同じ作法） ──
+   タブを開かないのでSafari通常タブ/ホーム画面PWA/オフラインのいずれでも安定動作する。
+   ・全文を <pre>.textContent で表示（innerHTML不使用＝XSS安全）
+   ・📋コピー: navigator.clipboard、失敗時は選択範囲フォールバック
+   ・共有: navigator.share 対応時のみ表示。ファイルとして共有できる環境(canShare+files)なら
+          .txtファイルで、不可ならテキスト本文で共有シートを開く（「ファイルに保存」「メモ」等へ）。*/
+export function _openExportOverlay(text,filename,mime){
+  _closeAllOverlays();
+  const ov=document.createElement('div');
+  ov.id='export-overlay';
+  Object.assign(ov.style,{position:'fixed',inset:'0',zIndex:'999999',background:'rgba(0,0,0,.82)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'});
+  const canShare=typeof navigator!=='undefined'&&typeof navigator.share==='function';
+  ov.innerHTML=`<div style="background:var(--bg2);border:1.5px solid var(--border2);border-radius:16px;padding:20px;width:100%;max-width:440px;max-height:92dvh;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <span style="font-weight:700;font-size:16px">📝 走行記録</span>
+      <button onclick="_closeOverlay('export-overlay')" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3)">✕</button>
+    </div>
+    <div style="overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch">
+      <pre id="export-text" style="margin:0;white-space:pre-wrap;word-break:break-word;background:var(--bg3);border:1.5px solid var(--border2);border-radius:10px;color:var(--text2);font-size:14px;line-height:1.8;padding:12px;font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif"></pre>
+    </div>
+    <button id="export-copy-btn" style="width:100%;justify-content:center;padding:13px;font-size:16px;flex-shrink:0">📋 クリップボードにコピー</button>
+    ${canShare?`<button id="export-share-btn" style="width:100%;justify-content:center;padding:13px;font-size:16px;flex-shrink:0;background:var(--bg3)">📤 共有 / ファイルに保存</button>`:''}
+    <div style="font-size:12px;color:var(--text3);text-align:center;flex-shrink:0">💡 コピーしてLINEやメモに貼り付け／共有から「ファイルに保存」もできます</div>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov) _closeOverlay('export-overlay');});
+  _lowerHeaderForOverlay();document.body.appendChild(ov);
+  const pre=document.getElementById('export-text');
+  pre.textContent=text;
+
+  // 📋コピー（shareItineraryと同じ挙動: clipboard→失敗時は選択範囲）
+  const copyBtn=document.getElementById('export-copy-btn');
+  if(copyBtn) copyBtn.onclick=async()=>{
+    try{
+      await navigator.clipboard.writeText(pre.textContent);
+      copyBtn.textContent='✅ コピーしました';
+      copyBtn.style.background='var(--green)';copyBtn.style.color='#000';
+      setTimeout(()=>_closeOverlay('export-overlay'),1200);
+    }catch(e){
+      const r=document.createRange();r.selectNode(pre);
+      window.getSelection().removeAllRanges();window.getSelection().addRange(r);
+    }
+  };
+
+  // 📤共有（対応端末のみ）。ファイル共有が可能ならファイルで、不可・失敗時は本文テキストで共有シートへ。
+  const shareBtn=document.getElementById('export-share-btn');
+  if(shareBtn) shareBtn.onclick=async()=>{
+    // ファイル共有を試す。MIMEはdownloadTextFile由来(blobType)を使い、拡張子と不一致にしない
+    // （例: .json を text/plain で渡すとiOSの共有が無言でrejectする）。失敗時は本文テキスト共有へ。
+    const tryFileShare=async()=>{
+      const type=mime||'text/plain';
+      let file;
+      try{ file=new File([text],filename||'旅刻_記録.txt',{type}); }catch(e){ return false; }
+      if(!(navigator.canShare&&navigator.canShare({files:[file]}))) return false;
+      await navigator.share({files:[file],title:filename||'旅刻'});
+      return true;
+    };
+    try{
+      const ok=await tryFileShare();
+      if(!ok) await navigator.share({title:filename||'旅刻',text});
+    }catch(e){
+      // ユーザーが共有シートを閉じた(AbortError)なら何もしない。
+      // それ以外（ファイル共有がrejectされた等）は本文テキスト共有でリトライする。
+      if(e&&e.name==='AbortError') return;
+      try{ await navigator.share({title:filename||'旅刻',text}); }
+      catch(e2){ if(!(e2&&e2.name==='AbortError')) showInfoToast('⚠️ 共有できませんでした。コピーをお使いください',3000); }
+    }
+  };
+}
+
+export function saveJSON(){
   _closeAllOverlays();
   _flushTitle(); // 入力中のツーリング名を確定してからファイル名生成
   _dbgLog('saveJSON', _dbgSnapshot);
@@ -118,7 +200,7 @@ function saveJSON(){
     });
   }catch(e){alert('保存に失敗しました: '+e.message);}
 }
-function saveRecord(){
+export function saveRecord(){
   _closeAllOverlays();
   _flushTitle(); // 入力中のツーリング名を確定してから記録を生成
   _dbgLog('saveRecord', _dbgSnapshot);
@@ -159,7 +241,7 @@ function saveRecord(){
       });
     });
     lines.push(HR);
-    lines.push('旅刻mk16 / Powered by 鴨吉');
+    lines.push('旅刻mk17 / Powered by 鴨吉');
     const text=lines.join('\n');
     const dateStr=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
     const title=(data.title||'ツーリング').replace(/[\\/:*?"<>|]/g,'_');
@@ -172,14 +254,14 @@ function saveRecord(){
     });
   }catch(e){alert('記録の保存に失敗しました: '+e.message);}
 }
-function loadJSON(){
+export function loadJSON(){
   if(_hasAnyStops()&&!confirm('現在の行程は上書きされます。続けますか？')) return;
   document.getElementById('load-file-input').value='';
   document.getElementById('load-file-input').click();
 }
 
 /* ── localStorageの保存データを再読み込みする（起動時に「読み込まない」を選んだ後の復旧用） ── */
-function restoreFromStorage(){
+export function restoreFromStorage(){
   try{
     const _raw=localStorage.getItem(SK);
     if(!_raw){showInfoToast('⚠️ 保存データが見つかりませんでした',3000);return;}
@@ -192,23 +274,23 @@ function restoreFromStorage(){
 
 /* ── 読み込んだJSONを適用する共通処理 ── */
 /** @param {any} p 外部由来の未検証データ @param {string} [titleFallback] @param {boolean} [skipConfirm] */
-function _applyImportedData(p,titleFallback,skipConfirm){
+export function _applyImportedData(p,titleFallback,skipConfirm){
   if(!p||typeof p!=='object'||!Array.isArray(p.days)) throw new Error('フォーマットが正しくありません');
   if(!p.days.length) p.days=[{label:'1日目',date:'',routeUrl:'',stops:[]}];
   _migrateData(p); // 旧バージョン移行（02-utils）
   const _truncated=_sanitizeImportedData(p);
   const title=p.title||titleFallback||'（タイトルなし）';
   if(!skipConfirm&&!confirm(`「${title}」を読み込みます。\n現在の行程は上書きされます。よろしいですか？`)){hideInfoToast();return;}
-  data=p;
+  setData(p);
   // ユーザーが明示的にデータを読み込んだ時点で、起動時の復元確認は不要になる。
   // 保留を解除して以後のsave()を有効化し、未確定状態を残さない。
   S._pendingRestore=null;
   S.manualCurrentId=_resolveCurrentStopId(data); // currentStopId 解決＋実在チェック（02-utils）
   S.currentDay=0;S.editingId=null;S.activeEditStopId=null;
   Object.keys(wxStopRes).forEach(k=>delete wxStopRes[k]);
-  wxGen++; // 実行中の天気取得ループを世代変化で無効化（強制終了させない＝並行実行を防ぐ）
+  _bumpWxGen(); // 実行中の天気取得ループを世代変化で無効化（強制終了させない＝並行実行を防ぐ）
   wxQueueIds.clear();wxQueue.length=0;wxQueueFast.length=0;
-  _cachedCdiForId=null;
+  _invalidateCdi();
   save(); // 読み込んだデータを即座にlocalStorageへ反映（読み込み直後にタブを閉じても残るように）
   requestAnimationFrame(()=>{
     if(S.isRide){S.isRide=false;if(typeof _gpsOnRideEnd==='function')_gpsOnRideEnd();document.body.classList.remove('ride-mode');_dom('normal-view').style.display='block';_dom('ride-view').classList.remove('active');_dom('ride-btn').classList.remove('on');_dom('ride-btn').textContent='🏍️';_dom('day-tabs').style.display='';_dom('day-manage').style.display='none';_dom('cancel-ride-btn').style.display='none';}
@@ -219,13 +301,13 @@ function _applyImportedData(p,titleFallback,skipConfirm){
     renderTabs();render();hideInfoToast();
     if(_truncated)showInfoToast(`⚠️ 1日${LIMIT.stopsPerDay}件を超える地点は読み込みませんでした`,4000);
     else showInfoToast(`🗺️ 「${title}」を読み込みました`,3000);
-    _lastClockTs='';updateClock(); // 走行モードから戻った場合に時計サイズを即時更新
+    _resetClockTs();updateClock(); // 走行モードから戻った場合に時計サイズを即時更新
     requestAnimationFrame(_scrollNormalViewToFirstStop);
   });
 }
 
 /* ── サンプルデータ（インライン埋め込み） ── */
-const _SAMPLE_DATA={
+export const _SAMPLE_DATA={
   "version":"mk8-v1","title":"神奈川〜山梨 日帰りツーリング","currentStopId":null,
   "days":[
     {
@@ -245,7 +327,7 @@ const _SAMPLE_DATA={
 };
 
 /* ── サンプルデータを読み込む（インライン版・fetch不要） ── */
-function loadSampleData(){
+export function loadSampleData(){
   _closeAllOverlays();
   if(_hasAnyStops()&&!confirm('現在の行程データがサンプルデータで上書きされます。\n続けますか？')) return;
   try{
@@ -255,7 +337,7 @@ function loadSampleData(){
   }
 }
 
-function onFileSelected(ev){
+export function onFileSelected(ev){
   const file=ev.target.files[0];
   if(!file) return;
   // ① 拡張子 / MIMEチェック

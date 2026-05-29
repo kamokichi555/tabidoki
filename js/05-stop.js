@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk16 — 05-stop.js
+   旅刻 mk17 — 05-stop.js
    地点管理（saveStop / delStop / cascadeFrom / sort / getStatus）
    依存: 00-constants.js（EC/LIMIT）, 02-utils.js（sanitize/toMin等）
    実行時依存: data, S.currentDay, S.editingId, wxStopRes, wxQueueIds,
@@ -7,11 +7,24 @@
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
 
-function cascadeFrom(di,si,oldDep){
+/* --- 自動生成: モジュール依存のインポート --- */
+import { EC, LIMIT } from './00-constants.js';
+import { S, _canEditData, _dom, data } from './01-state.js';
+import { fromMin, isTimeOrderOk, isValidTime, sanitize, toMin } from './02-utils.js';
+import { save } from './03-storage.js';
+import { wxQueueIds, wxStopRes } from './04-weather.js';
+import { _cachedCdiForId, _invalidateCdi, currentDayIdxOf, syncBorderAddr } from './06-day.js';
+import { render, renderRide, showAppError, showInfoToast, showValError } from './07-render.js';
+import { setFormAdd } from './08-mode.js';
+import { _dbgLog, _dbgSnapshot } from './12-debug.js';
+import { _gpsNotifyManualSet } from './14-gps.js';
+
+
+export function cascadeFrom(di,si,oldDep){
   try{const od=toMin(oldDep),nd=toMin(data.days[di].stops[si].dep);if(od===null||nd===null||od===nd)return;const delta=nd-od;for(let i=si+1;i<data.days[di].stops.length;i++){const s=data.days[di].stops[i];if(s.arr)s.arr=fromMin(toMin(s.arr)+delta);if(s.dep)s.dep=fromMin(toMin(s.dep)+delta);}}
   catch(e){showAppError(EC.CASCADE,e);}
 }
-function getStatus(s,idx,ds,cdi){
+export function getStatus(s,idx,ds,cdi){
   if(S.manualCurrentId===null) return idx===0?'current':'upcoming';
   if(cdi===-1) return idx===0?'current':'upcoming';
   // 表示中の日(S.currentDay)が現在地のある日(cdi)より前なら通過済み=past、後なら未到達=upcoming
@@ -21,7 +34,7 @@ function getStatus(s,idx,ds,cdi){
   if(ci!==-1) return idx<ci?'past':'upcoming';
   return idx===0?'current':'upcoming';
 }
-function saveStop(){
+export function saveStop(){
   _dbgLog('saveStop:in', _dbgSnapshot);
   if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（汚染防止）
   const name=sanitize(_dom('inp-name').value,LIMIT.name);
@@ -79,20 +92,20 @@ function saveStop(){
     });
   }catch(e){showAppError(EC.STOP,e);}
 }
-function delStop(id){
+export function delStop(id){
   _dbgLog('delStop',()=>({id,snap:_dbgSnapshot()}));
   if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（汚染防止）
   try{
     delete wxStopRes[id];wxQueueIds.delete(id);
     data.days[S.currentDay].stops=data.days[S.currentDay].stops.filter(s=>s.id!==id);
-    if(id===S.manualCurrentId){S.manualCurrentId=null;_cachedCdiForId=null;}
+    if(id===S.manualCurrentId){S.manualCurrentId=null;_invalidateCdi();}
     if(S.editingId===id)setFormAdd();syncBorderAddr();save();render();
     showInfoToast('🗑️ 地点を削除しました',2000);
   }catch(e){showAppError(EC.STOP,e);}
 }
-function setCurrentStop(id,fromGps,keepView){
+export function setCurrentStop(id,fromGps,keepView){
   _dbgLog('setCurrentStop',{id,fromGps:!!fromGps,keepView:!!keepView});
-  S.manualCurrentId=id;_cachedCdiForId=null; // cdiキャッシュ無効化
+  S.manualCurrentId=id;_invalidateCdi(); // cdiキャッシュ無効化
   // keepView=true のときは表示中ページ(S.rideViewIdx)を動かさない（手動スワイプ後の表示固定を尊重）
   if(!keepView){const fi=currentDayIdxOf(id);if(fi!==-1)S.rideViewIdx=fi;}
   // GPS由来でない（=ユーザーの手動操作）ときだけGPS自動切替を一時抑制する
