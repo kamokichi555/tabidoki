@@ -64,7 +64,32 @@ function _gpsPrefetchCoords(){
   }
 }
 
-/* ══ 手動現在地設定が呼ばれたとき（05-stop.jsから通知） ══ */
+/* ══ 残り距離フォーマット ══ */
+function _gpsFmtDist(m){
+  if(m<1000) return Math.round(m/10)*10+' m';      // 1km未満は10m刻み
+  if(m<10000) return (m/1000).toFixed(1)+' km';     // 10km未満は0.1km刻み
+  return Math.round(m/1000)+' km';                  // それ以上は1km刻み
+}
+
+/* ══ 現在地→次の地点 の残り直線距離をカードに反映 ══
+   「現在地」を表示中(rideViewIdx===rci)のときだけ、その次の地点までの距離を出す。
+   GPS位置・座標キャッシュのどちらかが欠ければ空表示（誤情報を出さない）。*/
+function _gpsUpdateNextDist(){
+  const el=document.getElementById('ride-next-dist');
+  if(!el) return;
+  if(!isRide||!_gpsEnabled||!_gpsLastPos){el.textContent='';return;}
+  const flat=currentDayFlat();
+  const rci=flat.findIndex(s=>s.id===manualCurrentId);
+  if(rci===-1||rideViewIdx!==rci){el.textContent='';return;} // 現在地を見ているときだけ
+  const ns=flat[rci+1];
+  if(!ns){el.textContent='';return;}                          // 次の地点がない（最終地点）
+  const c=_gpsStopCoords(ns);
+  if(!c){el.textContent='';return;}                           // 次地点の座標が未取得
+  const m=_gpsDistance(_gpsLastPos.lat,_gpsLastPos.lon,c.lat,c.lon);
+  el.textContent=`あと ${_gpsFmtDist(m)}（直線）`;
+}
+
+
 function _gpsNotifyManualSet(){
   if(!_gpsEnabled) return;
   _gpsManualOverride=true;
@@ -90,6 +115,7 @@ function _gpsOnPosition(pos){
   const lat=pos.coords.latitude,lon=pos.coords.longitude,acc=pos.coords.accuracy;
   _gpsLastPos={lat,lon,acc,ts:Date.now()};
   _gpsUpdateStatus();
+  _gpsUpdateNextDist(); // 残り距離を更新（毎ポーリング）
   // 精度が悪すぎる場合は自動切替しない
   if(acc>GPS_ACC_MAX) return;
   // 手動操作直後は抑制
