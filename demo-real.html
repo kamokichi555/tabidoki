@@ -24,9 +24,12 @@ body{
 #app{position:absolute;inset:0;width:100%;height:100%;border:0;background:#0d0d0d}
 
 /* ===== テロップ（高さ固定・下揃えで全シーン同じ位置に） ===== */
-#telop{position:absolute;left:0;right:0;bottom:0;z-index:90;height:210px;padding:0 22px 30px;
+/* テロップはブラウザ画面の最下部に固定（fixed）。stageの縮小・余白に影響されず、
+   どの画面サイズでも常に画面の一番下に表示される。幅はstage相当に制限して中央寄せ。 */
+#telop{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:520px;z-index:90;
+  min-height:200px;padding:0 22px 26px;box-sizing:border-box;
   display:flex;flex-direction:column;justify-content:flex-end;
-  background:linear-gradient(to top,rgba(0,0,0,.93) 30%,rgba(0,0,0,.5) 70%,transparent);pointer-events:none}
+  background:linear-gradient(to top,rgba(0,0,0,.95) 38%,rgba(0,0,0,.6) 72%,transparent);pointer-events:none}
 #telop .badge{align-self:flex-start;font-size:12px;font-weight:800;letter-spacing:.12em;
   color:#000;background:#FFB800;padding:5px 13px;border-radius:6px;margin-bottom:11px;opacity:0}
 #telop .main{font-size:26px;font-weight:800;line-height:1.42;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.95)}
@@ -109,9 +112,6 @@ body{
   <div id="progress"></div>
   <iframe id="app" src="about:blank"></iframe>
 
-  <!-- テロップ -->
-  <div id="telop"></div>
-
   <!-- タイトル（斬撃オープニングを使うため初期非表示） -->
   <div class="card-screen" id="title-card">
     <div class="logo">旅刻</div>
@@ -144,6 +144,8 @@ body{
     <div class="kflash"></div>
   </div>
 </div>
+<!-- テロップ（stageの外＝ブラウザ画面の最下部に固定。画面サイズが変わっても常に一番下） -->
+<div id="telop"></div>
 <div class="hint">実際のアプリ画面をそのまま操作するデモ。画面録画でそのまま動画素材に。</div>
 
 <script>
