@@ -70,6 +70,7 @@ button.small{padding:6px 10px;font-size:13px}
 .gps-status{font-size:13px;font-weight:700;text-align:center;padding:6px 10px;margin:8px 12px 0;border-radius:var(--r,12px);background:var(--amber-bg);border:1px solid var(--border);color:var(--text2);flex:0 0 auto}
 .gps-status.ok{color:var(--green);border-color:var(--green)}
 .gps-status.warn{color:var(--amber);border-color:var(--amber)}
+.ride-next-dist{margin-left:8px;color:var(--green);font-size:12px;font-weight:700}
 #record-save-btn.has-record{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
 #normal-view{overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;padding:16px;height:calc(var(--nv-h, 100dvh) - var(--hh, 62px));touch-action:pan-y}
 
