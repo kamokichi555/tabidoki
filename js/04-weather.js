@@ -107,6 +107,7 @@ function stopWxInner(stopId,hasAddr){
   const r=wxStopRes[stopId];
   if(!r) return '<div class="stop-wx-loading">🌐 取得中…</div>';
   if(r==='loading') return '<div class="stop-wx-loading">🌐 取得中…</div>';
+  if(r.isPast) return '';
   if(r.outOfRange) return '<div class="stop-wx-loading" title="予報は16日先まで取得できます">📅 予報期間外</div>';
   if(r.error) return `<div class="stop-wx-loading" onclick="retryStopWeather('${stopId}')" style="cursor:pointer" title="タップして再取得">⚠️ 再取得</div>`;
   const w=WMO[r.wcode]??{e:'🌡️',t:'不明'};
@@ -140,6 +141,7 @@ function rideWxCompact(stopId,hasAddr){
   if(!hasAddr) return '';
   const _state=(icon,msg)=>`<div class="ride-wx-compact"><div class="cw-row1"><span class="cw-icon">${icon}</span><span class="cw-cond" style="opacity:.5">${msg}</span></div></div>`;
   if(!r||r==='loading') return _state('🌐','取得中…');
+  if(r.isPast) return '';
   if(r.outOfRange) return _state('📅','予報期間外');
   if(r.error) return `<div class="ride-wx-compact" onclick="retryStopWeather('${stopId}')" style="cursor:pointer"><div class="cw-row1"><span class="cw-icon">⚠️</span><span class="cw-cond" style="opacity:.5">再取得</span></div></div>`;
   const w=WMO[r.wcode]??{e:'🌡️',t:''};
@@ -435,11 +437,11 @@ async function doFetchStop(stop,date){
   const addr=(stop.addr||"").trim();
   const name=(stop.name||"").trim();
   if(!addr&&!name){if(_stopStillValid(stop))wxStopRes[stop.id]={error:true,date,time:Date.now()};return;}
+  // 今日の日付（diff計算の基準）
   const todayStr=(d=>{return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");})(new Date());
   const diff=Math.round((new Date(date+"T12:00:00")-new Date(todayStr+"T12:00:00"))/86400000);
-  if(diff>15){if(_stopStillValid(stop))wxStopRes[stop.id]={outOfRange:true,date,time:Date.now()};return;}
-  // 過去日付は今日の天気を代わりに取得
-  const forecastDate=diff<0?todayStr:date;
+  if(diff<0){if(_stopStillValid(stop))wxStopRes[stop.id]={isPast:true,date,time:Date.now()};return;}     // 過去日付は取得しない
+  if(diff>15){if(_stopStillValid(stop))wxStopRes[stop.id]={outOfRange:true,date,time:Date.now()};return;} // 16日先以降は予報期間外
   // addrあり→住所クリーニング(GSI優先)、なし→名前クリーニング(Nominatim優先)
   const geoTargets=addr?buildGeoTargets(addr):buildNameTargets(name);
   const useAddrMode=!!addr;
@@ -451,7 +453,7 @@ async function doFetchStop(stop,date){
     if(coords){lat=coords.lat;lon=coords.lon;_geoCacheSet(q,lat,lon);break;}
   }
   if(!lat){if(_stopStillValid(stop)){wxStopRes[stop.id]={error:true,date,time:Date.now()};_dbgLog('wx_geocode_failed',{id:stop.id,q:(geoTargets[0]||'').slice(0,40)});}return;}
-  await _fetchForecast(stop,lat,lon,forecastDate);
+  await _fetchForecast(stop,lat,lon,date);
   // 予報取得が失敗（全プロバイダ不通）した場合は追跡用に記録
   if(wxStopRes[stop.id]&&wxStopRes[stop.id].error) _dbgLog('wx_forecast_failed',{id:stop.id});
 }
@@ -504,8 +506,9 @@ function enqueueStop(stop,date,priority){
   const STALE=2*60*60*1000;
   // 有効結果（同日付・エラーなし・期間内・2時間以内）なら再取得しない。
   // ※precip:null（降水確率を提供しないモデル/地点）でも天気・気温は有効なため再取得しない（30分refreshで再試行）
-  if(r&&r!=='loading'&&r.date===date&&!r.error&&!r.outOfRange&&Date.now()-r.time<STALE) return;
+  if(r&&r!=='loading'&&r.date===date&&!r.error&&!r.outOfRange&&!r.isPast&&Date.now()-r.time<STALE) return;
   if(r&&r!=='loading'&&r.outOfRange&&r.date===date) return; // outOfRange は再取得不要
+  if(r&&r!=='loading'&&r.isPast&&r.date===date) return; // 過去日付は再取得不要
   if(r==='loading') return;
   if(wxQueueIds.has(stop.id)) return;
   wxStopRes[stop.id]='loading';
