@@ -96,7 +96,7 @@ export function downloadTextFile(opt){
   const btn=opt.btnId?document.getElementById(opt.btnId):null;
   const flash=(t,bg,ms)=>{if(!btn)return;const orig=btn.textContent;btn.textContent=t;btn.style.background=bg;btn.style.color='#000';setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},ms);};
   if(IS_IOS){
-    _openExportOverlay(opt.text,opt.filename);
+    _openExportOverlay(opt.text,opt.filename,opt.blobType);
   }else{
     const blob=new Blob([opt.text],{type:opt.blobType});
     const url=URL.createObjectURL(blob);
@@ -115,7 +115,7 @@ export function downloadTextFile(opt){
    ・📋コピー: navigator.clipboard、失敗時は選択範囲フォールバック
    ・共有: navigator.share 対応時のみ表示。ファイルとして共有できる環境(canShare+files)なら
           .txtファイルで、不可ならテキスト本文で共有シートを開く（「ファイルに保存」「メモ」等へ）。*/
-export function _openExportOverlay(text,filename){
+export function _openExportOverlay(text,filename,mime){
   _closeAllOverlays();
   const ov=document.createElement('div');
   ov.id='export-overlay';
@@ -152,18 +152,29 @@ export function _openExportOverlay(text,filename){
     }
   };
 
-  // 📤共有（対応端末のみ）。ファイル共有が可能ならtxtファイル、不可なら本文テキストで共有シートへ。
+  // 📤共有（対応端末のみ）。ファイル共有が可能ならファイルで、不可・失敗時は本文テキストで共有シートへ。
   const shareBtn=document.getElementById('export-share-btn');
   if(shareBtn) shareBtn.onclick=async()=>{
+    // ファイル共有を試す。MIMEはdownloadTextFile由来(blobType)を使い、拡張子と不一致にしない
+    // （例: .json を text/plain で渡すとiOSの共有が無言でrejectする）。失敗時は本文テキスト共有へ。
+    const tryFileShare=async()=>{
+      const type=mime||'text/plain';
+      let file;
+      try{ file=new File([text],filename||'旅刻_記録.txt',{type}); }catch(e){ return false; }
+      if(!(navigator.canShare&&navigator.canShare({files:[file]}))) return false;
+      await navigator.share({files:[file],title:filename||'旅刻'});
+      return true;
+    };
     try{
-      let file=null;
-      try{ file=new File([text],filename||'旅刻_記録.txt',{type:'text/plain'}); }catch(e){ file=null; }
-      if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
-        await navigator.share({files:[file],title:filename||'旅刻 走行記録'});
-      }else{
-        await navigator.share({title:filename||'旅刻 走行記録',text});
-      }
-    }catch(e){ /* ユーザーが共有シートをキャンセルした場合等は無視 */ }
+      const ok=await tryFileShare();
+      if(!ok) await navigator.share({title:filename||'旅刻',text});
+    }catch(e){
+      // ユーザーが共有シートを閉じた(AbortError)なら何もしない。
+      // それ以外（ファイル共有がrejectされた等）は本文テキスト共有でリトライする。
+      if(e&&e.name==='AbortError') return;
+      try{ await navigator.share({title:filename||'旅刻',text}); }
+      catch(e2){ if(!(e2&&e2.name==='AbortError')) showInfoToast('⚠️ 共有できませんでした。コピーをお使いください',3000); }
+    }
   };
 }
 
