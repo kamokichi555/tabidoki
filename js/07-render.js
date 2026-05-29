@@ -112,7 +112,7 @@ function renderRide(){
   const el=_dom('ride-content');
   const bar=_dom('ride-swipe-bar');
   const flat=currentDayFlat();
-  if(!flat.length){el.innerHTML='<div style="text-align:center;color:var(--text3);padding:3rem 1rem;font-size:20px">🗺️<br><br>行程を追加してください</div>';bar.style.display='none';return;}
+  if(!flat.length){el.innerHTML='<div style="text-align:center;color:var(--text3);padding:3rem 1rem;font-size:20px">🗺️<br><br>行程を追加してください</div>';bar.style.display='none';const _pb=_dom('ride-provisional-banner');if(_pb)_pb.innerHTML='';return;}
   rideViewIdx=Math.max(0,Math.min(flat.length-1,rideViewIdx));
   _urgentRideFetch(flat); // 先に現在/次地点を最優先取得（ensureDayWeatherが全件キューに入れる前に）
   ensureDayWeather(currentDay);
@@ -131,6 +131,10 @@ function renderRide(){
   };
   let h='';
   const vs=flat[rideViewIdx];
+  // 日付未設定の日は今日+N日として天気を取得しているため注記する（表示中地点の所属日で判定）。
+  // バナーは ride-content の外（スワイプアニメーション対象外）に描画し、地点切替時にスライドしないようにする
+  const _pbEl=_dom('ride-provisional-banner');
+  if(_pbEl) _pbEl.innerHTML=provisionalDateBanner(vs.dayIdx);
   const isCurr=(rideViewIdx===rci),isPast=(rci!==-1&&rideViewIdx<rci);
   const vsUrl=data.days[vs.dayIdx]?.routeUrl||'';
   // routeUrlをnew URL()で正規化（"等の不正文字を%22にエンコード）してからHTMLエスケープ
@@ -281,12 +285,23 @@ function checkTimeOrder(){
 function showValError(msg){const old=document.getElementById('val-error');if(old)old.remove();const el=document.createElement('div');el.id='val-error';el.className='val-error';el.textContent='⚠ '+msg;const fg=document.querySelector('.form-gap');if(fg)fg.prepend(el);setTimeout(()=>{if(el.parentNode)el.remove();},3500);}
 function showUrlError(msg){const el=document.getElementById('inp-route-url');if(!el)return;el.style.borderColor='var(--red)';el.title=msg;setTimeout(()=>{el.style.borderColor='';el.title='';},2500);}
 
+/* 日付未設定の日の予報注記バナーを生成（通常ビュー・走行モード共用）。
+   日付未設定時は「今日+dayIdx日」として天気を取得しているため、その補完日を明示する。
+   day.date が設定済みなら空文字を返す（バナー非表示）。 */
+function provisionalDateBanner(dayIdx){
+  const day=data.days[dayIdx];
+  if(!day||day.date) return '';
+  const pd=new Date();pd.setDate(pd.getDate()+dayIdx);
+  const w=['日','月','火','水','木','金','土'][pd.getDay()];
+  const ds=`${pd.getMonth()+1}/${pd.getDate()}(${w})`;
+  return `<div class="provisional-date-note">📅 日付未設定のため <b>${ds}</b> の予報を表示しています</div>`;
+}
+
 /* ══ render（通常ビュー） ══ */
 function render(){
   try{
   if(isRide){renderRide();return;}
   const tl=document.getElementById('timeline'),em=document.getElementById('empty-state'),ds=stops();
-  const day=data.days[currentDay];
   tl.className=isEdit&&editingId===null?'timeline edit-mode':'timeline';
   if(!ds.length){tl.innerHTML='';em.style.display='block';return;}
   em.style.display='none';
@@ -294,7 +309,9 @@ function render(){
   const cdi=_getCdi();
   // 天気フェッチ（日付未設定でも住所があれば取得）
   ensureDayWeather(currentDay);
-  tl.innerHTML=ds.map((s,i)=>{
+  // 日付未設定の日は今日+N日として天気を取得しているため、その旨を一度だけ注記する
+  const provisionalBanner=provisionalDateBanner(currentDay);
+  tl.innerHTML=provisionalBanner+ds.map((s,i)=>{
     const st=getStatus(s,i,ds,cdi),isLast=i===ds.length-1,isDM=s.note&&s.note.includes('🩸'),_sdur=stayDur(s.arr,s.dep),_mdur=!isLast?moveDur(s.dep,ds[i+1].arr):'',_mlv=!isLast?moveDurLevel(s.dep,ds[i+1].arr):-1;
     return`<div class="stop-row ${st}" data-id="${s.id}">
   <div class="stop-line-col"><div class="stop-dot"></div>${!isLast?'<div class="stop-connector"></div>':''}</div>
