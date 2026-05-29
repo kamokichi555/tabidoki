@@ -112,7 +112,7 @@ function renderRide(){
   const el=_dom('ride-content');
   const bar=_dom('ride-swipe-bar');
   const flat=currentDayFlat();
-  if(!flat.length){el.innerHTML='<div style="text-align:center;color:var(--text3);padding:3rem 1rem;font-size:20px">🗺️<br><br>行程を追加してください</div>';bar.style.display='none';const _pb=_dom('ride-provisional-banner');if(_pb)_pb.innerHTML='';return;}
+  if(!flat.length){el.innerHTML='<div style="text-align:center;color:var(--text3);padding:3rem 1rem;font-size:20px">🗺️<br><br>行程を追加してください</div>';bar.style.display='none';const _pb=_rideBannerEl();if(_pb){_pb.innerHTML='';_pb.style.display='none';}return;}
   rideViewIdx=Math.max(0,Math.min(flat.length-1,rideViewIdx));
   _urgentRideFetch(flat); // 先に現在/次地点を最優先取得（ensureDayWeatherが全件キューに入れる前に）
   ensureDayWeather(currentDay);
@@ -133,8 +133,12 @@ function renderRide(){
   const vs=flat[rideViewIdx];
   // 日付未設定の日は今日+N日として天気を取得しているため注記する（表示中地点の所属日で判定）。
   // バナーは ride-content の外（スワイプアニメーション対象外）に描画し、地点切替時にスライドしないようにする
-  const _pbEl=_dom('ride-provisional-banner');
-  if(_pbEl) _pbEl.innerHTML=provisionalDateBanner(vs.dayIdx);
+  const _pbEl=_rideBannerEl();
+  if(_pbEl){
+    const _bh=provisionalDateBanner(vs.dayIdx);
+    _pbEl.innerHTML=_bh;
+    _pbEl.style.display=_bh?'':'none'; // 空のときは要素ごと隠す（CSSの:empty未反映時のフォールバック）
+  }
   const isCurr=(rideViewIdx===rci),isPast=(rci!==-1&&rideViewIdx<rci);
   const vsUrl=data.days[vs.dayIdx]?.routeUrl||'';
   // routeUrlをnew URL()で正規化（"等の不正文字を%22にエンコード）してからHTMLエスケープ
@@ -285,16 +289,34 @@ function checkTimeOrder(){
 function showValError(msg){const old=document.getElementById('val-error');if(old)old.remove();const el=document.createElement('div');el.id='val-error';el.className='val-error';el.textContent='⚠ '+msg;const fg=document.querySelector('.form-gap');if(fg)fg.prepend(el);setTimeout(()=>{if(el.parentNode)el.remove();},3500);}
 function showUrlError(msg){const el=document.getElementById('inp-route-url');if(!el)return;el.style.borderColor='var(--red)';el.title=msg;setTimeout(()=>{el.style.borderColor='';el.title='';},2500);}
 
+/* 走行モードのバナー要素を取得（index.html に無い場合は ride-content の直前に動的生成）。
+   古いHTMLがキャッシュ/デプロイされていてもバナーが確実に出るようにするためのフォールバック。 */
+function _rideBannerEl(){
+  let el=document.getElementById('ride-provisional-banner');
+  if(!el){
+    const content=document.getElementById('ride-content');
+    const wrap=content&&content.parentNode;
+    if(!wrap) return null;
+    el=document.createElement('div');
+    el.id='ride-provisional-banner';
+    wrap.insertBefore(el,content); // ride-content の直前（＝スワイプ対象外）に挿入
+  }
+  return el;
+}
+
 /* 日付未設定の日の予報注記バナーを生成（通常ビュー・走行モード共用）。
    日付未設定時は「今日+dayIdx日」として天気を取得しているため、その補完日を明示する。
-   day.date が設定済みなら空文字を返す（バナー非表示）。 */
+   day.date が設定済みなら空文字を返す（バナー非表示）。
+   ※インラインstyleは style.css が古い/未反映でも見た目が崩れないためのフォールバック。
+     新しいCSSの .provisional-date-note が当たればそちらと同等の見た目になる。 */
 function provisionalDateBanner(dayIdx){
   const day=data.days[dayIdx];
   if(!day||day.date) return '';
   const pd=new Date();pd.setDate(pd.getDate()+dayIdx);
   const w=['日','月','火','水','木','金','土'][pd.getDay()];
   const ds=`${pd.getMonth()+1}/${pd.getDate()}(${w})`;
-  return `<div class="provisional-date-note">📅 日付未設定のため <b>${ds}</b> の予報を表示しています</div>`;
+  const _s='margin:0 0 14px;padding:8px 12px;background:var(--amber-bg);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--r,12px);color:var(--text2);font-size:13px;line-height:1.5';
+  return `<div class="provisional-date-note" style="${_s}">📅 日付未設定のため <b style="color:var(--amber);font-weight:700">${ds}</b> の予報を表示しています</div>`;
 }
 
 /* ══ render（通常ビュー） ══ */
