@@ -227,6 +227,7 @@ function _urgentRideFetch(flat){
 function rideNavigate(dir){
   if(_swAnim)return;const flat=currentDayFlat();if(flat.length<2)return;
   const to=Math.max(0,Math.min(flat.length-1,rideViewIdx+dir));if(to===rideViewIdx)return;
+  if(typeof _gpsNotifySwipe==='function') _gpsNotifySwipe(); // 手動スワイプ→GPS表示追従を一時停止
   rideActionVisible=false;
   _swAnim=true;const el=document.getElementById('ride-content');
   const ec=dir>0?'sw-exit-left':'sw-exit-right',nc=dir>0?'sw-enter-left':'sw-enter-right';

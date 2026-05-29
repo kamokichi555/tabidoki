@@ -64,6 +64,7 @@ setTimeout(()=>ensureAllWeather(),0);
 /* ══ 初期化 ══ */
 
 _initTheme();
+if(typeof _gpsInit==='function') _gpsInit();
 
 
 syncBorderAddr();

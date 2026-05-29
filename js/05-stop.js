@@ -90,9 +90,12 @@ function delStop(id){
     showInfoToast('🗑️ 地点を削除しました',2000);
   }catch(e){showAppError(EC.STOP,e);}
 }
-function setCurrentStop(id){
-  _dbgLog('setCurrentStop',{id});
+function setCurrentStop(id,fromGps,keepView){
+  _dbgLog('setCurrentStop',{id,fromGps:!!fromGps,keepView:!!keepView});
   manualCurrentId=id;_cachedCdiForId=null; // cdiキャッシュ無効化
-  const fi=currentDayIdxOf(id);if(fi!==-1)rideViewIdx=fi;
+  // keepView=true のときは表示中ページ(rideViewIdx)を動かさない（手動スワイプ後の表示固定を尊重）
+  if(!keepView){const fi=currentDayIdxOf(id);if(fi!==-1)rideViewIdx=fi;}
+  // GPS由来でない（=ユーザーの手動操作）ときだけGPS自動切替を一時抑制する
+  if(!fromGps&&typeof _gpsNotifyManualSet==='function') _gpsNotifyManualSet();
   save();if(isRide)renderRide();else render();
 }

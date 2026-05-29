@@ -223,7 +223,7 @@ function _applyImportedData(p,titleFallback,skipConfirm){
   _cachedCdiForId=null;
   save(); // 読み込んだデータを即座にlocalStorageへ反映（読み込み直後にタブを閉じても残るように）
   requestAnimationFrame(()=>{
-    if(isRide){isRide=false;document.body.classList.remove('ride-mode');_dom('normal-view').style.display='block';_dom('ride-view').classList.remove('active');_dom('ride-btn').classList.remove('on');_dom('ride-btn').textContent='🏍️';_dom('day-tabs').style.display='';_dom('day-manage').style.display='none';_dom('cancel-ride-btn').style.display='none';}
+    if(isRide){isRide=false;if(typeof _gpsOnRideEnd==='function')_gpsOnRideEnd();document.body.classList.remove('ride-mode');_dom('normal-view').style.display='block';_dom('ride-view').classList.remove('active');_dom('ride-btn').classList.remove('on');_dom('ride-btn').textContent='🏍️';_dom('day-tabs').style.display='';_dom('day-manage').style.display='none';_dom('cancel-ride-btn').style.display='none';}
     if(!isEdit){isEdit=true;_dom('edit-area').style.display='block';}
     _syncTitleInput(); // 読み込んだタイトルをツーリング名欄に反映
     setFormAdd(); // isEdit状態に関わらず常にフォームをリセット（既存編集中のロード時に古い入力値が残るのを防ぐ）

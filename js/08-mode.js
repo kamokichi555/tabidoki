@@ -58,7 +58,9 @@ function toggleRide(){
     _updateStickyTops();
     ensureDayWeather(currentDay);
     renderRide();
+    if(typeof _gpsOnRideStart==='function') _gpsOnRideStart(); // GPS自動追跡開始
   }else{
+    if(typeof _gpsOnRideEnd==='function') _gpsOnRideEnd(); // GPS自動追跡停止
     _updateStickyTops();
     render(); // 走行中にsetCurrentStop等で変わった地点状態をnormal-viewに反映
   }
