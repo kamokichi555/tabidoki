@@ -1,78 +1,200 @@
-/* ══════════════════════════════════════════════════════
-   旅刻 — Service Worker
-   ・パスはすべて相対（manifest の scope と整合させる）
-   ・HTML(ナビゲーション)は network-first で確実に更新を配信
-   ・静的アセットは cache-first（?v クエリでバージョン管理）
-   ・外部API(天気/ジオ/施設)には介入しない
-   Copyright © 鴨吉 All Rights Reserved.
-   ══════════════════════════════════════════════════════ */
-const CACHE_NAME = 'tabidoki-mk16-v4'; // ← リリースごとにバンプして旧キャッシュを破棄
-const CACHE_FILES = [
-  './',
-  './index.html',
-  './tabidoki_manual.html',
-  './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/splash-title.png'
-];
+<!DOCTYPE html>
+<!--
+  旅刻 mk16 — ツーリング行程支援ツール
+  Copyright © 鴨吉 All Rights Reserved.
 
-// インストール時にプリキャッシュ（一部取得失敗でも install を壊さない）
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(CACHE_FILES))
-      .catch(err => console.warn('[旅刻 sw] プリキャッシュ失敗（実行時に補完）:', err))
-  );
-  self.skipWaiting();
-});
+  ・個人利用は自由です
+  ・無断転載・再配布・商用利用・改変物の公開を禁じます
+  ・著作者名の削除・改ざんを禁じます
+  ・ブログ・SNS等での紹介は著作者名（鴨吉）を明記のうえ歓迎します
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d0d0d">
+<title>旅刻mk16</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Boku&family=Kaisei+HarunoUmi:wght@700&family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
 
-// 古いキャッシュを削除してからクライアントを掌握
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
-});
+<div id="splash">
+  <div style="display:flex;flex-direction:row;align-items:flex-start;gap:0">
+    <div style="display:flex;flex-direction:column;align-items:center">
+      <div id="splash-credit" class="splash-powered" style="font-size:clamp(13px,4vw,20px);letter-spacing:.35em"></div>
+    </div>
+    <div class="splash-line"></div>
+    <div class="splash-sub">ツーリング行程支援ツール</div>
+    <div style="width:20px"></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+      <img class="splash-title-img" src="icons/splash-title.png?v=16" alt="旅刻">
+            <div style="font-size:clamp(11px,3vw,15px);color:rgba(240,235,215,.75);letter-spacing:.22em;font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;font-weight:700;animation:splash-in .6s ease .65s both">mk16</div>
+    </div>
+    <div style="width:28px"></div>
+    <div style="writing-mode:vertical-rl;text-orientation:mixed;font-family:'Yuji Boku','Kaisei HarunoUmi','Hiragino Mincho ProN','Yu Mincho',serif;color:rgba(235,230,215,.88);text-shadow:2px 2px 4px rgba(0,0,0,.95),0 0 20px rgba(0,0,0,.8);animation:splash-in .6s ease .7s both;position:relative;z-index:1;line-height:1.6">
+      <span id="splash-episode" style="font-size:clamp(13px,3.8vw,18px);letter-spacing:.4em;opacity:.7"></span>
+      <br>
+      <span id="splash-ep-title" style="font-size:clamp(17px,5vw,26px);letter-spacing:.25em;font-weight:400"></span>
+    </div>
+  </div>
+</div>
 
-self.addEventListener('fetch', event => {
-  const req = event.request;
-  // GET 以外（Overpass の POST 等）は介入しない
-  if (req.method !== 'GET') return;
-  let url;
-  try { url = new URL(req.url); } catch (e) { return; }
-  // 外部オリジン（Open-Meteo / wttr.in / 国土地理院 / Nominatim / Overpass 等）は素通し
-  if (url.origin !== self.location.origin) return;
+<header>
+  <div class="header-clock">
+    <div class="led-wrap">
+      <div id="now-display"></div>
+    </div>
+  </div>
+  <div class="header-main">
+    <div class="header-actions">
+      <button id="ride-btn" onclick="toggleRide()" title="走行モード">🏍️</button>
+      <button id="cancel-ride-btn" onclick="cancelToRide()" style="display:none" title="走行モードを終了">✖</button>
+      <button id="gps-btn" onclick="toggleGps()" title="GPS自動追跡">📡</button>
+      <button id="edit-btn" onclick="onEditBtnClick()" title="編集">✏️</button>
+      <button id="json-save-btn" onclick="saveJSON()" title="保存">💾</button>
+      <button id="load-btn" onclick="loadJSON()" title="読込">📂</button>
+      <button id="share-btn" onclick="shareItinerary()" title="共有">📋</button>
+      <button id="splash-settings-btn" onclick="openSplashSettings()" title="タイトル設定">📜</button>
+      <button id="theme-btn" onclick="_toggleTheme()" title="テーマ切替">☀️</button>
+      <button id="record-save-btn" onclick="saveRecord()" title="走行記録として保存">📝</button>
+      <button id="toilet-btn" onclick="openToiletMap()" title="Googleマップで近くのトイレを検索">🚻</button>
+      <button id="sample-btn" onclick="loadSampleData()" title="サンプルを読み込む">🗺️</button>
+      <input type="file" id="load-file-input" accept=".json,application/json" style="display:none" onchange="onFileSelected(event)">
+    </div>
+  </div>
+  <div class="day-tabs" id="day-tabs"></div>
+  <div class="day-manage" id="day-manage" style="display:none">
+    <div class="day-manage-btns">
+      <button onclick="addDay()">＋ 日程追加</button>
+      <button onclick="deleteCurrentDay()" class="danger">🗑️ 削除</button>
+    </div>
+    <div class="day-inline-row">
+      <input id="inp-day-date" type="date" oninput="saveDayDate()" style="flex:0 0 auto;width:140px">
+      <input id="inp-route-url" type="text" maxlength="500" placeholder="🗺 ルートURL" oninput="_saveRouteDebounced()" style="flex:1;min-width:0">
+    </div>
+  </div>
+</header>
 
-  // ナビゲーション(HTML)は network-first：更新を確実に配信、オフライン時のみキャッシュ
-  const isNav = req.mode === 'navigate' || req.destination === 'document';
-  if (isNav) {
-    event.respondWith(
-      fetch(req)
-        .then(resp => {
-          if (resp && resp.ok) {
-            const clone = resp.clone();
-            caches.open(CACHE_NAME).then(c => c.put(req, clone)).catch(() => {});
-          }
-          return resp;
-        })
-        .catch(() => caches.match(req).then(c => c || caches.match('./index.html')))
-    );
-    return;
-  }
+<main>
+<div id="normal-view">
+  <div id="edit-area" style="display:none">
+    <div class="edit-panel">
+      <div class="edit-panel-head">
+        <span>🏍 ツーリング名</span>
+      </div>
+      <div class="form-gap">
+        <input id="inp-title" type="text" maxlength="60" placeholder="例：紅葉の道志みちツーリング" autocomplete="off" autocapitalize="off" oninput="_saveTitleDebounced()" onblur="_commitTitle()">
+        <div style="font-size:12px;color:var(--text3);font-weight:600">保存時のファイル名・共有テキスト・走行記録に使われます</div>
+      </div>
+    </div>
+    <div class="edit-panel">
+      <div class="edit-panel-head">
+        <span id="form-title">地点を追加</span>
+        <button type="button" class="edit-close-btn" onclick="cancelEdit()" title="閉じる">✕</button>
+      </div>
+      <div class="form-gap">
+        <input id="inp-name" type="text" maxlength="50" placeholder="地点名（例：道の駅みつまた）">
+        <div class="picker-chips">
+          <button type="button" class="picker-chip ch-hw" onclick="openHighway()">🛣 高速</button>
+          <button type="button" class="picker-chip ch-mn" onclick="openMichinoEki()">🏪 道の駅</button>
+          <button type="button" class="picker-chip ch-gs" onclick="openGasStation()">⛽ GS</button>
+          <button type="button" class="picker-chip ch-kk" onclick="openKaikatsu()">🏨 快活</button>
+        </div>
+        <div class="time-inline-row">
+          <div class="time-inline-item">
+            <span class="time-inline-label">着</span>
+            <input id="inp-arr" type="time" oninput="checkTimeOrder()">
+          </div>
+          <span class="time-inline-arrow">↓</span>
+          <div class="time-inline-item">
+            <span class="time-inline-label">発</span>
+            <input id="inp-dep" type="time" oninput="checkTimeOrder()">
+          </div>
+        </div>
+        <div id="stay-dur-preview" style="font-size:13px;color:var(--text3);font-weight:600;text-align:right;display:none;margin-top:-4px"></div>
+        <div id="time-order-error" style="display:none;font-size:13px;color:var(--red);margin-top:-4px">⚠ 出発時刻は到着時刻より後にしてください</div>
+        <input id="inp-note" type="text" maxlength="200" placeholder="メモ（食事・注意点など）">
+        <input id="inp-log" type="text" maxlength="200" placeholder="📝 走行メモ" style="border-color:rgba(77,166,255,.5)">
+        <button type="button" class="details-toggle" id="details-toggle" onclick="toggleDetails()">
+          <span class="details-toggle-arrow">▼</span>
+          <span>詳細（住所・給油・実績）</span>
+        </button>
+        <div class="details-body" id="details-body" style="display:none">
+          <input id="inp-addr" type="text" maxlength="100" placeholder="📍 住所（天気取得用・任意）">
+          <div class="fuel-check-row" onclick="toggleFuelCheck()">
+            <div class="fuel-check-box" id="fuel-check-box"></div>
+            <span class="fuel-check-label">⛽ 給油ポイント</span>
+          </div>
+          <div style="font-size:13px;color:rgba(77,166,255,.9);font-weight:700;margin-top:4px;letter-spacing:.04em">実績時刻</div>
+          <div class="time-inline-row">
+            <div class="time-inline-item">
+              <span class="time-inline-label" style="color:rgba(77,166,255,.9)">実着</span>
+              <input id="inp-act-arr" type="time" style="border-color:rgba(77,166,255,.45)">
+            </div>
+            <span class="time-inline-arrow">↓</span>
+            <div class="time-inline-item">
+              <span class="time-inline-label" style="color:rgba(77,166,255,.9)">実発</span>
+              <input id="inp-act-dep" type="time" style="border-color:rgba(77,166,255,.45)">
+            </div>
+          </div>
+        </div>
+        <div class="cascade-hint" id="cascade-hint">⏱ 出発時刻を変えると以降の地点が自動でずれます</div>
+        <button class="primary" id="save-btn" onclick="saveStop()" style="width:100%;justify-content:center;font-size:17px;padding:14px">＋ 追加</button>
+      </div>
+    </div>
+    <div class="drag-hint" id="drag-hint">地点を長押しドラッグして行程を並び替え</div>
+  </div>
 
-  // 静的アセットは cache-first（?v クエリでバージョン管理されるため新URL=新取得）
-  event.respondWith(
-    caches.match(req).then(cached => {
-      if (cached) return cached;
-      return fetch(req).then(resp => {
-        if (resp && resp.ok && /\.(css|js|png|jpg|jpeg|svg|ico|webp)$/.test(url.pathname)) {
-          const clone = resp.clone();
-          caches.open(CACHE_NAME).then(c => c.put(req, clone)).catch(() => {});
-        }
-        return resp;
-      });
-    }).catch(() => caches.match('./index.html'))
-  );
-});
+  <div class="timeline" id="timeline"></div>
+  <div class="empty-state" id="empty-state" style="display:none">
+    <div style="font-size:48px;opacity:.4;margin-bottom:12px">🗺️</div>
+    <div style="font-size:14px">「編集」から地点を追加してください</div>
+  </div>
+</div>
+
+<div id="ride-view">
+  <div id="gps-status" class="gps-status" style="display:none"></div>
+  <div id="ride-content-wrap">
+    <div id="ride-provisional-banner"></div>
+    <div id="ride-content"></div>
+  </div>
+  <div class="ride-swipe-bar" id="ride-swipe-bar" style="display:none">
+    <span class="ride-swipe-arr" id="sw-arr-l" onclick="rideNavigate(-1)">◀ 前</span>
+    <span class="ride-stop-ctr" id="ride-stop-ctr"></span>
+    <span class="ride-swipe-arr" id="sw-arr-r" onclick="rideNavigate(1)">次 ▶</span>
+  </div>
+</div>
+</main>
+
+<div id="app-error-toast">
+  <button id="app-err-dismiss" onclick="dismissAppError()">✕</button>
+  <div class="app-err-code" id="app-err-code">E-GL01</div>
+  <div class="app-err-msg" id="app-err-msg"></div>
+</div>
+<div id="info-toast" style="display:none;position:fixed;bottom:max(24px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:10002;width:calc(100% - 28px);max-width:440px;background:var(--bg2);border:1.5px solid var(--border2);border-radius:14px;padding:14px 18px;box-shadow:0 4px 24px rgba(0,0,0,.5);animation:toast-in .22s cubic-bezier(.2,0,.2,1);text-align:center;font-size:15px;font-weight:700;color:var(--text)">
+</div>
+<div id="dbg-badge" onclick="openSplashSettings()" title="デバッグログ"><span id="dbg-badge-text">🐛</span></div>
+<script src="js/00-constants.js?v=16"></script>
+<script src="js/01-state.js?v=16"></script>
+<script src="js/02-utils.js?v=16"></script>
+<script src="js/04-weather.js?v=16"></script>
+<script src="js/03-storage.js?v=16"></script>
+<script src="js/05-stop.js?v=16"></script>
+<script src="js/06-day.js?v=16"></script>
+<script src="js/07-render.js?v=16"></script>
+<script src="js/08-mode.js?v=16"></script>
+<script src="js/09-drag.js?v=16"></script>
+<script src="js/10-pickers.js?v=16"></script>
+<script src="js/11-overlays.js?v=16"></script>
+<script src="js/12-debug.js?v=16"></script>
+<script src="js/14-gps.js?v=16"></script>
+<script src="js/13-init.js?v=16"></script>
+<script>if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');</script>
+</body>
+</html>
