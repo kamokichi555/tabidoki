@@ -5,6 +5,7 @@
    実行時依存: data, S.currentDay, render, showInfoToast, showAppError
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
+// @ts-check
 
 /* ══ データ管理（localStorage） ══ */
 
@@ -190,6 +191,7 @@ function restoreFromStorage(){
 }
 
 /* ── 読み込んだJSONを適用する共通処理 ── */
+/** @param {any} p 外部由来の未検証データ @param {string} [titleFallback] @param {boolean} [skipConfirm] */
 function _applyImportedData(p,titleFallback,skipConfirm){
   if(!p||typeof p!=='object'||!Array.isArray(p.days)) throw new Error('フォーマットが正しくありません');
   if(!p.days.length) p.days=[{label:'1日目',date:'',routeUrl:'',stops:[]}];
@@ -273,7 +275,7 @@ function onFileSelected(ev){
   const reader=new FileReader();
   reader.onload=e=>{
     try{
-      const p=JSON.parse(e.target.result);
+      const p=JSON.parse(/** @type {string} */(e.target?.result)); // readAsTextのため常にstring
       p.title=file.name.replace(/\.json$/i,''); // ファイル名をタイトルとして強制セット
       _applyImportedData(p,file.name.replace(/\.json$/i,''),true); // loadJSON側で確認済みのためskip
     }catch(err){

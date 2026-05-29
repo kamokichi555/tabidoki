@@ -4,6 +4,7 @@
    依存: 00-constants.js（LIMIT, EC等）
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
+// @ts-check
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 // インラインonclick="func('${value}',...)" のJS文字列リテラル内に動的データを安全に埋め込む
@@ -53,6 +54,12 @@ function isValidTime(s){return typeof s==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.
 function isValidDate(s){return typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s);}
 /* ── 共通: iOS判定（iOSは a.download非対応のため保存方法を分岐する） ── */
 const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)&&!window.MSStream;
+/**
+ * 取り込みデータを破壊的にサニタイズ（不正値の除去・上限切詰・ID再発行）。
+ * 受け取るのは外部由来の未検証データなので型は any。
+ * @param {any} p
+ * @returns {boolean} 1日あたり上限超過で地点を切り捨てたら true
+ */
 function _sanitizeImportedData(p){
   if(!p||typeof p!=='object')return false;
   if('title' in p) p.title=sanitize(p.title,LIMIT.title);
@@ -93,6 +100,7 @@ function _sanitizeImportedData(p){
    ・version を最新へ更新し、欠落フィールド(date/routeUrl/addr)を補完
    ※フィールドの型サニタイズは後続の _sanitizeImportedData が担う。
    ※対応バージョン一覧をここ1箇所に集約（追加漏れによる移行不全を防ぐ）。 */
+/** @param {any} p 移行前（旧版・フィールド欠落あり）の未検証データを破壊的に更新 */
 function _migrateData(p){
   const LEGACY=['mk15-v1','mk13-v1','mk8-v1','mk7-v2','mk7-v1','mk6-v1','mk5-v1','mk4-v2','mk4-v1'];
   if(!(p&&p.version&&LEGACY.includes(p.version))) return;
@@ -107,6 +115,7 @@ function _migrateData(p){
 /* ── currentStopId を解決して返す（_applyImportedData / 起動時復元 で共用） ──
    d.currentStopId（無ければ先頭地点ID）を採用し、その地点が実在しなければ先頭地点IDへフォールバック。
    どこにも地点が無ければ null。getStatus の誤判定防止のため実在チェックを行う。 */
+/** @param {TouringData} d @returns {string|null} 有効な現在地ID */
 function _resolveCurrentStopId(d){
   const firstId=(d.days?.[0]?.stops||[])[0]?.id??null;
   let id=d.currentStopId??firstId;

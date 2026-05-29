@@ -7,6 +7,7 @@
 
 /* ── localStorageからの自動復元 ── */
 // S._pendingRestore は 01-state.js で宣言済み（保存系から参照するためグローバル共有）
+/** @type {TouringData} */
 let data;
 S._pendingRestore=null;
 try{
