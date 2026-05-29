@@ -178,7 +178,7 @@ function play(){
   running=true;
   $('replay').classList.remove('show');
   $('end-card').classList.remove('show');
-  $('title-card').classList.add('show');
+  $('title-card').classList.remove('show'); // 独自タイトルは使わず本物のスプラッシュを見せる
   clearTelop();
   $('progress').style.width='0';
 
@@ -187,16 +187,18 @@ function play(){
   let booted=false;
   ifr.onload=()=>{
     if(booted)return; booted=true;
-    // スプラッシュを即閉じ＆空データから開始（iframe内コンテキストで実行）
+    // 空データから開始（本物のスプラッシュはそのまま再生させる）
     exec(`(function(){
       try{
         // SW登録失敗のエラートーストをデモ中は抑制
         if(typeof showAppError==='function'){ window.showAppError=function(){}; }
         var et=document.getElementById('app-error-toast'); if(et){et.style.display='none';}
+        // デモ中は確認ダイアログ（走行モード切替など）を出さない＝自動進行を止めない
+        window.confirm=function(){return true;};
         data={version:'demo',title:'',currentStopId:null,days:[{label:'1日目\\n神奈川→山梨',date:'',routeUrl:'',stops:[]}]};
         currentDay=0;manualCurrentId=null;_pendingRestore=null;rideViewIdx=0;
         render();
-        document.querySelectorAll('[id*=splash],[class*=splash]').forEach(function(el){el.style.transition='none';el.style.opacity='0';el.style.display='none';});
+        // ※ スプラッシュは消さない：本物の起動演出（約5秒）をデモ冒頭で見せる
       }catch(e){console.warn('init',e);}
     })()`);
     runScenario();
@@ -205,39 +207,40 @@ function play(){
 }
 
 function runScenario(){
-  const TOTAL=42000;
-  for(let p=2400;p<=TOTAL;p+=500)after(p,()=>{$('progress').style.width=(p/TOTAL*100)+'%';});
-
-  // タイトル明け
-  after(2200,()=>$('title-card').classList.remove('show'));
+  const SPLASH=5500; // 本物のスプラッシュ演出が消えるまで待つ
+  const TOTAL=42000+SPLASH;
+  // 進行バーはスプラッシュ明けから動かす
+  for(let p=SPLASH;p<=TOTAL;p+=500)after(p,()=>{$('progress').style.width=((p-SPLASH)/(TOTAL-SPLASH)*100)+'%';});
+  // 各シーンはスプラッシュ分だけ後ろ倒し（afterをラップ）
+  const at=(ms,fn)=>after(ms+SPLASH,fn);
 
   /* ── シーン1：編集モードに入り、地点を順に追加 ── */
-  after(2600,()=>{
+  at(2600,()=>{
     call('onEditBtnClick'); // 編集モードON
     tapEl('#edit-btn');
     telop('かんたん','行程は<span class="hi">どんどん足すだけ</span>',
       '編集モードで地点を追加。時刻もメモもその場で入力。');
   });
-  after(3900,()=>{ tapEl('#save-btn'); addStop({name:'横浜 出発',dep:'08:00',note:'早めに出発。下道で',addr:'神奈川県横浜市西区'}); });
-  after(5100,()=>{ tapEl('#save-btn'); addStop({name:'宮ヶ瀬湖',arr:'09:30',dep:'10:00',note:'湖畔で休憩。紅葉が絶景',addr:'神奈川県愛甲郡清川村宮ヶ瀬'}); });
-  after(6300,()=>{ tapEl('#save-btn'); addStop({name:'山中湖',arr:'12:50',dep:'13:30',note:'富士山の眺望ポイント',addr:'山梨県南都留郡山中湖村山中'}); });
+  at(3900,()=>{ tapEl('#save-btn'); addStop({name:'横浜 出発',dep:'08:00',note:'早めに出発。下道で',addr:'神奈川県横浜市西区'}); });
+  at(5100,()=>{ tapEl('#save-btn'); addStop({name:'宮ヶ瀬湖',arr:'09:30',dep:'10:00',note:'湖畔で休憩。紅葉が絶景',addr:'神奈川県愛甲郡清川村宮ヶ瀬'}); });
+  at(6300,()=>{ tapEl('#save-btn'); addStop({name:'山中湖',arr:'12:50',dep:'13:30',note:'富士山の眺望ポイント',addr:'山梨県南都留郡山中湖村山中'}); });
 
   /* ── シーン2：道の駅をボタン＝ピッカーで選択して追加 ── */
-  after(7800,()=>{
+  at(7800,()=>{
     clearTelop();
     call('openMichinoEki'); // 道の駅ピッカーを開く
     tapEl('.picker-chip.ch-mn');
     telop('便利機能 ①','道の駅は<span class="hi">ボタンで選ぶ</span>',
       '全国の道の駅リストから検索。住所も自動で入る。');
   });
-  after(9200,()=>{ // 検索で「どうし」を絞り込み
+  at(9200,()=>{ // 検索で「どうし」を絞り込み
     exec(`(function(){var s=document.getElementById('michi-search');if(s){s.value='どうし';filterMichi();}})()`);
   });
-  after(10300,()=>{ // 「道の駅 どうし」を選択
+  at(10300,()=>{ // 「道の駅 どうし」を選択
     tapEl('#michi-list > div:first-child');
     exec(`(function(){var f=document.querySelector('#michi-list > div');if(f)f.click();})()`);
   });
-  after(11200,()=>{ // 時刻・メモを入力
+  at(11200,()=>{ // 時刻・メモを入力
     tapEl('#inp-arr');
     exec(`(function(){
       document.getElementById('inp-arr').value='11:15';
@@ -245,13 +248,13 @@ function runScenario(){
       document.getElementById('inp-note').value='名物の鹿カレー＆地元野菜';
     })()`);
   });
-  after(12000,()=>{ tapEl('#save-btn'); call('saveStop'); });
+  at(12000,()=>{ tapEl('#save-btn'); call('saveStop'); });
 
   // もう一つ道の駅（なるさわ・給油ポイント付き）
-  after(13200,()=>{ call('openMichinoEki'); tapEl('.picker-chip.ch-mn'); });
-  after(14000,()=>{ exec(`(function(){var s=document.getElementById('michi-search');if(s){s.value='なるさわ';filterMichi();}})()`); });
-  after(15000,()=>{ tapEl('#michi-list > div:first-child'); exec(`(function(){var f=document.querySelector('#michi-list > div');if(f)f.click();})()`); });
-  after(15900,()=>{
+  at(13200,()=>{ call('openMichinoEki'); tapEl('.picker-chip.ch-mn'); });
+  at(14000,()=>{ exec(`(function(){var s=document.getElementById('michi-search');if(s){s.value='なるさわ';filterMichi();}})()`); });
+  at(15000,()=>{ tapEl('#michi-list > div:first-child'); exec(`(function(){var f=document.querySelector('#michi-list > div');if(f)f.click();})()`); });
+  at(15900,()=>{
     exec(`(function(){
       document.getElementById('inp-arr').value='15:00';
       document.getElementById('inp-dep').value='15:30';
@@ -259,15 +262,15 @@ function runScenario(){
       var b=document.getElementById('fuel-check-box');if(b&&!b.classList.contains('checked'))toggleFuelCheck();
     })()`);
   });
-  after(16700,()=>{ tapEl('#save-btn'); call('saveStop'); });
+  at(16700,()=>{ tapEl('#save-btn'); call('saveStop'); });
 
   /* ── シーン3：並び替え（なるさわを山中湖の後ろへ） ── */
-  after(18000,()=>{
+  at(18000,()=>{
     clearTelop();
     telop('便利機能 ②','順番は<span class="hi">入れ替え自由</span>',
       'あとから追加した地点も、ドラッグで好きな位置に。');
   });
-  after(19200,()=>{
+  at(19200,()=>{
     const target=doc().querySelector('.stop-row:nth-child(4)');
     if(target){const r=target.getBoundingClientRect();tapAt(r.left+30,r.top+30);}
     exec(`(function(){
@@ -279,7 +282,7 @@ function runScenario(){
   });
 
   /* ── シーン4：走行モード＋スワイプで全地点表示 ── */
-  after(21500,()=>{
+  at(21500,()=>{
     clearTelop();
     exec(`(function(){
       if(isEdit) onEditBtnClick();
@@ -292,7 +295,7 @@ function runScenario(){
       }catch(e){}
     })()`);
   });
-  after(22000,()=>{
+  at(22000,()=>{
     exec(`(function(){
       manualCurrentId=data.days[0].stops[0].id; rideViewIdx=0;
       if(!isRide) toggleRide();
@@ -303,11 +306,11 @@ function runScenario(){
   });
   // スワイプで順に全地点を表示
   [23800,24700,25600,26500].forEach((t)=>{
-    after(t,()=>{ tapEl('#sw-arr-r'); exec(`typeof rideNavigate==='function' && rideNavigate(1)`); });
+    at(t,()=>{ tapEl('#sw-arr-r'); exec(`typeof rideNavigate==='function' && rideNavigate(1)`); });
   });
 
   /* ── シーン5：行程メモを全表示 ── */
-  after(27800,()=>{
+  at(27800,()=>{
     clearTelop();
     exec(`(function(){ rideViewIdx=2; rideActionVisible=true; renderRide(); })()`);
     tapEl('.ride-card');
@@ -316,30 +319,30 @@ function runScenario(){
   });
 
   /* ── シーン6：GPSボタンを押して位置情報ON ── */
-  after(31000,()=>{
+  at(31000,()=>{
     clearTelop();
     tapEl('#gps-btn');
     telop('便利機能 ⑤','<span class="hi">GPSで現在地を自動追跡</span>',
       'ボタンひとつでON。近づいた地点に画面が自動で切り替わる。');
   });
-  after(31600,()=>{
+  at(31600,()=>{
     exec(`(function(){
       var btn=document.getElementById('gps-btn');if(btn)btn.classList.add('on');
       var st=document.getElementById('gps-status');
       if(st){st.style.display='';st.className='gps-status ok';st.textContent='📍 GPS追跡中';}
     })()`);
   });
-  after(33000,()=>{
+  at(33000,()=>{
     exec(`(function(){var el=document.getElementById('ride-next-dist');if(el)el.textContent='あと 4.2 km（直線）';})()`);
   });
 
   /* ── エンドカード ── */
-  after(35500,()=>{
+  at(35500,()=>{
     clearTelop();
     $('end-card').classList.add('show');
     $('end-card').querySelectorAll('.feat').forEach((f,i)=>{f.style.animationDelay=(0.3+i*0.18)+'s';f.classList.add('in');});
   });
-  after(38500,()=>{$('replay').classList.add('show');running=false;});
+  at(38500,()=>{$('replay').classList.add('show');running=false;});
 }
 
 // 初回自動再生
