@@ -6,7 +6,7 @@
    ・外部API(天気/ジオ/施設)には介入しない
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
-const CACHE_NAME = 'tabidoki-mk16-v5'; // ← リリースごとにバンプして旧キャッシュを破棄
+const CACHE_NAME = 'tabidoki-mk16-v6'; // ← リリースごとにバンプして旧キャッシュを破棄
 const CACHE_FILES = [
   './',
   './index.html',
