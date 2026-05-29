@@ -14,20 +14,7 @@ try{
   if(_raw){
     const _p=JSON.parse(_raw);
     if(_p&&typeof _p==='object'&&Array.isArray(_p.days)){
-      // 旧バージョンからの移行（_applyImportedDataと同じロジック）
-      if(_p.version&&['mk15-v1','mk13-v1','mk8-v1','mk7-v2','mk7-v1','mk6-v1','mk5-v1','mk4-v2','mk4-v1'].includes(_p.version)){
-        if(_p.version==='mk4-v1'){
-          let mid=null;
-          for(const d of _p.days){if(d.currentStopId){mid=d.currentStopId;break;}}
-          _p.currentStopId=mid;
-        }
-        _p.version=DEFAULT.version;
-        for(const d of _p.days||[]){
-          if(!('date' in d)) d.date='';
-          if(!('routeUrl' in d)) d.routeUrl='';
-          for(const s of d.stops||[]) if(!('addr' in s)) s.addr='';
-        }
-      }
+      _migrateData(_p); // 旧バージョン移行（02-utils、_applyImportedDataと共用）
       _sanitizeImportedData(_p);
       if(!_p.days.length) _p.days=[{label:'1日目',date:'',routeUrl:'',stops:[]}];
       // 地点データがある場合は読み込むか確認する
@@ -46,18 +33,7 @@ try{
 if(!data) data=JSON.parse(JSON.stringify(DEFAULT));
 
 {
-  const ds0=data.days[0]?.stops??[];
-  manualCurrentId=data.currentStopId??(ds0[0]?.id??null);
-  // currentStopIdが存在しない地点を指していたら無効化
-  if(manualCurrentId){
-    let _found=false;
-    _outer:for(const _d of data.days){
-      for(const _s of _d.stops){
-        if(_s.id===manualCurrentId){_found=true;break _outer;}
-      }
-    }
-    if(!_found) manualCurrentId=data.days[0]?.stops[0]?.id??null;
-  }
+  manualCurrentId=_resolveCurrentStopId(data); // currentStopId 解決＋実在チェック（02-utils、_applyImportedDataと共用）
 }
 // スプラッシュ表示中に天気取得を先行開始（DOM構築より先に通信を走らせる）
 setTimeout(()=>ensureAllWeather(),0);

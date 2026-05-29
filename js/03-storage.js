@@ -193,15 +193,7 @@ function restoreFromStorage(){
 function _applyImportedData(p,titleFallback,skipConfirm){
   if(!p||typeof p!=='object'||!Array.isArray(p.days)) throw new Error('フォーマットが正しくありません');
   if(!p.days.length) p.days=[{label:'1日目',date:'',routeUrl:'',stops:[]}];
-  if(p.version&&['mk15-v1','mk13-v1','mk8-v1','mk7-v2','mk7-v1','mk6-v1','mk5-v1','mk4-v2','mk4-v1'].includes(p.version)){
-    if(p.version==='mk4-v1'){let mid=null;for(const d of p.days){if(d.currentStopId){mid=d.currentStopId;break;}}p.currentStopId=mid;}
-    p.version=DEFAULT.version;
-    for(const d of p.days||[]){
-      if(!('date' in d)) d.date='';
-      if(!('routeUrl' in d)) d.routeUrl='';
-      for(const s of d.stops||[]) if(!('addr' in s)) s.addr='';
-    }
-  }
+  _migrateData(p); // 旧バージョン移行（02-utils）
   const _truncated=_sanitizeImportedData(p);
   const title=p.title||titleFallback||'（タイトルなし）';
   if(!skipConfirm&&!confirm(`「${title}」を読み込みます。\n現在の行程は上書きされます。よろしいですか？`)){hideInfoToast();return;}
@@ -209,13 +201,7 @@ function _applyImportedData(p,titleFallback,skipConfirm){
   // ユーザーが明示的にデータを読み込んだ時点で、起動時の復元確認は不要になる。
   // 保留を解除して以後のsave()を有効化し、未確定状態を残さない。
   _pendingRestore=null;
-  manualCurrentId=data.currentStopId??(data.days[0]?.stops[0]?.id??null);
-  // currentStopId が存在しない地点を指している場合は無効化（getStatus の誤判定を防ぐ）
-  if(manualCurrentId){
-    let _found=false;
-    _outer:for(const _d of data.days){for(const _s of _d.stops){if(_s.id===manualCurrentId){_found=true;break _outer;}}}
-    if(!_found) manualCurrentId=data.days[0]?.stops[0]?.id??null;
-  }
+  manualCurrentId=_resolveCurrentStopId(data); // currentStopId 解決＋実在チェック（02-utils）
   currentDay=0;editingId=null;activeEditStopId=null;
   Object.keys(wxStopRes).forEach(k=>delete wxStopRes[k]);
   wxGen++; // 実行中の天気取得ループを世代変化で無効化（強制終了させない＝並行実行を防ぐ）

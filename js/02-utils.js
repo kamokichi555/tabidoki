@@ -87,5 +87,35 @@ function _sanitizeImportedData(p){
   }
   return truncated;
 }
+/* ── 旧バージョンデータの移行（_applyImportedData / 起動時復元 で共用） ──
+   p を破壊的に更新。対象バージョン以外は無変更。
+   ・mk4-v1: 日別 currentStopId から全体 currentStopId を確定
+   ・version を最新へ更新し、欠落フィールド(date/routeUrl/addr)を補完
+   ※フィールドの型サニタイズは後続の _sanitizeImportedData が担う。
+   ※対応バージョン一覧をここ1箇所に集約（追加漏れによる移行不全を防ぐ）。 */
+function _migrateData(p){
+  const LEGACY=['mk15-v1','mk13-v1','mk8-v1','mk7-v2','mk7-v1','mk6-v1','mk5-v1','mk4-v2','mk4-v1'];
+  if(!(p&&p.version&&LEGACY.includes(p.version))) return;
+  if(p.version==='mk4-v1'){let mid=null;for(const d of p.days){if(d.currentStopId){mid=d.currentStopId;break;}}p.currentStopId=mid;}
+  p.version=DEFAULT.version;
+  for(const d of p.days||[]){
+    if(!('date' in d)) d.date='';
+    if(!('routeUrl' in d)) d.routeUrl='';
+    for(const s of d.stops||[]) if(!('addr' in s)) s.addr='';
+  }
+}
+/* ── currentStopId を解決して返す（_applyImportedData / 起動時復元 で共用） ──
+   d.currentStopId（無ければ先頭地点ID）を採用し、その地点が実在しなければ先頭地点IDへフォールバック。
+   どこにも地点が無ければ null。getStatus の誤判定防止のため実在チェックを行う。 */
+function _resolveCurrentStopId(d){
+  const firstId=(d.days?.[0]?.stops||[])[0]?.id??null;
+  let id=d.currentStopId??firstId;
+  if(id){
+    let found=false;
+    for(const day of d.days){ if((day.stops||[]).some(s=>s.id===id)){found=true;break;} }
+    if(!found) id=firstId;
+  }
+  return id;
+}
 function isTimeOrderOk(a,d){if(!a||!d)return true;return toMin(a)<=toMin(d);}
 function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
