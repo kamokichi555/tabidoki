@@ -285,4 +285,3 @@ body.day-mode .ride-move-dur{color:var(--text3)}
    sticky でスクロール時も上端に貼り付ける。スワイプ対象の #ride-content の外なので地点切替では動かない */
 #ride-provisional-banner:empty{display:none}
 #ride-provisional-banner{position:sticky;top:0;z-index:2;background:var(--bg)}
-#ride-provisional-banner .provisional-date-note{margin:0 0 10px}
