@@ -1,560 +1,251 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>旅刻 — 実画面デモ</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap');
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{
-  background:#000;font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;
-  display:flex;align-items:flex-end;justify-content:center;min-height:100vh;overflow:hidden;
+/* ══════════════════════════════════════════════════════
+   旅刻 mk17 — 11-overlays.js
+   給油チェック / 詳細セクション / スプラッシュ設定 / オーバーレイ共通
+   依存: 00-constants.js（LIMIT）, 02-utils.js（sanitize）
+   実行時依存: _dbgLog, showInfoToast, save, render, _lsSetItem
+   Copyright © 鴨吉 All Rights Reserved.
+   ══════════════════════════════════════════════════════ */
+
+/* --- 自動生成: モジュール依存のインポート --- */
+import { esc, sanitize } from './02-utils.js';
+import { _lsSetItem } from './04-weather.js';
+import { _updateStickyTops } from './06-day.js';
+import { showInfoToast } from './07-render.js';
+import { _dbgEnabled, _dbgRefreshSettings } from './12-debug.js';
+
+
+/* ══ 給油チェック ══ */
+export function _setFuelCheck(val){
+  const box=document.getElementById('fuel-check-box');
+  if(!box) return;
+  box.classList.toggle('checked',!!val);
+  box.textContent=val?'⛽':'';
+  // GS選択などで給油ONになった時、詳細パネルを自動で開いて変更を見せる
+  if(val) _setDetailsOpen(true);
 }
-/* stageは412x820固定。画面に収まるよう transform:scale で連続的に縮小（JSで算出）。
-   align-items:flex-end で常に画面下端基準 → テロップが必ず画面最下部に来る。
-   scaleなので中身(テロップ等)のpxレイアウトは一切崩れない。 */
-#stage{
-  position:relative;width:412px;height:820px;background:#0d0d0d;overflow:hidden;
-  border-radius:38px;box-shadow:0 0 0 11px #111,0 0 0 13px #2b2b2b,0 30px 90px rgba(0,0,0,.85);
-  transform-origin:bottom center;
+export function toggleFuelCheck(){
+  const box=document.getElementById('fuel-check-box');
+  if(!box) return;
+  const next=!box.classList.contains('checked');
+  _setFuelCheck(next);
 }
-/* 実アプリのiframe */
-#app{position:absolute;inset:0;width:100%;height:100%;border:0;background:#0d0d0d}
 
-/* ===== テロップ（高さ固定・下揃えで全シーン同じ位置に） ===== */
-/* テロップはブラウザ画面の最下部に固定（fixed）。stageの縮小・余白に影響されず、
-   どの画面サイズでも常に画面の一番下に表示される。幅はstage相当に制限して中央寄せ。 */
-#telop{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:520px;z-index:90;
-  min-height:200px;padding:0 22px 26px;box-sizing:border-box;
-  display:flex;flex-direction:column;justify-content:flex-end;
-  background:linear-gradient(to top,rgba(0,0,0,.95) 38%,rgba(0,0,0,.6) 72%,transparent);pointer-events:none}
-#telop .badge{align-self:flex-start;font-size:12px;font-weight:800;letter-spacing:.12em;
-  color:#000;background:#FFB800;padding:5px 13px;border-radius:6px;margin-bottom:11px;opacity:0}
-#telop .main{font-size:26px;font-weight:800;line-height:1.42;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.95)}
-#telop .main .hi{color:#FFB800}
-#telop .sub{font-size:14px;font-weight:700;color:#e0e0e0;margin-top:8px;line-height:1.5;text-shadow:0 1px 8px rgba(0,0,0,.9);height:3em}
-#telop .badge.in{animation:tin .45s ease both}
-#telop .main span.w{display:inline-block;opacity:0}
-#telop .main span.w.in{animation:tin .4s ease both}
-#telop .sub.in{animation:tin .45s ease .15s both}
-@keyframes tin{from{opacity:0}to{opacity:1}}
-
-/* ===== タップ波紋 ===== */
-.tap{position:absolute;width:50px;height:50px;border-radius:50%;border:3px solid #FFB800;
-  transform:translate(-50%,-50%) scale(.4);opacity:0;z-index:80;pointer-events:none;
-  box-shadow:0 0 18px rgba(255,184,0,.6)}
-.tap.go{animation:tap .65s ease-out}
-@keyframes tap{0%{opacity:.95;transform:translate(-50%,-50%) scale(.4)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.35)}}
-
-/* ===== タイトル／エンドカード ===== */
-.card-screen{position:absolute;inset:0;z-index:95;background:#0d0d0d;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
-  opacity:0;pointer-events:none;transition:opacity .6s}
-.card-screen.show{opacity:1}
-.logo{font-size:66px;font-weight:800;color:#FFB800;letter-spacing:.08em;
-  text-shadow:0 0 44px rgba(255,184,0,.45);animation:lg 2.6s ease-in-out infinite}
-@keyframes lg{0%,100%{text-shadow:0 0 44px rgba(255,184,0,.4)}50%{text-shadow:0 0 66px rgba(255,184,0,.72)}}
-.romaji{font-size:15px;letter-spacing:.5em;color:#aaa;font-weight:700}
-.tag{font-size:18px;color:#e0e0e0;font-weight:700;margin-top:6px;text-align:center;line-height:1.6}
-.feats{display:flex;flex-direction:column;gap:11px;margin-top:4px}
-.feat{font-size:15px;color:#e0e0e0;font-weight:700;display:flex;align-items:center;gap:11px;opacity:0}
-.feat.in{animation:tin .5s ease both}
-.feat .ic{font-size:21px;width:26px;text-align:center}
-
-#progress{position:absolute;top:0;left:0;height:3px;background:#FFB800;width:0;z-index:200;
-  box-shadow:0 0 10px #FFB800;transition:width .3s linear}
-#replay{position:absolute;right:16px;bottom:16px;z-index:210;background:rgba(20,20,20,.92);
-  border:1.5px solid #FFB800;color:#FFB800;font-family:inherit;font-size:13px;font-weight:700;
-  padding:10px 17px;border-radius:22px;cursor:pointer;opacity:0;transition:.3s}
-#replay.show{opacity:1}
-.hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);color:#666;font-size:13px;text-align:center;line-height:1.6}
-
-/* ===== 斬撃オープニング ===== */
-@import url('https://fonts.googleapis.com/css2?family=Yuji+Mai&display=swap');
-#kesa{position:absolute;inset:0;z-index:300;overflow:hidden;background:
-  linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.8)),
-  radial-gradient(ellipse at 62% 32%, #3a342c, transparent 64%),
-  radial-gradient(ellipse at 24% 78%, #241c16, transparent 58%),
-  #0c0a08;opacity:1;transition:opacity .5s}
-#kesa.gone{opacity:0;pointer-events:none}
-#kesa .kgrain{position:absolute;inset:0;opacity:.55;mix-blend-mode:overlay;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.3'/%3E%3C/svg%3E");
-  background-size:170px 170px;animation:kflick .12s steps(1) infinite;pointer-events:none}
-@keyframes kflick{0%{transform:translate(0,0)}50%{transform:translate(-2px,1px)}100%{transform:translate(1px,-1px)}}
-#kesa .kwrap{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3;width:300px;height:466px}
-#kesa .khalf{position:absolute;inset:0;background:url("icons/catchcopy.png") center/contain no-repeat}
-#kesa .ktop{clip-path:none}
-#kesa .kbot{clip-path:polygon(0 22%, 100% 32%, 100% 100%, 0 100%);opacity:0}
-#kesa.run .ktop{clip-path:polygon(0 0, 100% 0, 100% 32%, 0 22%)}
-#kesa.run .kbot{opacity:1}
-#kesa .kslash{position:absolute;top:28%;left:50%;width:600px;height:3px;z-index:5;
-  background:linear-gradient(90deg,transparent,#fff 30%,#fff 70%,transparent);
-  box-shadow:0 0 14px 3px rgba(255,255,255,.9),0 0 40px 8px rgba(180,200,255,.5);
-  transform:translate(-50%,-50%) rotate(11deg) scaleX(0);transform-origin:left center;opacity:0}
-#kesa .kflash{position:absolute;inset:0;background:#fff;opacity:0;z-index:6;pointer-events:none}
-@keyframes kink{from{opacity:0;filter:blur(3px);transform:translate(-50%,-46%)}to{opacity:1;filter:blur(0);transform:translate(-50%,-50%)}}
-@keyframes kslash{0%{transform:translate(-50%,-50%) rotate(11deg) scaleX(0);opacity:0}
-  15%{opacity:1}60%{opacity:1}100%{transform:translate(-50%,-50%) rotate(11deg) scaleX(2.2);opacity:0}}
-@keyframes kflash{0%{opacity:0}40%{opacity:.55}100%{opacity:0}}
-@keyframes kslideTop{to{transform:translate(-14px,-46px) rotate(-2deg);opacity:0}}
-@keyframes kslideBot{to{transform:translate(16px,90px) rotate(2deg);opacity:0}}
-#kesa.ink .kwrap{animation:kink 1.9s cubic-bezier(.2,.8,.3,1) both}
-#kesa.run .kslash{animation:kslash .24s cubic-bezier(.6,0,.9,1) both}
-#kesa.run .kflash{animation:kflash .22s ease-out .1s both}
-#kesa.run .ktop{animation:kslideTop .9s cubic-bezier(.3,.6,.4,1) .24s both}
-#kesa.run .kbot{animation:kslideBot .9s cubic-bezier(.3,.6,.4,1) .24s both}
-</style>
-</head>
-<body>
-<div id="stage">
-  <div id="progress"></div>
-  <iframe id="app" src="about:blank"></iframe>
-
-  <!-- タイトル（斬撃オープニングを使うため初期非表示） -->
-  <div class="card-screen" id="title-card">
-    <div class="logo">旅刻</div>
-    <div class="romaji">T A B I D O K I</div>
-    <div class="tag">ツーリングを、もっと自由に。</div>
-  </div>
-  <!-- エンド -->
-  <div class="card-screen" id="end-card">
-    <div class="logo">旅刻</div>
-    <div class="feats">
-      <div class="feat"><span class="ic">📝</span>道の駅・高速SA・GS・快活をボタンで追加</div>
-      <div class="feat"><span class="ic">⠿</span>ドラッグで行程を自由に並び替え</div>
-      <div class="feat"><span class="ic">🏍️</span>走行中はスワイプで地点を確認</div>
-      <div class="feat"><span class="ic">📍</span>メモも給油チェックもひと目で</div>
-      <div class="feat"><span class="ic">📡</span>GPSで現在地を自動追跡</div>
-      <div class="feat"><span class="ic">📋</span>行程はワンタップで共有・バックアップ</div>
-      <div class="feat"><span class="ic">💾</span>走行後は記録をテキストで保存</div>
-    </div>
-    <div class="tag" style="margin-top:12px;font-size:15px;color:#aaa">スマホひとつで、地図いらず。</div>
-  </div>
-
-  <button id="replay" onclick="play()">▶ もう一度見る</button>
-
-  <!-- 斬撃オープニング（最前面） -->
-  <div id="kesa">
-    <div class="kgrain"></div>
-    <div class="kwrap" id="kcopy">
-      <div class="khalf ktop"></div>
-      <div class="khalf kbot"></div>
-    </div>
-    <div class="kslash"></div>
-    <div class="kflash"></div>
-  </div>
-</div>
-<!-- テロップ（stageの外＝ブラウザ画面の最下部に固定。画面サイズが変わっても常に一番下） -->
-<div id="telop"></div>
-<div class="hint">実際のアプリ画面をそのまま操作するデモ。画面録画でそのまま動画素材に。</div>
-
-<script>
-const $=id=>document.getElementById(id);
-const stage=$('stage');
-let timers=[],running=false;
-const after=(ms,fn)=>{const t=setTimeout(fn,ms);timers.push(t);return t;};
-const clearAll=()=>{timers.forEach(clearTimeout);timers=[];};
-
-// iframe内のwindow/document
-function win(){return $('app').contentWindow;}
-function doc(){return $('app').contentDocument;}
-
-/* ===== テロップ ===== */
-function telop(badge,mainHtml,sub){
-  const t=$('telop');
-  t.innerHTML=`<div class="badge">${badge}</div><div class="main"></div>${sub?`<div class="sub">${sub}</div>`:''}`;
-  const main=t.querySelector('.main');
-  main.innerHTML=mainHtml.replace(/(<span class="hi">.*?<\/span>|[^<>])/g,(m)=>{
-    if(m==='<'||m==='>')return m;
-    return `<span class="w">${m}</span>`;
-  });
-  requestAnimationFrame(()=>{
-    t.querySelector('.badge').classList.add('in');
-    t.querySelectorAll('.main .w').forEach((w,i)=>{w.style.animationDelay=(0.15+i*0.018)+'s';w.classList.add('in');});
-    const s=t.querySelector('.sub');if(s)s.classList.add('in');
-  });
+/* ══ 詳細セクション開閉 ══ */
+export function _setDetailsOpen(open){
+  const body=document.getElementById('details-body');
+  const btn=document.getElementById('details-toggle');
+  if(!body||!btn) return;
+  body.style.display=open?'flex':'none';
+  btn.classList.toggle('open',open);
 }
-const clearTelop=()=>{$('telop').innerHTML='';};
-
-/* ===== タップ波紋（stage座標）===== */
-function tapAt(x,y){
-  const d=document.createElement('div');d.className='tap';d.style.left=x+'px';d.style.top=y+'px';
-  stage.appendChild(d);requestAnimationFrame(()=>d.classList.add('go'));after(700,()=>d.remove());
+export function toggleDetails(){
+  const body=document.getElementById('details-body');
+  if(!body) return;
+  _setDetailsOpen(body.style.display==='none');
 }
-// iframe内要素の中心にタップ波紋を出す
-function tapEl(sel){
+
+/* ══ スプラッシュ タイトル設定 ══ */
+export const SPLASH_SK='touring_splash_settings';
+export const KANJI_NUMS=['一','二','三','四','五','六','七','八','九','十'];
+export function _toKanjiNum(n){
+  n=parseInt(n,10);
+  if(isNaN(n)||n<1) return '';
+  if(n<=10) return KANJI_NUMS[n-1];
+  if(n<20) return '十'+KANJI_NUMS[n-11];
+  const j=Math.floor(n/10), k=n%10;
+  return KANJI_NUMS[j-1]+'十'+(k?KANJI_NUMS[k-1]:'');
+}
+export function _numToEpisode(val){
+  const n=parseInt(val,10);
+  if(!val||isNaN(n)||n<1||n>99) return '';
+  return '第'+_toKanjiNum(n)+'話';
+}
+// 木枯らし紋次郎 各話タイトル（笹沢左保 原作）
+export const MONJIROU_TITLES=[
+  '甲州街道に月を追う','赦免花は散ったか','一里塚に風が吹く',
+  '木枯しは江戸に吹いた','墓場に何かが帰る夜','峠に散った三度笠',
+  '流れ旅に泥が跳んだ','崖の上に影が消えた','風鈴峠に月が泣く',
+  '霧の中の渡り鳥','荒野に十字架が立った','血文字峠を越せ',
+  '荒れ野に仁義は無い','三度笠が流れる宿','峠の向こうに嘘があった',
+  '木枯しの涯に海があった','野分の後に血が流れた','孤独な旅路に敵が待つ',
+  '旅がらすに傷が疼く','荒漠の地に道はない','砂塵の中の決闘',
+  '宵闇の中の渡り鳥','冬枯れの道に涙が落ちた','山霧の彼方に故郷がある',
+  '三度笠に吹雪が沁みた','刃風峠に月が泣いた','橋の袂で骨が鳴る',
+  '血煙は風に流れた','孤狼は斃れず','さらば紋次郎',
+];
+export let splashSettings=(()=>{
   try{
-    const el=doc().querySelector(sel);if(!el)return;
-    const r=el.getBoundingClientRect();
-    tapAt(r.left+r.width/2,r.top+r.height/2);
-  }catch(e){}
-}
-
-/* ===== iframe操作ヘルパ（iframe内コンテキストで実行）===== */
-// iframe内でコードを実行（その世界のdocument/Eventを使う）
-function exec(code){
-  try{ return win().eval(code); }catch(e){ console.warn('exec',e); }
-}
-function call(fn){ exec(`typeof ${fn}==='function' && ${fn}()`); }
-
-// iframe内要素の中心にタップ波紋（stage座標へ変換）
-function tapEl(sel){
-  try{
-    const el=doc().querySelector(sel);if(!el)return;
-    const r=el.getBoundingClientRect();
-    tapAt(r.left+r.width/2,r.top+r.height/2);
-  }catch(e){}
-}
-
-// 1地点を追加（iframe内で完結実行）
-function addStop({name,arr,dep,note,addr,fuel}){
-  const j=JSON.stringify({name:name||'',arr:arr||'',dep:dep||'',note:note||'',addr:addr||'',fuel:!!fuel});
-  exec(`(function(){
-    var o=${j};
-    if(document.getElementById('edit-area').style.display==='none') onEditBtnClick();
-    document.getElementById('inp-name').value=o.name;
-    document.getElementById('inp-arr').value=o.arr;
-    document.getElementById('inp-dep').value=o.dep;
-    document.getElementById('inp-note').value=o.note;
-    if(o.addr){ try{_setDetailsOpen(true);}catch(e){} document.getElementById('inp-addr').value=o.addr; }
-    if(o.fuel){ var b=document.getElementById('fuel-check-box'); if(b&&!b.classList.contains('checked')) toggleFuelCheck(); }
-    saveStop();
-  })()`);
-}
-
-// 地点名から、その行のid・DOM要素・矩形を取得（iframe内）
-function rowInfoByName(name){
-  try{
-    const d=doc();
-    const rows=d.querySelectorAll('.stop-row[data-id]');
-    for(const row of rows){
-      const nm=row.querySelector('.stop-name-text');
-      if(nm && nm.textContent.trim()===name){
-        return {id:row.dataset.id, el:row, rect:row.getBoundingClientRect()};
-      }
+    const s=JSON.parse(localStorage.getItem(SPLASH_SK));
+    if(s&&typeof s==='object'){
+      const epNum=parseInt(s.episode,10);
+      return {
+        star:sanitize(s.star,20),
+        episode:(Number.isInteger(epNum)&&epNum>=1&&epNum<=99)?String(epNum):'',
+        title:sanitize(s.title,40),
+      };
     }
   }catch(e){}
-  return null;
+  return {episode:'',title:'',star:''};
+})();
+export function _randomKanji(){return '第'+KANJI_NUMS[Math.floor(Math.random()*KANJI_NUMS.length)]+'話';}
+export function _randomTitle(){return MONJIROU_TITLES[Math.floor(Math.random()*MONJIROU_TITLES.length)];}
+export function _renderSplash(){
+  const ep=document.getElementById('splash-episode');
+  const ti=document.getElementById('splash-ep-title');
+  const cr=document.getElementById('splash-credit');
+  if(ep) ep.textContent=_numToEpisode(splashSettings.episode)||_randomKanji();
+  if(ti) ti.textContent=splashSettings.title||_randomTitle();
+  const starName=splashSettings.star||'あなた';
+  if(cr) cr.textContent='主演：'+starName+'　友情出演：鴨吉';
+}
+export function openSplashSettings(){
+  _closeAllOverlays();
+  const ov=document.createElement('div');
+  ov.id='splash-settings-overlay';
+  const applyVp=_makeApplyVp(ov);
+  Object.assign(ov.style,{position:'fixed',top:'0',left:'0',width:'100%',height:'100%',zIndex:'999999',background:'rgba(0,0,0,.88)',display:'flex',alignItems:'flex-end',justifyContent:'center'});
+  ov.innerHTML=`<div style="background:var(--bg2);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:80%;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <span style="font-weight:700;font-size:17px">📜 設定</span>
+      <div style="display:flex;align-items:center;gap:4px">
+        <a href="tabidoki_manual.html" target="_blank" rel="noopener" title="マニュアルを開く" style="display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:700;color:var(--amber);text-decoration:none;padding:5px 10px;border:1.5px solid rgba(255,184,0,.35);border-radius:8px;background:rgba(255,184,0,.1);white-space:nowrap">📖 マニュアル</a>
+        <button id="ss-close-btn" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3)">✕</button>
+      </div>
+    </div>
+    <div style="overflow-y:auto;flex:1;padding:16px;-webkit-overflow-scrolling:touch">
+      <div class="form-gap">
+        <div class="input-group">
+          <div class="input-label">主演（空欄で「あなた」を表示）</div>
+          <input id="ss-star" type="text" maxlength="20" placeholder="例：田中太郎" value="${esc(splashSettings.star||'')}">
+        </div>
+        <div class="input-group">
+          <div class="input-label">第◯話（数字を入力すると漢数字に変換・空欄でランダム）</div>
+          <div style="position:relative">
+            <input id="ss-episode" type="number" min="1" max="99" step="1" placeholder="例：3　→　第三話" value="${splashSettings.episode||''}" oninput="_updateEpisodePreview()" style="padding-right:100px">
+            <span id="ss-episode-preview" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--amber);font-weight:700;pointer-events:none">${splashSettings.episode?_numToEpisode(splashSettings.episode):''}</span>
+          </div>
+        </div>
+        <div class="input-group">
+          <div class="input-label">タイトル（空欄で紋次郎風ランダム）</div>
+          <input id="ss-title" type="text" maxlength="40" placeholder="例：甲州街道に月を追う" value="${esc(splashSettings.title||'')}">
+        </div>
+      </div>
+      <div style="margin-top:14px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r)">
+        <div style="font-size:12px;color:var(--text3);line-height:1.8">
+          <div>• 第◯話：数字（1〜99）を入力すると自動で漢数字に変換して表示</div>
+          <div>• 空欄にすると一〜十のいずれかをランダムで表示</div>
+          <div>• タイトルを空欄にすると木枯らし紋次郎風をランダム表示</div>
+          <div>• 起動するたびにランダム抽選されます</div>
+        </div>
+      </div>
+      <div class="dbg-section">
+        <h4>🐛 デバッグログ</h4>
+        <div class="dbg-row">
+          <label><input type="checkbox" id="dbg-enable-cb" onchange="_dbgSetEnabled(this.checked)"> 操作・エラーを記録する</label>
+        </div>
+        <div class="dbg-row">
+          <span style="color:var(--text3)">記録件数:</span><span id="dbg-count" style="font-family:ui-monospace,monospace">0件</span>
+        </div>
+        <div class="dbg-btns">
+          <button class="dbg-btn" onclick="_dbgCopy()">📋 コピー</button>
+          <button class="dbg-btn" onclick="_dbgDownload()">💾 保存</button>
+          <button class="dbg-btn" onclick="_dbgClear()" style="background:#3a1010;border-color:var(--red);color:#f88">🗑️ 消去</button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.6">
+          ONにすると画面右下に 🐛 バッジが出ます。バグを再現後、コピーまたは保存でログを取り出してください（最新500件まで保持）。
+        </div>
+      </div>
+      <div style="margin-top:14px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r)">
+        <div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:6px">📄 クレジット</div>
+        <div style="font-size:11px;color:var(--text3);line-height:1.9">
+          <div>🌤 天気：<a href="https://open-meteo.com/" target="_blank" rel="noopener" style="color:var(--amber)">Open-Meteo</a>（CC BY 4.0）/ <a href="https://wttr.in/" target="_blank" rel="noopener" style="color:var(--amber)">wttr.in</a></div>
+          <div>📍 住所検索：<a href="https://www.gsi.go.jp/" target="_blank" rel="noopener" style="color:var(--amber)">国土地理院</a> / <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:var(--amber)">© OpenStreetMap contributors</a></div>
+          <div>🛣 施設情報：<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:var(--amber)">OpenStreetMap</a>（ODbL）</div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0">
+      <button onclick="_saveSplashSettings()" style="width:100%;justify-content:center;padding:14px;font-size:17px;background:var(--amber);border-color:var(--amber);color:#000;font-weight:800">✅ 保存して閉じる</button>
+    </div>
+  </div>`;
+  _lowerHeaderForOverlay();document.body.appendChild(ov);
+  // デバッグUI初期化
+  try{
+    const cb=document.getElementById('dbg-enable-cb');
+    if(cb) cb.checked=!!_dbgEnabled;
+    _dbgRefreshSettings();
+  }catch(e){}
+  if(window.visualViewport){
+    _bindOverlayVp(ov,applyVp);
+  }
+  const closeBtn=document.getElementById('ss-close-btn');
+  if(closeBtn) closeBtn.onclick=()=>{
+    _closeOverlay('splash-settings-overlay');
+    requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));
+  };
+}
+export function _updateEpisodePreview(){
+  const val=(document.getElementById('ss-episode')?.value||'').trim();
+  const prev=document.getElementById('ss-episode-preview');
+  if(prev) prev.textContent=val?_numToEpisode(val):'';
+}
+export function _saveSplashSettings(){
+  splashSettings.star=sanitize(document.getElementById('ss-star')?.value||'',20);
+  const epRaw=(document.getElementById('ss-episode')?.value||'').trim();
+  const epNum=parseInt(epRaw,10);
+  splashSettings.episode=(Number.isInteger(epNum)&&epNum>=1&&epNum<=99)?String(epNum):'';
+  splashSettings.title=sanitize(document.getElementById('ss-title')?.value||'',40);
+  try{_lsSetItem(SPLASH_SK,JSON.stringify(splashSettings));}catch(e){}
+  document.getElementById('ss-close-btn')?.click();
+  showInfoToast('📜 タイトル設定を保存しました',2000);
 }
 
-// ドラッグ並び替えの“演出”: fromName のカードを持ち上げ→toName の位置までスーッと移動→着地で確定
-// dropBefore=true なら toName の前へ、false なら後ろへ挿入
-function dragReorder(fromName,toName,dropBefore){
-  const from=rowInfoByName(fromName);
-  const to=rowInfoByName(toName);
-  if(!from||!to){return;}
-  const ifr=$('app');
-  const ir=ifr.getBoundingClientRect();
-  const scale=ir.width/ifr.offsetWidth || 1; // stage内のiframe表示倍率
-  // iframe座標→stage座標へ変換
-  const sx=r=>ir.left-stage.getBoundingClientRect().left+r.left*scale;
-  const sy=r=>ir.top-stage.getBoundingClientRect().top+r.top*scale;
-  // 掴むカードのゴースト（stage上に複製を作る：iframe内のDOMは直接stageへ動かせないため見た目だけ再現）
-  const ghost=document.createElement('div');
-  const fr=from.rect;
-  ghost.style.cssText=`position:absolute;z-index:85;left:${sx(fr)}px;top:${sy(fr)}px;`+
-    `width:${fr.width*scale}px;height:${fr.height*scale}px;`+
-    `background:var(--bg2,#1c1c1c);border:1px solid #FFB800;border-radius:12px;`+
-    `box-shadow:0 12px 40px rgba(0,0,0,.6);opacity:.92;`+
-    `display:flex;align-items:center;justify-content:center;`+
-    `font-family:'BIZ UDPGothic',sans-serif;font-weight:800;color:#fff;font-size:${20*scale}px;`+
-    `transition:transform .85s cubic-bezier(.3,.7,.3,1),box-shadow .3s;transform:scale(1.04)`;
-  ghost.textContent=fromName;
-  stage.appendChild(ghost);
-  // 元のカードを半透明に（iframe内）
-  exec(`(function(){var r=document.querySelector('.stop-row[data-id="${from.id}"]');if(r)r.style.opacity='.35';})()`);
-  // 掴んだ位置にタップ波紋
-  tapAt(sx(fr)+fr.width*scale/2, sy(fr)+24);
-  // 目標位置（toの上端 or 下端付近）へ移動
-  const tr=to.rect;
-  const targetY = dropBefore ? sy(tr) : sy(tr)+tr.height*scale - fr.height*scale;
-  const dx=0, dy=targetY - sy(fr);
-  requestAnimationFrame(()=>{
-    ghost.style.transform=`translate(${dx}px,${dy}px) scale(1.04)`;
-  });
-  // ドロップ先をハイライト（iframe内 .drag-over）
-  after(120,()=>exec(`(function(){var r=document.querySelector('.stop-row[data-id="${to.id}"]');if(r)r.classList.add('drag-over');})()`));
-  // 着地：確定して再描画、ゴースト除去
-  after(950,()=>{
-    exec(`(function(){
-      try{ document.querySelectorAll('.stop-row').forEach(function(r){r.classList.remove('drag-over');r.style.opacity='';});
-        _commitReorder('${from.id}','${to.id}');
-      }catch(e){}
-    })()`);
-    ghost.style.transition='opacity .2s';
-    ghost.style.opacity='0';
-    after(220,()=>ghost.remove());
-  });
+/* ══ オーバーレイ一括掃除 (主要操作前の保険) ══ */
+export const _OVERLAY_IDS=['share-overlay','export-overlay','splash-settings-overlay','highway-overlay','michi-overlay','gs-overlay'];
+/* ── visualViewport オーバーレイ共通ユーティリティ ── */
+export function _lowerHeaderForOverlay(){
+  // overlay表示中はstickyヘッダーがoverlayより前面に来るのを防ぐ
+  const h=document.querySelector('header');
+  if(h) h.style.zIndex='1';
+}
+export function _makeApplyVp(ov){
+  return function(){
+    const vv=window.visualViewport;
+    if(!vv)return;
+    ov.style.top=vv.offsetTop+'px';
+    ov.style.left=vv.offsetLeft+'px';
+    ov.style.width=vv.width+'px';
+    ov.style.height=vv.height+'px';
+  };
+}
+export function _bindOverlayVp(ov,applyVp){
+  if(!window.visualViewport)return;
+  window.visualViewport.addEventListener('resize',applyVp);
+  window.visualViewport.addEventListener('scroll',applyVp);
+  applyVp();
+  ov._applyVp=applyVp; // _closeAllOverlays で unbind するため要素に保存
+}
+export function _unbindOverlayVp(applyVp){
+  window.visualViewport?.removeEventListener('resize',applyVp);
+  window.visualViewport?.removeEventListener('scroll',applyVp);
+}
+export function _closeOverlay(id){ // 個別overlay閉じる時のvisualViewportリスナーリーク防止
+  const el=document.getElementById(id);
+  if(!el)return;
+  if(el._applyVp) _unbindOverlayVp(el._applyVp);
+  el.remove();
+  // 全overlay閉じたらヘッダーのz-indexを復元
+  if(!_OVERLAY_IDS.some(i=>document.getElementById(i))) document.querySelector('header').style.zIndex='';
+}
+export function _closeAllOverlays(except){
+  for(const id of _OVERLAY_IDS){
+    if(except===id) continue;
+    const el=document.getElementById(id);
+    if(!el) continue;
+    if(el._applyVp) _unbindOverlayVp(el._applyVp); // visualViewport リスナーリーク防止
+    el.remove();
+  }
+  // overlayが全て閉じたらヘッダーのz-indexを復元
+  if(!except||!document.getElementById(except)) document.querySelector('header').style.zIndex='';
 }
 
-/* ===== シナリオ本体 ===== */
-function play(){
-  if(running)clearAll();
-  running=true;
-  // 前回の行程データを消す（iframe内index.htmlと同一オリジンならlocalStorageを共有するため、
-  // これで起動時の「前回データを読み込みますか？」ダイアログが出なくなる）
-  try{ localStorage.removeItem('touring_data'); }catch(e){}
-  $('replay').classList.remove('show');
-  $('end-card').classList.remove('show');
-  $('title-card').classList.remove('show'); // 独自タイトルは使わず本物のスプラッシュを見せる
-  clearTelop();
-  $('progress').style.width='0';
-  // 前回再生の名残（iframe内の最終画面）が斬撃の下に透けるのを防ぐため、即座に空へ戻す
-  try{ $('app').src='about:blank'; }catch(e){}
-
-  // ── 斬撃オープニングを先に再生 ──
-  const kesa=$('kesa');
-  // transitionを一時無効化して即座に不透明な黒画面にする（フェード中に下が透けるのを防ぐ）
-  kesa.style.transition='none';
-  kesa.classList.remove('gone','ink','run');
-  void kesa.offsetHeight;
-  kesa.style.transition=''; // 以降のフェードアウト(.gone)用に戻す
-  kesa.classList.add('ink');                       // 墨でゆっくり表示
-  after(3400,()=>kesa.classList.add('run'));        // 溜めてから斬る
-  after(6000,()=>{ kesa.classList.add('gone'); });  // 斬り終わり→フェードアウト
-  // 斬撃が消えたらメインデモ開始
-  after(6600,()=>{ startMainDemo(); });
-}
-
-// メインデモ（本物のスプラッシュ→アプリ操作）
-function startMainDemo(){
-  const ifr=$('app');
-  let booted=false;
-
-  // 本体(index.html)読み込み後の初期化
-  ifr.addEventListener('load',function onAppReady(){
-    if(booted)return; booted=true;
-    ifr.removeEventListener('load',onAppReady);
-    exec(`(function(){
-      try{
-        // SW登録失敗のエラートーストをデモ中は抑制
-        if(typeof showAppError==='function'){ window.showAppError=function(){}; }
-        var et=document.getElementById('app-error-toast'); if(et){et.style.display='none';}
-        // デモ中は確認ダイアログ（復元/走行モード切替など）を一切出さない＝自動進行を止めない
-        window.confirm=function(){return true;};
-        try{ localStorage.removeItem('touring_data'); }catch(e){}
-        // 空データから開始（本物のスプラッシュはそのまま再生させる）
-        data={version:'demo',title:'',currentStopId:null,days:[{label:'1日目\\n神奈川→山梨',date:'',routeUrl:'',stops:[]}]};
-        currentDay=0;manualCurrentId=null;_pendingRestore=null;rideViewIdx=0;
-        render();
-      }catch(e){console.warn('init',e);}
-    })()`);
-    runScenario();
-  },{once:true});
-
-  // 前回データは play() 冒頭で親localStorageから削除済み（同一オリジン共有）。
-  // 念のためcache無効化のためタイムスタンプを付けて本体を読み込む。
-  ifr.src='index.html?demo='+Date.now();
-}
-
-function runScenario(){
-  const SPLASH=5500; // 本物のスプラッシュ演出が消えるまで待つ
-  const TOTAL=53000+SPLASH;
-  // 進行バーはスプラッシュ明けから動かす
-  for(let p=SPLASH;p<=TOTAL;p+=500)after(p,()=>{$('progress').style.width=((p-SPLASH)/(TOTAL-SPLASH)*100)+'%';});
-  // 各シーンはスプラッシュ分だけ後ろ倒し（afterをラップ）
-  const at=(ms,fn)=>after(ms+SPLASH,fn);
-
-  /* ── シーン1：編集モードに入り、地点を順に追加 ── */
-  at(2600,()=>{
-    call('onEditBtnClick'); // 編集モードON
-    tapEl('#edit-btn');
-    telop('かんたん','行程は<span class="hi">どんどん足すだけ</span>',
-      '編集モードで地点を追加。時刻もメモもその場で入力。');
-  });
-  at(3900,()=>{ tapEl('#save-btn'); addStop({name:'横浜 出発',dep:'08:00',note:'早めに出発。下道で',addr:'神奈川県横浜市西区'}); });
-  at(5100,()=>{ tapEl('#save-btn'); addStop({name:'宮ヶ瀬湖',arr:'09:30',dep:'10:00',note:'湖畔で休憩。紅葉が絶景',addr:'神奈川県愛甲郡清川村宮ヶ瀬'}); });
-  at(6300,()=>{ tapEl('#save-btn'); addStop({name:'山中湖',arr:'12:50',dep:'13:30',note:'富士山の眺望ポイント',addr:'山梨県南都留郡山中湖村山中'}); });
-
-  /* ── シーン2：道の駅をボタン＝ピッカーで選択して追加 ── */
-  at(7800,()=>{
-    clearTelop();
-    call('openMichinoEki'); // 道の駅ピッカーを開く
-    tapEl('.picker-chip.ch-mn');
-    telop('便利機能 ①','道の駅は<span class="hi">ボタンで選ぶ</span>',
-      '全国の道の駅リストから検索。住所も自動で入る。');
-  });
-  at(9200,()=>{ // 検索で「どうし」を絞り込み
-    exec(`(function(){var s=document.getElementById('michi-search');if(s){s.value='どうし';filterMichi();}})()`);
-  });
-  at(10300,()=>{ // 「道の駅 どうし」を選択
-    tapEl('#michi-list > div:first-child');
-    exec(`(function(){var f=document.querySelector('#michi-list > div');if(f)f.click();})()`);
-  });
-  at(11200,()=>{ // 時刻・メモを入力
-    tapEl('#inp-arr');
-    exec(`(function(){
-      document.getElementById('inp-arr').value='11:15';
-      document.getElementById('inp-dep').value='12:15';
-      document.getElementById('inp-note').value='名物の鹿カレー＆地元野菜';
-    })()`);
-  });
-  at(12000,()=>{ tapEl('#save-btn'); call('saveStop'); });
-
-  // もう一つ道の駅（なるさわ・給油ポイント付き）
-  at(13200,()=>{ call('openMichinoEki'); tapEl('.picker-chip.ch-mn'); });
-  at(14000,()=>{ exec(`(function(){var s=document.getElementById('michi-search');if(s){s.value='なるさわ';filterMichi();}})()`); });
-  at(15000,()=>{ tapEl('#michi-list > div:first-child'); exec(`(function(){var f=document.querySelector('#michi-list > div');if(f)f.click();})()`); });
-  at(15900,()=>{
-    exec(`(function(){
-      document.getElementById('inp-arr').value='15:00';
-      document.getElementById('inp-dep').value='15:30';
-      document.getElementById('inp-note').value='富士山の溶岩を展示。給油も';
-      var b=document.getElementById('fuel-check-box');if(b&&!b.classList.contains('checked'))toggleFuelCheck();
-    })()`);
-  });
-  at(16700,()=>{ tapEl('#save-btn'); call('saveStop'); });
-
-  /* ── シーン2.5：他の追加ボタン（高速・GS・快活）も紹介 ── */
-  at(17600,()=>{
-    clearTelop();
-    telop('便利機能 ①+','道の駅<span class="hi">以外もボタンで</span>',
-      '高速SA・ガソリンスタンド・快活CLUBもワンタップ。');
-  });
-  // 高速ボタンをハイライト→ピッカーを開いてチラ見せ（モーダル生成に約1秒かかるため検索は遅らせる）
-  at(18400,()=>{ tapEl('.picker-chip.ch-hw'); call('openHighway'); });
-  at(19900,()=>{ exec(`(function(){var s=document.getElementById('highway-search');if(s){s.value='海老名';if(typeof filterHighway==='function')filterHighway();}})()`); });
-  at(21000,()=>{ exec(`(function(){_closeOverlay&&_closeOverlay('highway-overlay');})()`); });
-  // GSボタン→開いてENEOSを検索（給油ポイント自動ONの説明）。地点は増やさず閉じる
-  at(21700,()=>{ tapEl('.picker-chip.ch-gs'); call('openGasStation'); });
-  at(23000,()=>{ exec(`(function(){var s=document.getElementById('gs-search');if(s){s.value='ENEOS';if(typeof filterGasStation==='function')filterGasStation();}})()`); });
-  at(24000,()=>{ exec(`(function(){_closeOverlay&&_closeOverlay('gs-overlay');})()`); });
-  // 快活ボタンはハイライトのみ（本体は別タブ遷移のためデモでは開かない）
-  at(24500,()=>{ tapEl('.picker-chip.ch-kk'); });
-
-  /* ── シーン3：並び替え（道の駅どうしを山中湖の前へドラッグ） ── */
-  at(25500,()=>{
-    clearTelop();
-    // 並び替え対象が画面に収まるよう、編集系パネルを一時的に隠してリストを見やすく
-    exec(`(function(){
-      try{
-        var ea=document.getElementById('edit-area');
-        if(ea){ ea.querySelectorAll('.edit-panel,.drag-hint').forEach(function(p){p.dataset._hid='1';p.style.display='none';}); }
-        var dm=document.getElementById('day-manage'); if(dm){dm.dataset._hid='1';dm.style.display='none';}
-        var dt=document.getElementById('day-tabs'); if(dt){dt.dataset._hid='1';dt.style.display='none';}
-      }catch(e){}
-    })()`);
-    telop('便利機能 ②','順番は<span class="hi">ドラッグで入れ替え</span>',
-      'あとから足した地点も、つかんで好きな位置へ。');
-  });
-  // 対象「道の駅 どうし」が画面中央に来るようスクロール
-  at(26400,()=>{ exec(`(function(){
-    try{
-      var rows=document.querySelectorAll('.stop-row[data-id]');
-      for(var i=0;i<rows.length;i++){
-        var nm=rows[i].querySelector('.stop-name-text');
-        if(nm&&nm.textContent.trim()==='道の駅 どうし'){ rows[i].scrollIntoView({block:'start',behavior:'smooth'}); break; }
-      }
-    }catch(e){}
-  })()`); });
-  // 「道の駅 どうし」を「山中湖」の前へドラッグして移動
-  at(27400,()=>{ dragReorder('道の駅 どうし','山中湖',true); });
-  // 後始末：隠したパネル類を戻す
-  at(28800,()=>{ exec(`(function(){
-    try{ document.querySelectorAll('[data-_hid="1"]').forEach(function(p){p.style.display='';p.removeAttribute('data-_hid');}); }catch(e){}
-  })()`); });
-
-  /* ── シーン4：走行モード＋スワイプで全地点表示 ── */
-  at(29000,()=>{
-    clearTelop();
-    exec(`(function(){
-      if(isEdit) onEditBtnClick();
-      // デモ用に天気データを注入（外部APIはCORSで取得不可のため、走行表示前に仕込む）
-      try{
-        var wx={'横浜 出発':[0,21,14,0],'宮ヶ瀬湖':[1,19,13,10],'道の駅 どうし':[2,17,11,20],'山中湖':[0,15,9,0],'道の駅 なるさわ':[1,14,8,10]};
-        window.wxStopRes=window.wxStopRes||{};
-        var today=new Date().toISOString().slice(0,10);
-        data.days[0].stops.forEach(function(s){var w=wx[s.name];if(w){wxStopRes[s.id]={wcode:w[0],tmax:w[1],tmin:w[2],precip:w[3],date:today};}});
-      }catch(e){}
-    })()`);
-  });
-  at(29500,()=>{
-    exec(`(function(){
-      manualCurrentId=data.days[0].stops[0].id; rideViewIdx=0;
-      if(!isRide) toggleRide();
-    })()`);
-    tapEl('#ride-btn');
-    telop('便利機能 ③','走行中は<span class="hi">スワイプで確認</span>',
-      '現在地と次の目的地を大きく表示。指で送るだけ。');
-  });
-  // スワイプで順に全地点を表示
-  [31300,32200,33100,34000].forEach((t)=>{
-    at(t,()=>{ tapEl('#sw-arr-r'); exec(`typeof rideNavigate==='function' && rideNavigate(1)`); });
-  });
-
-  /* ── シーン5：行程メモを全表示 ── */
-  at(35500,()=>{
-    clearTelop();
-    exec(`(function(){ rideViewIdx=2; rideActionVisible=true; renderRide(); })()`);
-    tapEl('.ride-card');
-    telop('便利機能 ④','メモも<span class="hi">ぜんぶ見れる</span>',
-      '食事の予定・注意点・走行メモ・給油チェックをその場で。');
-  });
-
-  /* ── シーン6：GPSボタンを押して位置情報ON ── */
-  at(38500,()=>{
-    clearTelop();
-    tapEl('#gps-btn');
-    telop('便利機能 ⑤','<span class="hi">GPSで現在地を自動追跡</span>',
-      'ボタンひとつでON。近づいた地点に画面が自動で切り替わる。');
-  });
-  at(39100,()=>{
-    exec(`(function(){
-      var btn=document.getElementById('gps-btn');if(btn)btn.classList.add('on');
-      var st=document.getElementById('gps-status');
-      if(st){st.style.display='';st.className='gps-status ok';st.textContent='📍 GPS追跡中';}
-    })()`);
-  });
-  at(40500,()=>{
-    exec(`(function(){var el=document.getElementById('ride-next-dist');if(el)el.textContent='あと 4.2 km（直線）';})()`);
-  });
-
-  /* ── シーン7：共有機能（行程テキストをコピー） ── */
-  at(42000,()=>{
-    clearTelop();
-    // 走行モードを抜けて通常画面へ（共有は行程全体を出すので通常表示が自然）
-    exec(`(function(){ if(isRide) toggleRide(); })()`);
-    tapEl('#share-btn');
-    call('shareItinerary'); // 行程テキストのモーダルを開く
-    telop('便利機能 ⑥','行程は<span class="hi">ワンタップで共有</span>',
-      'LINEやメモに貼れるテキストに。仲間との共有もバックアップも。');
-  });
-  at(44300,()=>{ tapEl('#share-copy-btn'); }); // コピーボタンをハイライト
-  at(45300,()=>{ exec(`(function(){ _closeOverlay&&_closeOverlay('share-overlay'); })()`); }); // 閉じる
-
-  /* ── シーン8：走行記録の保存（ボタン紹介のみ） ── */
-  at(46300,()=>{
-    clearTelop();
-    tapEl('#record-save-btn');
-    telop('便利機能 ⑦','走った後は<span class="hi">記録を保存</span>',
-      '実際の到着時刻を残してテキストで保存。ツーリングの思い出に。');
-  });
-
-  /* ── エンドカード ── */
-  at(50000,()=>{
-    clearTelop();
-    $('end-card').classList.add('show');
-    $('end-card').querySelectorAll('.feat').forEach((f,i)=>{f.style.animationDelay=(0.3+i*0.18)+'s';f.classList.add('in');});
-  });
-  at(53000,()=>{$('replay').classList.add('show');running=false;});
-}
-
-// stageを画面サイズに合わせてscale（縦・横どちらも収まる倍率を採用）。
-// transform-origin:bottom center なので、縮小しても常に画面下端を基準に配置される。
-function fitStage(){
-  const margin = window.innerWidth>=900 ? 0.96 : 1; // PCは少し余白を残して枠を見せる
-  const sx = window.innerWidth  / 412;
-  const sy = window.innerHeight / 820;
-  const scale = Math.min(sx, sy) * margin;
-  stage.style.transform = 'scale('+scale+')';
-}
-window.addEventListener('resize', fitStage);
-fitStage();
-
-// 初回自動再生
-window.addEventListener('load',()=>{ fitStage(); after(500,play); });
-</script>
-</body>
-</html>

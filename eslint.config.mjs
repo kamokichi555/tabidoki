@@ -122,12 +122,15 @@ body{
   <div class="card-screen" id="end-card">
     <div class="logo">旅刻</div>
     <div class="feats">
-      <div class="feat"><span class="ic">📝</span>施設はボタンでワンタップ追加</div>
-      <div class="feat"><span class="ic">🏍️</span>走行中はスワイプ＆GPS自動追跡</div>
-      <div class="feat"><span class="ic">📋</span>行程の共有・記録もかんたん</div>
+      <div class="feat"><span class="ic">📝</span>道の駅・高速SA・GS・快活をボタンで追加</div>
+      <div class="feat"><span class="ic">⠿</span>ドラッグで行程を自由に並び替え</div>
+      <div class="feat"><span class="ic">🏍️</span>走行中はスワイプで地点を確認</div>
+      <div class="feat"><span class="ic">📍</span>メモも給油チェックもひと目で</div>
+      <div class="feat"><span class="ic">📡</span>GPSで現在地を自動追跡</div>
+      <div class="feat"><span class="ic">📋</span>行程はワンタップで共有・バックアップ</div>
+      <div class="feat"><span class="ic">💾</span>走行後は記録をテキストで保存</div>
     </div>
-    <div class="tag" style="margin-top:14px;font-size:17px;color:#FFB800;font-weight:800">スマホひとつで、地図いらず。</div>
-    <div class="tag" style="margin-top:8px;font-size:14px;color:#bbb">無料で使える · ブラウザですぐ試せる</div>
+    <div class="tag" style="margin-top:12px;font-size:15px;color:#aaa">スマホひとつで、地図いらず。</div>
   </div>
 
   <button id="replay" onclick="play()">▶ もう一度見る</button>
@@ -309,10 +312,10 @@ function play(){
   void kesa.offsetHeight;
   kesa.style.transition=''; // 以降のフェードアウト(.gone)用に戻す
   kesa.classList.add('ink');                       // 墨でゆっくり表示
-  after(2200,()=>kesa.classList.add('run'));        // 溜めてから斬る（短縮）
-  after(3400,()=>{ kesa.classList.add('gone'); });  // 斬り終わり→フェードアウト（短縮）
+  after(3400,()=>kesa.classList.add('run'));        // 溜めてから斬る
+  after(6000,()=>{ kesa.classList.add('gone'); });  // 斬り終わり→フェードアウト
   // 斬撃が消えたらメインデモ開始
-  after(3800,()=>{ startMainDemo(); });
+  after(6600,()=>{ startMainDemo(); });
 }
 
 // メインデモ（本物のスプラッシュ→アプリ操作）
@@ -336,11 +339,6 @@ function startMainDemo(){
         data={version:'demo',title:'',currentStopId:null,days:[{label:'1日目\\n神奈川→山梨',date:'',routeUrl:'',stops:[]}]};
         currentDay=0;manualCurrentId=null;_pendingRestore=null;rideViewIdx=0;
         render();
-        // バズ用：スプラッシュを早く終わらせる（離脱防止のため約1.4秒でフェードアウト）
-        try{
-          var sp=document.getElementById('splash');
-          if(sp){ sp.style.animation='none'; setTimeout(function(){ sp.style.transition='opacity .4s ease'; sp.style.opacity='0'; setTimeout(function(){ sp.style.display='none'; },420); },1400); }
-        }catch(e){}
       }catch(e){console.warn('init',e);}
     })()`);
     runScenario();
@@ -352,101 +350,195 @@ function startMainDemo(){
 }
 
 function runScenario(){
-  const SPLASH=2000; // バズ用：スプラッシュを短縮（早く本編へ）
-  const TOTAL=27000+SPLASH;
+  const SPLASH=5500; // 本物のスプラッシュ演出が消えるまで待つ
+  const TOTAL=53000+SPLASH;
   // 進行バーはスプラッシュ明けから動かす
   for(let p=SPLASH;p<=TOTAL;p+=500)after(p,()=>{$('progress').style.width=((p-SPLASH)/(TOTAL-SPLASH)*100)+'%';});
   // 各シーンはスプラッシュ分だけ後ろ倒し（afterをラップ）
   const at=(ms,fn)=>after(ms+SPLASH,fn);
 
-  /* ── シーン1：地点をサッと追加（テンポ重視） ── */
-  at(1200,()=>{
+  /* ── シーン1：編集モードに入り、地点を順に追加 ── */
+  at(2600,()=>{
     call('onEditBtnClick'); // 編集モードON
     tapEl('#edit-btn');
-    telop('かんたん','行程は<span class="hi">足すだけ</span>',
-      '行き先と時間を入れるだけ。地図アプリはもういらない。');
+    telop('かんたん','行程は<span class="hi">どんどん足すだけ</span>',
+      '編集モードで地点を追加。時刻もメモもその場で入力。');
   });
-  at(2200,()=>{ tapEl('#save-btn'); addStop({name:'横浜 出発',dep:'08:00',note:'下道でのんびり',addr:'神奈川県横浜市西区'}); });
-  at(3100,()=>{ tapEl('#save-btn'); addStop({name:'宮ヶ瀬湖',arr:'09:30',dep:'10:00',note:'湖畔で休憩。紅葉が絶景',addr:'神奈川県愛甲郡清川村宮ヶ瀬'}); });
-  at(4000,()=>{ tapEl('#save-btn'); addStop({name:'山中湖',arr:'12:50',dep:'13:30',note:'富士山の眺望ポイント',addr:'山梨県南都留郡山中湖村山中'}); });
+  at(3900,()=>{ tapEl('#save-btn'); addStop({name:'横浜 出発',dep:'08:00',note:'早めに出発。下道で',addr:'神奈川県横浜市西区'}); });
+  at(5100,()=>{ tapEl('#save-btn'); addStop({name:'宮ヶ瀬湖',arr:'09:30',dep:'10:00',note:'湖畔で休憩。紅葉が絶景',addr:'神奈川県愛甲郡清川村宮ヶ瀬'}); });
+  at(6300,()=>{ tapEl('#save-btn'); addStop({name:'山中湖',arr:'12:50',dep:'13:30',note:'富士山の眺望ポイント',addr:'山梨県南都留郡山中湖村山中'}); });
 
-  /* ── シーン2：ボタンで施設を追加（道の駅・高速・GS） ── */
-  at(5500,()=>{
+  /* ── シーン2：道の駅をボタン＝ピッカーで選択して追加 ── */
+  at(7800,()=>{
     clearTelop();
-    call('openMichinoEki'); tapEl('.picker-chip.ch-mn');
-    telop('便利機能','施設は<span class="hi">ボタンで追加</span>',
-      '道の駅・高速SA・GS・快活CLUBをワンタップで。');
+    call('openMichinoEki'); // 道の駅ピッカーを開く
+    tapEl('.picker-chip.ch-mn');
+    telop('便利機能 ①','道の駅は<span class="hi">ボタンで選ぶ</span>',
+      '全国の道の駅リストから検索。住所も自動で入る。');
   });
-  at(6800,()=>{ exec(`(function(){var s=document.getElementById('michi-search');if(s){s.value='どうし';filterMichi();}})()`); });
-  at(7700,()=>{ tapEl('#michi-list > div:first-child'); exec(`(function(){var f=document.querySelector('#michi-list > div');if(f)f.click();})()`); });
-  at(8500,()=>{
+  at(9200,()=>{ // 検索で「どうし」を絞り込み
+    exec(`(function(){var s=document.getElementById('michi-search');if(s){s.value='どうし';filterMichi();}})()`);
+  });
+  at(10300,()=>{ // 「道の駅 どうし」を選択
+    tapEl('#michi-list > div:first-child');
+    exec(`(function(){var f=document.querySelector('#michi-list > div');if(f)f.click();})()`);
+  });
+  at(11200,()=>{ // 時刻・メモを入力
+    tapEl('#inp-arr');
     exec(`(function(){
       document.getElementById('inp-arr').value='11:15';
       document.getElementById('inp-dep').value='12:15';
-      document.getElementById('inp-note').value='名物の鹿カレー';
+      document.getElementById('inp-note').value='名物の鹿カレー＆地元野菜';
     })()`);
   });
-  at(9200,()=>{ tapEl('#save-btn'); call('saveStop'); });
-  // 高速ピッカーをチラ見せ（モーダル生成に約1秒ラグ）
-  at(10000,()=>{ tapEl('.picker-chip.ch-hw'); call('openHighway'); });
-  at(11400,()=>{ exec(`(function(){var s=document.getElementById('highway-search');if(s){s.value='海老名';if(typeof filterHighway==='function')filterHighway();}})()`); });
-  at(12300,()=>{ exec(`(function(){_closeOverlay&&_closeOverlay('highway-overlay');})()`); });
-  // GSボタンをチラ見せ
-  at(12800,()=>{ tapEl('.picker-chip.ch-gs'); call('openGasStation'); });
-  at(13900,()=>{ exec(`(function(){var s=document.getElementById('gs-search');if(s){s.value='ENEOS';if(typeof filterGasStation==='function')filterGasStation();}})()`); });
-  at(14600,()=>{ exec(`(function(){_closeOverlay&&_closeOverlay('gs-overlay');})()`); });
+  at(12000,()=>{ tapEl('#save-btn'); call('saveStop'); });
 
-  /* ── シーン3：走行モード＋スワイプ＋GPS（差別化点） ── */
-  at(15400,()=>{
+  // もう一つ道の駅（なるさわ・給油ポイント付き）
+  at(13200,()=>{ call('openMichinoEki'); tapEl('.picker-chip.ch-mn'); });
+  at(14000,()=>{ exec(`(function(){var s=document.getElementById('michi-search');if(s){s.value='なるさわ';filterMichi();}})()`); });
+  at(15000,()=>{ tapEl('#michi-list > div:first-child'); exec(`(function(){var f=document.querySelector('#michi-list > div');if(f)f.click();})()`); });
+  at(15900,()=>{
+    exec(`(function(){
+      document.getElementById('inp-arr').value='15:00';
+      document.getElementById('inp-dep').value='15:30';
+      document.getElementById('inp-note').value='富士山の溶岩を展示。給油も';
+      var b=document.getElementById('fuel-check-box');if(b&&!b.classList.contains('checked'))toggleFuelCheck();
+    })()`);
+  });
+  at(16700,()=>{ tapEl('#save-btn'); call('saveStop'); });
+
+  /* ── シーン2.5：他の追加ボタン（高速・GS・快活）も紹介 ── */
+  at(17600,()=>{
+    clearTelop();
+    telop('便利機能 ①+','道の駅<span class="hi">以外もボタンで</span>',
+      '高速SA・ガソリンスタンド・快活CLUBもワンタップ。');
+  });
+  // 高速ボタンをハイライト→ピッカーを開いてチラ見せ（モーダル生成に約1秒かかるため検索は遅らせる）
+  at(18400,()=>{ tapEl('.picker-chip.ch-hw'); call('openHighway'); });
+  at(19900,()=>{ exec(`(function(){var s=document.getElementById('highway-search');if(s){s.value='海老名';if(typeof filterHighway==='function')filterHighway();}})()`); });
+  at(21000,()=>{ exec(`(function(){_closeOverlay&&_closeOverlay('highway-overlay');})()`); });
+  // GSボタン→開いてENEOSを検索（給油ポイント自動ONの説明）。地点は増やさず閉じる
+  at(21700,()=>{ tapEl('.picker-chip.ch-gs'); call('openGasStation'); });
+  at(23000,()=>{ exec(`(function(){var s=document.getElementById('gs-search');if(s){s.value='ENEOS';if(typeof filterGasStation==='function')filterGasStation();}})()`); });
+  at(24000,()=>{ exec(`(function(){_closeOverlay&&_closeOverlay('gs-overlay');})()`); });
+  // 快活ボタンはハイライトのみ（本体は別タブ遷移のためデモでは開かない）
+  at(24500,()=>{ tapEl('.picker-chip.ch-kk'); });
+
+  /* ── シーン3：並び替え（道の駅どうしを山中湖の前へドラッグ） ── */
+  at(25500,()=>{
+    clearTelop();
+    // 並び替え対象が画面に収まるよう、編集系パネルを一時的に隠してリストを見やすく
+    exec(`(function(){
+      try{
+        var ea=document.getElementById('edit-area');
+        if(ea){ ea.querySelectorAll('.edit-panel,.drag-hint').forEach(function(p){p.dataset._hid='1';p.style.display='none';}); }
+        var dm=document.getElementById('day-manage'); if(dm){dm.dataset._hid='1';dm.style.display='none';}
+        var dt=document.getElementById('day-tabs'); if(dt){dt.dataset._hid='1';dt.style.display='none';}
+      }catch(e){}
+    })()`);
+    telop('便利機能 ②','順番は<span class="hi">ドラッグで入れ替え</span>',
+      'あとから足した地点も、つかんで好きな位置へ。');
+  });
+  // 対象「道の駅 どうし」が画面中央に来るようスクロール
+  at(26400,()=>{ exec(`(function(){
+    try{
+      var rows=document.querySelectorAll('.stop-row[data-id]');
+      for(var i=0;i<rows.length;i++){
+        var nm=rows[i].querySelector('.stop-name-text');
+        if(nm&&nm.textContent.trim()==='道の駅 どうし'){ rows[i].scrollIntoView({block:'start',behavior:'smooth'}); break; }
+      }
+    }catch(e){}
+  })()`); });
+  // 「道の駅 どうし」を「山中湖」の前へドラッグして移動
+  at(27400,()=>{ dragReorder('道の駅 どうし','山中湖',true); });
+  // 後始末：隠したパネル類を戻す
+  at(28800,()=>{ exec(`(function(){
+    try{ document.querySelectorAll('[data-_hid="1"]').forEach(function(p){p.style.display='';p.removeAttribute('data-_hid');}); }catch(e){}
+  })()`); });
+
+  /* ── シーン4：走行モード＋スワイプで全地点表示 ── */
+  at(29000,()=>{
     clearTelop();
     exec(`(function(){
       if(isEdit) onEditBtnClick();
+      // デモ用に天気データを注入（外部APIはCORSで取得不可のため、走行表示前に仕込む）
       try{
-        var wx={'横浜 出発':[0,21,14,0],'宮ヶ瀬湖':[1,19,13,10],'道の駅 どうし':[2,17,11,20],'山中湖':[0,15,9,0]};
+        var wx={'横浜 出発':[0,21,14,0],'宮ヶ瀬湖':[1,19,13,10],'道の駅 どうし':[2,17,11,20],'山中湖':[0,15,9,0],'道の駅 なるさわ':[1,14,8,10]};
         window.wxStopRes=window.wxStopRes||{};
         var today=new Date().toISOString().slice(0,10);
         data.days[0].stops.forEach(function(s){var w=wx[s.name];if(w){wxStopRes[s.id]={wcode:w[0],tmax:w[1],tmin:w[2],precip:w[3],date:today};}});
       }catch(e){}
     })()`);
   });
-  at(15900,()=>{
+  at(29500,()=>{
     exec(`(function(){
       manualCurrentId=data.days[0].stops[0].id; rideViewIdx=0;
       if(!isRide) toggleRide();
     })()`);
     tapEl('#ride-btn');
-    telop('便利機能','走行中は<span class="hi">スワイプで確認</span>',
+    telop('便利機能 ③','走行中は<span class="hi">スワイプで確認</span>',
       '現在地と次の目的地を大きく表示。指で送るだけ。');
   });
-  // スワイプで地点送り
-  [17400,18300,19200].forEach((t)=>{
+  // スワイプで順に全地点を表示
+  [31300,32200,33100,34000].forEach((t)=>{
     at(t,()=>{ tapEl('#sw-arr-r'); exec(`typeof rideNavigate==='function' && rideNavigate(1)`); });
   });
-  // GPS ON
-  at(20400,()=>{
+
+  /* ── シーン5：行程メモを全表示 ── */
+  at(35500,()=>{
+    clearTelop();
+    exec(`(function(){ rideViewIdx=2; rideActionVisible=true; renderRide(); })()`);
+    tapEl('.ride-card');
+    telop('便利機能 ④','メモも<span class="hi">ぜんぶ見れる</span>',
+      '食事の予定・注意点・走行メモ・給油チェックをその場で。');
+  });
+
+  /* ── シーン6：GPSボタンを押して位置情報ON ── */
+  at(38500,()=>{
     clearTelop();
     tapEl('#gps-btn');
-    telop('便利機能','<span class="hi">GPSで現在地を自動追跡</span>',
-      '近づいた地点に画面が自動で切り替わる。');
+    telop('便利機能 ⑤','<span class="hi">GPSで現在地を自動追跡</span>',
+      'ボタンひとつでON。近づいた地点に画面が自動で切り替わる。');
   });
-  at(21000,()=>{
+  at(39100,()=>{
     exec(`(function(){
       var btn=document.getElementById('gps-btn');if(btn)btn.classList.add('on');
       var st=document.getElementById('gps-status');
       if(st){st.style.display='';st.className='gps-status ok';st.textContent='📍 GPS追跡中';}
     })()`);
   });
-  at(22000,()=>{
+  at(40500,()=>{
     exec(`(function(){var el=document.getElementById('ride-next-dist');if(el)el.textContent='あと 4.2 km（直線）';})()`);
   });
 
-  /* ── エンドカード（ロゴ＋CTA） ── */
-  at(24000,()=>{
+  /* ── シーン7：共有機能（行程テキストをコピー） ── */
+  at(42000,()=>{
+    clearTelop();
+    // 走行モードを抜けて通常画面へ（共有は行程全体を出すので通常表示が自然）
+    exec(`(function(){ if(isRide) toggleRide(); })()`);
+    tapEl('#share-btn');
+    call('shareItinerary'); // 行程テキストのモーダルを開く
+    telop('便利機能 ⑥','行程は<span class="hi">ワンタップで共有</span>',
+      'LINEやメモに貼れるテキストに。仲間との共有もバックアップも。');
+  });
+  at(44300,()=>{ tapEl('#share-copy-btn'); }); // コピーボタンをハイライト
+  at(45300,()=>{ exec(`(function(){ _closeOverlay&&_closeOverlay('share-overlay'); })()`); }); // 閉じる
+
+  /* ── シーン8：走行記録の保存（ボタン紹介のみ） ── */
+  at(46300,()=>{
+    clearTelop();
+    tapEl('#record-save-btn');
+    telop('便利機能 ⑦','走った後は<span class="hi">記録を保存</span>',
+      '実際の到着時刻を残してテキストで保存。ツーリングの思い出に。');
+  });
+
+  /* ── エンドカード ── */
+  at(50000,()=>{
     clearTelop();
     $('end-card').classList.add('show');
     $('end-card').querySelectorAll('.feat').forEach((f,i)=>{f.style.animationDelay=(0.3+i*0.18)+'s';f.classList.add('in');});
   });
-  at(27000,()=>{$('replay').classList.add('show');running=false;});
+  at(53000,()=>{$('replay').classList.add('show');running=false;});
 }
 
 // stageを画面サイズに合わせてscale（縦・横どちらも収まる倍率を採用）。
