@@ -27,14 +27,15 @@ body{
 /* 実アプリのiframe */
 #app{position:absolute;inset:0;width:100%;height:100%;border:0;background:#0d0d0d}
 
-/* ===== テロップ ===== */
-#telop{position:absolute;left:0;right:0;bottom:0;z-index:90;padding:26px 22px 32px;
-  background:linear-gradient(to top,rgba(0,0,0,.93) 28%,rgba(0,0,0,.55) 68%,transparent);pointer-events:none}
-#telop .badge{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.12em;
+/* ===== テロップ（高さ固定・下揃えで全シーン同じ位置に） ===== */
+#telop{position:absolute;left:0;right:0;bottom:0;z-index:90;height:210px;padding:0 22px 30px;
+  display:flex;flex-direction:column;justify-content:flex-end;
+  background:linear-gradient(to top,rgba(0,0,0,.93) 30%,rgba(0,0,0,.5) 70%,transparent);pointer-events:none}
+#telop .badge{align-self:flex-start;font-size:12px;font-weight:800;letter-spacing:.12em;
   color:#000;background:#FFB800;padding:5px 13px;border-radius:6px;margin-bottom:11px;opacity:0;transform:translateY(10px)}
 #telop .main{font-size:26px;font-weight:800;line-height:1.42;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.95)}
 #telop .main .hi{color:#FFB800}
-#telop .sub{font-size:14px;font-weight:700;color:#e0e0e0;margin-top:8px;line-height:1.5;text-shadow:0 1px 8px rgba(0,0,0,.9)}
+#telop .sub{font-size:14px;font-weight:700;color:#e0e0e0;margin-top:8px;line-height:1.5;text-shadow:0 1px 8px rgba(0,0,0,.9);height:3em}
 #telop .badge.in{animation:tin .5s ease both}
 #telop .main span.w{display:inline-block;opacity:0;transform:translateY(14px)}
 #telop .main span.w.in{animation:win .5s cubic-bezier(.2,.7,.3,1) both}
@@ -116,8 +117,8 @@ body{
   <!-- テロップ -->
   <div id="telop"></div>
 
-  <!-- タイトル -->
-  <div class="card-screen show" id="title-card">
+  <!-- タイトル（斬撃オープニングを使うため初期非表示） -->
+  <div class="card-screen" id="title-card">
     <div class="logo">旅刻</div>
     <div class="romaji">T A B I D O K I</div>
     <div class="tag">ツーリングを、もっと自由に。</div>
@@ -301,11 +302,16 @@ function play(){
   $('title-card').classList.remove('show'); // 独自タイトルは使わず本物のスプラッシュを見せる
   clearTelop();
   $('progress').style.width='0';
+  // 前回再生の名残（iframe内の最終画面）が斬撃の下に透けるのを防ぐため、即座に空へ戻す
+  try{ $('app').src='about:blank'; }catch(e){}
 
   // ── 斬撃オープニングを先に再生 ──
   const kesa=$('kesa');
+  // transitionを一時無効化して即座に不透明な黒画面にする（フェード中に下が透けるのを防ぐ）
+  kesa.style.transition='none';
   kesa.classList.remove('gone','ink','run');
   void kesa.offsetHeight;
+  kesa.style.transition=''; // 以降のフェードアウト(.gone)用に戻す
   kesa.classList.add('ink');                       // 墨でゆっくり表示
   after(3400,()=>kesa.classList.add('run'));        // 溜めてから斬る
   after(6000,()=>{ kesa.classList.add('gone'); });  // 斬り終わり→フェードアウト
