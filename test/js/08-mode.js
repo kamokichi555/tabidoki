@@ -12,7 +12,7 @@ import { EC } from './00-constants.js';
 import { S, _dom, data } from './01-state.js';
 import { stayDur } from './02-utils.js';
 import { ensureDayWeather } from './04-weather.js';
-import { _flushRouteSave, _getCdi, _syncTitleInput, _updateStickyTops, currentDayFlat, currentDayIdxOf, renderTabs, stops } from './06-day.js';
+import { _flushRouteSave, _syncTitleInput, _updateStickyTops, currentDayFlat, currentDayIdxOf, renderTabs, stops } from './06-day.js';
 import { _lastClockTs, _resetClockTs, render, renderRide, showAppError, updateClock } from './07-render.js';
 import { _closeAllOverlays, _setDetailsOpen, _setFuelCheck } from './11-overlays.js';
 import { _dbgLog, _dbgSnapshot } from './12-debug.js';
@@ -62,9 +62,7 @@ export function toggleRide(){
   _dom('day-tabs').style.display=S.isRide?'none':'';
   _dom('day-manage').style.display=S.isRide?'none':S.isEdit?'flex':'none'; // 走行終了時はS.isEditの状態に従う
   if(S.isRide){
-    // 現在地が別の日程にある場合、その日程に自動切り替え
-    const cdi=_getCdi();
-    if(cdi!==-1&&cdi!==S.currentDay){S.currentDay=cdi;renderTabs();}
+    // 走行モードは編集/通常画面で選択中の日(S.currentDay)をそのまま表示する（自動的な日の切り替えはしない）
     const fi=currentDayIdxOf(S.manualCurrentId);S.rideViewIdx=fi!==-1?fi:0;
     S.rideActionVisible=false;
     _updateStickyTops();
