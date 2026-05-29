@@ -201,7 +201,7 @@ export function _saveSplashSettings(){
 }
 
 /* ══ オーバーレイ一括掃除 (主要操作前の保険) ══ */
-export const _OVERLAY_IDS=['share-overlay','splash-settings-overlay','highway-overlay','michi-overlay','gs-overlay'];
+export const _OVERLAY_IDS=['share-overlay','export-overlay','splash-settings-overlay','highway-overlay','michi-overlay','gs-overlay'];
 /* ── visualViewport オーバーレイ共通ユーティリティ ── */
 export function _lowerHeaderForOverlay(){
   // overlay表示中はstickyヘッダーがoverlayより前面に来るのを防ぐ

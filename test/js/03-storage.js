@@ -87,16 +87,16 @@ export function shareItinerary(){
   document.getElementById('share-text').textContent=text;
 }
 
-/* ── 共通: テキストをファイルとして保存（iOSはdata:URLで新タブ、PCはBlob+aタグ） ──
+/* ── 共通: テキストをファイルとして保存 ──
+   PC: Blob+aタグでダウンロード。
+   iOS: タブを開く方式(data:/blob: URL)はSafari/PWAでブロックや空白タブになるため、
+        shareItineraryと同じ画面内オーバーレイで全文表示し、コピー/共有(ネイティブ共有シート)で取り出す。
    opt: {text, filename, blobType, dataMime, btnId, iosBtnText, desktopToast} */
 export function downloadTextFile(opt){
   const btn=opt.btnId?document.getElementById(opt.btnId):null;
   const flash=(t,bg,ms)=>{if(!btn)return;const orig=btn.textContent;btn.textContent=t;btn.style.background=bg;btn.style.color='#000';setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},ms);};
   if(IS_IOS){
-    // iOS Safari: data:URLで新しいタブを開いて長押し保存を促す
-    window.open('data:'+opt.dataMime+','+encodeURIComponent(opt.text),'_blank');
-    flash(opt.iosBtnText||'📄','var(--blue,#4da6ff)',3500);
-    showInfoToast('📄 開いたタブで長押し→「保存」してください',4000);
+    _openExportOverlay(opt.text,opt.filename);
   }else{
     const blob=new Blob([opt.text],{type:opt.blobType});
     const url=URL.createObjectURL(blob);
@@ -107,6 +107,64 @@ export function downloadTextFile(opt){
     flash('✅','var(--green)',2000);
     if(opt.desktopToast) showInfoToast(opt.desktopToast,3000);
   }
+}
+
+/* ── iOS向け: テキスト書き出しオーバーレイ（shareItineraryと同じ作法） ──
+   タブを開かないのでSafari通常タブ/ホーム画面PWA/オフラインのいずれでも安定動作する。
+   ・全文を <pre>.textContent で表示（innerHTML不使用＝XSS安全）
+   ・📋コピー: navigator.clipboard、失敗時は選択範囲フォールバック
+   ・共有: navigator.share 対応時のみ表示。ファイルとして共有できる環境(canShare+files)なら
+          .txtファイルで、不可ならテキスト本文で共有シートを開く（「ファイルに保存」「メモ」等へ）。*/
+export function _openExportOverlay(text,filename){
+  _closeAllOverlays();
+  const ov=document.createElement('div');
+  ov.id='export-overlay';
+  Object.assign(ov.style,{position:'fixed',inset:'0',zIndex:'999999',background:'rgba(0,0,0,.82)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'});
+  const canShare=typeof navigator!=='undefined'&&typeof navigator.share==='function';
+  ov.innerHTML=`<div style="background:var(--bg2);border:1.5px solid var(--border2);border-radius:16px;padding:20px;width:100%;max-width:440px;max-height:92dvh;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <span style="font-weight:700;font-size:16px">📝 走行記録</span>
+      <button onclick="_closeOverlay('export-overlay')" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3)">✕</button>
+    </div>
+    <div style="overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch">
+      <pre id="export-text" style="margin:0;white-space:pre-wrap;word-break:break-word;background:var(--bg3);border:1.5px solid var(--border2);border-radius:10px;color:var(--text2);font-size:14px;line-height:1.8;padding:12px;font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif"></pre>
+    </div>
+    <button id="export-copy-btn" style="width:100%;justify-content:center;padding:13px;font-size:16px;flex-shrink:0">📋 クリップボードにコピー</button>
+    ${canShare?`<button id="export-share-btn" style="width:100%;justify-content:center;padding:13px;font-size:16px;flex-shrink:0;background:var(--bg3)">📤 共有 / ファイルに保存</button>`:''}
+    <div style="font-size:12px;color:var(--text3);text-align:center;flex-shrink:0">💡 コピーしてLINEやメモに貼り付け／共有から「ファイルに保存」もできます</div>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov) _closeOverlay('export-overlay');});
+  _lowerHeaderForOverlay();document.body.appendChild(ov);
+  const pre=document.getElementById('export-text');
+  pre.textContent=text;
+
+  // 📋コピー（shareItineraryと同じ挙動: clipboard→失敗時は選択範囲）
+  const copyBtn=document.getElementById('export-copy-btn');
+  if(copyBtn) copyBtn.onclick=async()=>{
+    try{
+      await navigator.clipboard.writeText(pre.textContent);
+      copyBtn.textContent='✅ コピーしました';
+      copyBtn.style.background='var(--green)';copyBtn.style.color='#000';
+      setTimeout(()=>_closeOverlay('export-overlay'),1200);
+    }catch(e){
+      const r=document.createRange();r.selectNode(pre);
+      window.getSelection().removeAllRanges();window.getSelection().addRange(r);
+    }
+  };
+
+  // 📤共有（対応端末のみ）。ファイル共有が可能ならtxtファイル、不可なら本文テキストで共有シートへ。
+  const shareBtn=document.getElementById('export-share-btn');
+  if(shareBtn) shareBtn.onclick=async()=>{
+    try{
+      let file=null;
+      try{ file=new File([text],filename||'旅刻_記録.txt',{type:'text/plain'}); }catch(e){ file=null; }
+      if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:filename||'旅刻 走行記録'});
+      }else{
+        await navigator.share({title:filename||'旅刻 走行記録',text});
+      }
+    }catch(e){ /* ユーザーが共有シートをキャンセルした場合等は無視 */ }
+  };
 }
 
 export function saveJSON(){
