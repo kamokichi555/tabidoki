@@ -319,12 +319,20 @@ async function _fetchForecast(stop,lat,lon,date){
       }
     }else{
       const d=j?.daily;
+      const dBm=rBm.status==='fulfilled'?rBm.value?.daily:null; // 副モデル(BoM系)フォールバック用
       if(d?.time?.length){
-        let precip=d.precipitation_probability_max[0];
-        if((precip===null||precip===undefined)&&rBm.status==='fulfilled'){
-          precip=rBm.value?.daily?.precipitation_probability_max?.[0]??precip;
-        }
-        res={wcode:d.weather_code[0],tmax:d.temperature_2m_max[0],tmin:d.temperature_2m_min[0],precip,time:Date.now()};
+        // 各フィールドを「主モデル→副モデル→null」でオプショナルに取得。
+        // JMA等が daily の一部フィールド(precip等)を返さない場合に添字直アクセスでthrowし、
+        // 取得済みのOpen-Meteoデータを捨ててwttrへ落ちる不具合を防ぐ（hourly分岐と同じ防御）。
+        let precip=d.precipitation_probability_max?.[0];
+        if(precip==null) precip=dBm?.precipitation_probability_max?.[0]??null;
+        let wcode=d.weather_code?.[0];
+        if(wcode==null) wcode=dBm?.weather_code?.[0];
+        let tmax=d.temperature_2m_max?.[0];
+        if(tmax==null) tmax=dBm?.temperature_2m_max?.[0];
+        let tmin=d.temperature_2m_min?.[0];
+        if(tmin==null) tmin=dBm?.temperature_2m_min?.[0];
+        res={wcode:wcode??null,tmax:tmax??null,tmin:tmin??null,precip,time:Date.now()};
       }
     }
     if(res){fcastCache[fk]=res;_saveFcastCache();if(_stopStillValid(stop))wxStopRes[stop.id]={...res,date};}
@@ -504,11 +512,16 @@ function enqueueStop(stop,date,priority){
   if(!(stop.addr||'').trim()) return;
   const r=wxStopRes[stop.id];
   const STALE=2*60*60*1000;
+  const ERROR_COOLDOWN=60*1000; // エラー後の自動再試行クールダウン（毎renderでの再取得連打を防ぐ）
   // 有効結果（同日付・エラーなし・期間内・2時間以内）なら再取得しない。
   // ※precip:null（降水確率を提供しないモデル/地点）でも天気・気温は有効なため再取得しない（30分refreshで再試行）
   if(r&&r!=='loading'&&r.date===date&&!r.error&&!r.outOfRange&&!r.isPast&&Date.now()-r.time<STALE) return;
   if(r&&r!=='loading'&&r.outOfRange&&r.date===date) return; // outOfRange は再取得不要
   if(r&&r!=='loading'&&r.isPast&&r.date===date) return; // 過去日付は再取得不要
+  // エラー結果はクールダウン中の再キューを抑制（renderのたびにネットワーク再試行を連打しないため）。
+  // 手動再取得(retryStopWeather)・30分refreshはwxStopResを消すため、ここに該当せず即時再試行できる。
+  // クールダウン経過後は通過してloadingに上書きされ、自動でもう一度試行される。
+  if(r&&r!=='loading'&&r.error&&r.date===date&&Date.now()-r.time<ERROR_COOLDOWN) return;
   if(r==='loading') return;
   if(wxQueueIds.has(stop.id)) return;
   wxStopRes[stop.id]='loading';
