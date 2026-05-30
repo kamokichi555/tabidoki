@@ -105,6 +105,16 @@ export function _scrollFocusedInputIntoView(){
   const scTop=sc.getBoundingClientRect().top;           // スクロール領域上端＝ヘッダー/見出し直下
   const visTop=Math.max(scTop,vTop);                    // 入力が見えてよい上端
   const gap=24; // 入力欄の下端をキーボードの少し上に置くための余白
+  // 入力欄がキーボード上の可視高さより背が高い場合（高さのあるtextarea等）は、
+  // 下端を合わせると内容末尾まで送られて大きな余白が見えてしまう。
+  // その場合は上端をヘッダー直下に合わせ、書き出しが見える状態にする。
+  const visH=(vBottom-gap)-visTop;
+  if(r.height>visH){
+    const topTarget=sc.scrollTop+(r.top-(visTop+8));
+    const nt=Math.max(0,topTarget);
+    if(Math.abs(nt-sc.scrollTop)>1) sc.scrollTop=nt;
+    return;
+  }
   // 既に「下端がキーボードより上」かつ「上端がヘッダーより下」に収まっていれば何もしない
   if(r.bottom<=vBottom-gap && r.top>=visTop+4) return;
   // 目標: 入力欄の下端を (キーボード上端 − gap) に合わせる（scrollTopを増やすと内容が上へ動く）
