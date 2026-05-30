@@ -44,6 +44,29 @@ export function _toggleTheme(){
   try{localStorage.setItem('touring_theme',!isDay?'day':'night');}catch(e){}
 }
 setInterval(()=>{if(!_themeManual)_applyTheme(_isDayTime());},60000);
+
+/* ══ 文字サイズ設定（老眼向け：標準→大→特大） ══ */
+const FS_LEVELS=['','fs-lg','fs-xl'];
+const FS_LABELS={'':'標準','fs-lg':'大','fs-xl':'特大'};
+export function _applyFontSize(cls){
+  document.body.classList.remove('fs-lg','fs-xl');
+  if(cls) document.body.classList.add(cls);
+  const sub=document.getElementById('fontsize-sub');
+  if(sub) sub.textContent=FS_LABELS[cls]||'標準';
+}
+export function _initFontSize(){
+  let saved='';
+  try{saved=localStorage.getItem('touring_fontscale')||'';}catch(e){}
+  if(saved!=='fs-lg'&&saved!=='fs-xl') saved='';
+  _applyFontSize(saved);
+}
+export function _cycleFontSize(){
+  const cur=document.body.classList.contains('fs-xl')?'fs-xl'
+           :document.body.classList.contains('fs-lg')?'fs-lg':'';
+  const next=FS_LEVELS[(FS_LEVELS.indexOf(cur)+1)%FS_LEVELS.length];
+  _applyFontSize(next);
+  try{localStorage.setItem('touring_fontscale',next);}catch(e){}
+}
 export function toggleRide(){
   _closeAllOverlays();
   // 編集中にライドモードへ切り替える場合は確認（新設計では常にS.isEdit=trueのため毎回出る）

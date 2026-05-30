@@ -13,7 +13,7 @@ import { restoreFromStorage, save } from './03-storage.js';
 import { ensureAllWeather } from './04-weather.js';
 import { _syncTitleInput, _updateStickyTops, currentDayFlat, renderTabs, syncBorderAddr } from './06-day.js';
 import { _depCountdownHtml, initNormalSwipe, initRideSwipe, render, showInfoToast, updateClock } from './07-render.js';
-import { _initTheme, _updateNoteCount, syncNotePreview, toggleEdit } from './08-mode.js';
+import { _initTheme, _initFontSize, _updateNoteCount, syncNotePreview, toggleEdit } from './08-mode.js';
 import { _renderSplash } from './11-overlays.js';
 import { _dbgLog } from './12-debug.js';
 import { _gpsInit } from './14-gps.js';
@@ -54,6 +54,7 @@ setTimeout(()=>ensureAllWeather(),0);
 /* ══ 初期化 ══ */
 
 _initTheme();
+_initFontSize();
 if(typeof _gpsInit==='function') _gpsInit();
 
 

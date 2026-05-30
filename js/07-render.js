@@ -173,7 +173,7 @@ export function renderRide(){
   const _logHtml=s=>s.log?`<div class="ride-log">📝 ${esc(s.log)}</div>`:'';
   const _chips=(s,cls='ride-chip-val')=>{const _sd=stayDur(s.arr,s.dep);return`
         ${s.arr?`<div class="ride-chip"><div class="ride-chip-label">着</div><div class="${cls}">${s.arr}</div></div>`:''}
-        ${s.dep?`<div class="ride-chip"><div class="ride-chip-label">発</div><div class="${cls}">${s.dep}</div>${_sd?`<div style="font-size:12px;color:var(--text3);font-weight:600;align-self:center;margin-left:2px">${_sd}</div>`:''}</div>`:''}`;
+        ${s.dep?`<div class="ride-chip"><div class="ride-chip-label">発</div><div class="${cls}">${s.dep}</div>${_sd?`<div style="font-size:15px;color:var(--text3);font-weight:600;align-self:center;margin-left:2px">${_sd}</div>`:''}</div>`:''}`;
   };
   let h='';
   const vs=flat[S.rideViewIdx];
@@ -220,7 +220,7 @@ export function renderRide(){
 if(diff>0){const hh=Math.floor(diff/60),mm=diff%60;cd=hh>0&&mm>0?`あと ${hh}時間${mm}分`:hh>0?`あと ${hh}時間`:`あと ${mm}分`;}else if(diff>-30)cd='まもなく到着';}}
     h+=`${_mdr?`<div class="ride-move-dur${_mdr.level>=0?' lv'+_mdr.level:''}">→ 次まで ${_mdr.html}</div>`:''}`;
     h+=`<div class="ride-card">
-      <div class="ride-tag">↓ 次の目的地${cd?`<span style="margin-left:8px;color:var(--green);font-size:12px">${cd}</span>`:''}<span id="ride-next-dist" class="ride-next-dist"></span></div>
+      <div class="ride-tag">↓ 次の目的地${cd?`<span style="margin-left:8px;color:var(--green);font-size:15px">${cd}</span>`:''}<span id="ride-next-dist" class="ride-next-dist"></span></div>
       <div class="ride-name" style="color:var(--text2)">${esc(ns.name)}</div>
       <div class="ride-times-row">${_chips(ns,'next-chip-val')}</div>
       ${rideWxCompact(ns.id,!!(ns.addr))}
@@ -363,7 +363,7 @@ export function provisionalDateBanner(dayIdx){
   const pd=new Date();pd.setDate(pd.getDate()+dayIdx);
   const w=['日','月','火','水','木','金','土'][pd.getDay()];
   const ds=`${pd.getMonth()+1}/${pd.getDate()}(${w})`;
-  const _s='margin:0 0 14px;padding:8px 12px;background:var(--amber-bg);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--r,12px);color:var(--text2);font-size:13px;line-height:1.5';
+  const _s='margin:0 0 14px;padding:8px 12px;background:var(--amber-bg);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--r,12px);color:var(--text2);font-size:16px;line-height:1.5';
   return `<div class="provisional-date-note" style="${_s}">📅 日付未設定のため <b style="color:var(--amber);font-weight:700">${ds}</b> の予報を表示しています</div>`;
 }
 
@@ -386,12 +386,12 @@ export function render(){
     return`<div class="stop-row ${st}" data-id="${s.id}">
   <div class="stop-line-col"><div class="stop-dot"></div>${!isLast?'<div class="stop-connector"></div>':''}</div>
   ${S.isEdit&&S.editingId===null?`<div class="drag-handle" data-drag-id="${s.id}" ontouchstart="onTouchDragStart(event,'${s.id}')" ontouchmove="onTouchDragMove(event)" ontouchend="onTouchDragEnd(event)" ontouchcancel="_cancelTouchDrag()" onmousedown="onMouseDragStart(event,'${s.id}')">⠿</div>`:''}
-  <div class="stop-body"${S.isEdit&&S.editingId===null?` onclick="tapStopInEdit('${s.id}')"`:''}>    <div class="stop-name-row"><span class="stop-name-text">${esc(s.name)}</span>${S.isEdit&&S.editingId===null?`<span style="font-size:13px;color:var(--text3);margin-left:auto">▾</span>`:''}</div>
+  <div class="stop-body"${S.isEdit&&S.editingId===null?` onclick="tapStopInEdit('${s.id}')"`:''}>    <div class="stop-name-row"><span class="stop-name-text">${esc(s.name)}</span>${S.isEdit&&S.editingId===null?`<span style="font-size:16px;color:var(--text3);margin-left:auto">▾</span>`:''}</div>
     ${s.addr?`<div class="stop-addr">📍 ${esc(s.addr)}</div>`:''}
     <div class="stop-times">
       ${s.arr?`<div class="time-chip"><span class="time-label">着</span><span class="time-value">${s.arr}</span></div>`:''}
-      ${s.dep?`<div class="time-chip"><span class="time-label">発</span><span class="time-value">${s.dep}</span>${_sdur?`<span style="font-size:13px;color:var(--text3);font-weight:600;margin-left:4px;align-self:center">${_sdur}</span>`:''}</div>`:''}
-      ${!s.arr&&!s.dep?'<span style="color:var(--text3);font-size:13px">時刻未設定</span>':''}
+      ${s.dep?`<div class="time-chip"><span class="time-label">発</span><span class="time-value">${s.dep}</span>${_sdur?`<span style="font-size:16px;color:var(--text3);font-weight:600;margin-left:4px;align-self:center">${_sdur}</span>`:''}</div>`:''}
+      ${!s.arr&&!s.dep?'<span style="color:var(--text3);font-size:16px">時刻未設定</span>':''}
     </div>
     <div id="wx-${s.id}">${stopWxInner(s.id,!!(s.addr))}</div>
     ${s.fuel?'<div class="stop-fuel-badge">⛽ 給油ポイント</div>':''}
