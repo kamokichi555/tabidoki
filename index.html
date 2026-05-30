@@ -55,7 +55,6 @@
     <div class="header-actions">
       <button id="ride-btn" onclick="toggleRide()" title="走行モード">🏍️</button>
       <button id="cancel-ride-btn" onclick="cancelToRide()" style="display:none" title="走行モードを終了">✖</button>
-      <button id="gps-btn" onclick="toggleGps()" title="GPS自動追跡">📡</button>
       <button id="edit-btn" onclick="onEditBtnClick()" title="編集">✏️</button>
       <button id="json-save-btn" onclick="saveJSON()" title="保存">💾</button>
       <button id="load-btn" onclick="loadJSON()" title="読込">📂</button>
@@ -64,6 +63,7 @@
       <button id="theme-btn" onclick="_toggleTheme()" title="テーマ切替">☀️</button>
       <button id="record-save-btn" onclick="saveRecord()" title="走行記録として保存">📝</button>
       <button id="toilet-btn" onclick="openToiletMap()" title="Googleマップで近くのトイレを検索">🚻</button>
+      <button id="gps-btn" onclick="toggleGps()" title="GPS自動追跡">📡</button>
       <button id="sample-btn" onclick="loadSampleData()" title="サンプルを読み込む">🗺️</button>
       <input type="file" id="load-file-input" accept=".json,application/json" style="display:none" onchange="onFileSelected(event)">
     </div>
