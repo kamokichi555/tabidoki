@@ -119,7 +119,8 @@
         </div>
         <div id="stay-dur-preview" style="font-size:13px;color:var(--text3);font-weight:600;text-align:right;display:none;margin-top:-4px"></div>
         <div id="time-order-error" style="display:none;font-size:13px;color:var(--red);margin-top:-4px">⚠ 出発時刻は到着時刻より後にしてください</div>
-        <textarea id="inp-note" maxlength="1000" rows="6" placeholder="メモ（食事・注意点など）"></textarea>
+        <textarea id="inp-note" maxlength="1000" rows="6" placeholder="メモ（食事・注意点など）" style="display:none"></textarea>
+        <div id="note-preview" class="is-empty" role="button" tabindex="0" onclick="openNoteModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openNoteModal()}"></div>
         <input id="inp-log" type="text" maxlength="200" placeholder="📝 走行メモ" style="border-color:rgba(77,166,255,.5)">
         <button type="button" class="details-toggle" id="details-toggle" onclick="toggleDetails()">
           <span class="details-toggle-arrow">▼</span>
@@ -171,6 +172,16 @@
   </div>
 </div>
 </main>
+
+<div id="note-modal" style="display:none">
+  <div class="nm-head">
+    <span class="nm-title">📝 メモ</span>
+    <button type="button" class="nm-close" onclick="closeNoteModal(false)" title="破棄して閉じる">✕</button>
+    <button type="button" class="nm-done" onclick="closeNoteModal(true)">完了</button>
+  </div>
+  <textarea id="note-modal-text" maxlength="1000" placeholder="メモ（食事・注意点など）"></textarea>
+  <div class="nm-count" id="note-modal-count">0 / 1000</div>
+</div>
 
 <div id="app-error-toast">
   <button id="app-err-dismiss" onclick="dismissAppError()">✕</button>
