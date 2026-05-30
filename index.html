@@ -119,7 +119,7 @@
         </div>
         <div id="stay-dur-preview" style="font-size:13px;color:var(--text3);font-weight:600;text-align:right;display:none;margin-top:-4px"></div>
         <div id="time-order-error" style="display:none;font-size:13px;color:var(--red);margin-top:-4px">⚠ 出発時刻は到着時刻より後にしてください</div>
-        <input id="inp-note" type="text" maxlength="200" placeholder="メモ（食事・注意点など）">
+        <textarea id="inp-note" maxlength="1000" rows="4" placeholder="メモ（食事・注意点など）" oninput="autoGrowNote(this)"></textarea>
         <input id="inp-log" type="text" maxlength="200" placeholder="📝 走行メモ" style="border-color:rgba(77,166,255,.5)">
         <button type="button" class="details-toggle" id="details-toggle" onclick="toggleDetails()">
           <span class="details-toggle-arrow">▼</span>
