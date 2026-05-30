@@ -2,7 +2,7 @@
    旅刻 — Service Worker
    ・パスはすべて相対（manifest の scope と整合させる）
    ・HTML(ナビゲーション)は network-first で確実に更新を配信
-   ・静的アセットは cache-first（?v クエリでバージョン管理）
+   ・静的アセットは cache-first（無効化は CACHE_NAME のバンプで一括。ESM化で ?v クエリは廃止）
    ・外部API(天気/ジオ/施設)には介入しない
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
@@ -35,12 +35,19 @@ const CACHE_FILES = [
   './js/_expose.js'
 ];
 
-// インストール時にプリキャッシュ（一部取得失敗でも install を壊さない）
+// インストール時にプリキャッシュ。
+// addAll は1ファイルでも失敗すると全体がrejectし「全滅」するため、個別addをallSettledで回す。
+// 失敗したファイルだけ実行時fetchに委ね、どれが落ちたかをログに残す。
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(CACHE_FILES))
-      .catch(err => console.warn('[旅刻 sw] プリキャッシュ失敗（実行時に補完）:', err))
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.allSettled(CACHE_FILES.map(f => cache.add(f))).then(results => {
+        const failed = results
+          .map((r, i) => r.status === 'rejected' ? CACHE_FILES[i] : null)
+          .filter(Boolean);
+        if (failed.length) console.warn('[旅刻 sw] 一部プリキャッシュ失敗（実行時に補完）:', failed);
+      })
+    )
   );
   self.skipWaiting();
 });
@@ -80,7 +87,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 静的アセットは cache-first（?v クエリでバージョン管理されるため新URL=新取得）
+  // 静的アセットは cache-first（CACHE_NAME 単位でキャッシュ。バンプで一括無効化）
   event.respondWith(
     caches.match(req).then(cached => {
       if (cached) return cached;
