@@ -10,7 +10,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { EC, EC_MSG } from './00-constants.js';
 import { S, _dom, data } from './01-state.js';
-import { actDiffHtml, esc, fmtHM, isTimeOrderOk, moveDur, moveDurLevel, moveDurRide, nowMin, stayDur, toMin, wrapDiff } from './02-utils.js';
+import { actDiffHtml, esc, escJsAttr, fmtHM, isTimeOrderOk, moveDur, moveDurLevel, moveDurRide, nowMin, stayDur, toMin, wrapDiff } from './02-utils.js';
 import { _isoToday, enqueueStop, ensureDayWeather, rideWxCompact, stopWxInner } from './04-weather.js';
 import { getStatus } from './05-stop.js';
 import { _getCdi, _updateRecordBtn, currentDayFlat, stops, switchDay } from './06-day.js';
@@ -105,6 +105,39 @@ export function updateClock(){
 /* ══ ライドアクション表示切替 ══ */
 export function toggleRideAction(){S.rideActionVisible=!S.rideActionVisible;renderRide();}
 
+/* ══ ライドメモ全文モーダル ══
+   走行画面でメモ欄(ride-note-compact)をタップしたとき、登録メモの全文を
+   モーダルで表示する。idでcurrentDayFlatから地点を引き、note/nameを表示。 */
+export function openRideNote(id){
+  const flat=currentDayFlat();
+  const s=flat.find(x=>x.id===id);
+  if(!s||!s.note) return;
+  closeRideNote(); // 二重表示防止
+  const ov=document.createElement('div');
+  ov.id='ride-note-overlay';
+  ov.setAttribute('role','dialog');
+  ov.setAttribute('aria-modal','true');
+  Object.assign(ov.style,{position:'fixed',top:'0',left:'0',width:'100%',height:'100%',zIndex:'999999',background:'rgba(0,0,0,.88)',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'});
+  ov.innerHTML=`<div style="background:var(--bg2);border-radius:16px;width:100%;max-width:440px;max-height:80%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.5)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <span style="font-weight:700;font-size:16px;color:var(--amber);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 ${esc(s.name)}</span>
+      <button id="ride-note-close-btn" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3);flex-shrink:0">✕</button>
+    </div>
+    <div style="overflow-y:auto;flex:1;padding:16px;font-size:15px;line-height:1.7;color:var(--text);white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;-webkit-overflow-scrolling:touch">${esc(s.note)}</div>
+  </div>`;
+  // 背景タップ・✕・Escで閉じる
+  ov.addEventListener('click',e=>{if(e.target===ov)closeRideNote();});
+  ov.querySelector('#ride-note-close-btn').addEventListener('click',closeRideNote);
+  // Escキーで閉じる（モーダル表示中のみ）
+  ov._onKey=e=>{if(e.key==='Escape')closeRideNote();};
+  document.addEventListener('keydown',ov._onKey);
+  document.body.appendChild(ov);
+}
+export function closeRideNote(){
+  const el=_dom('ride-note-overlay');
+  if(el){if(el._onKey)document.removeEventListener('keydown',el._onKey);el.remove();}
+}
+
 /* ── 共通: 出発カウントダウンのHTML（走行カード・15秒更新の両方で使用） ── */
 export function _depCountdownHtml(dep){
   if(!dep) return '';
@@ -134,7 +167,7 @@ export function renderRide(){
   /* ── ライドカード共通パーツ ── */
   const _mapLink=s=>s.addr?`<a class="ride-route-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 マップで確認</a>`:'';
   const _fuelBadge=(s,extra='')=>s.fuel?`<div class="stop-fuel-badge" style="width:100%;justify-content:center${extra}">⛽ 給油ポイント</div>`:'';
-  const _noteCompact=s=>s.note?`<div class="ride-note-compact" title="${esc(s.note)}">${esc(s.note)}</div>`:'';
+  const _noteCompact=s=>s.note?`<div class="ride-note-compact" title="${esc(s.note)}" role="button" tabindex="0" onclick="event.stopPropagation();openRideNote('${escJsAttr(s.id)}')"><span class="ride-note-txt">${esc(s.note)}</span><span class="ride-note-more">タップで全文 ›</span></div>`:'';
   const _logHtml=s=>s.log?`<div class="ride-log">📝 ${esc(s.log)}</div>`:'';
   const _chips=(s,cls='ride-chip-val')=>{const _sd=stayDur(s.arr,s.dep);return`
         ${s.arr?`<div class="ride-chip"><div class="ride-chip-label">着</div><div class="${cls}">${s.arr}</div></div>`:''}
