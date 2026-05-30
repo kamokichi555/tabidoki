@@ -42,7 +42,7 @@ export function saveStop(){
   const addr=sanitize(_dom('inp-addr').value,LIMIT.addr);
   const newArr=_dom('inp-arr').value,newDep=_dom('inp-dep').value;
   if(!isTimeOrderOk(newArr,newDep)){showValError('到着時刻は出発時刻より前に設定してください');return;}
-  const note=sanitize(_dom('inp-note').value,LIMIT.note);
+  const note=sanitize((_dom('inp-note').value||'').replace(/\r\n?/g,'\n'),LIMIT.note);
   const log=sanitize(_dom('inp-log')?.value||'',LIMIT.log);
   const actArr=isValidTime(_dom('inp-act-arr')?.value||'')?(_dom('inp-act-arr')?.value||''):'';
   const actDep=isValidTime(_dom('inp-act-dep')?.value||'')?(_dom('inp-act-dep')?.value||''):'';

@@ -13,7 +13,7 @@ import { restoreFromStorage, save } from './03-storage.js';
 import { ensureAllWeather } from './04-weather.js';
 import { _syncTitleInput, _updateStickyTops, currentDayFlat, renderTabs, syncBorderAddr } from './06-day.js';
 import { _depCountdownHtml, initNormalSwipe, initRideSwipe, render, showInfoToast, updateClock } from './07-render.js';
-import { _initTheme, toggleEdit } from './08-mode.js';
+import { _initTheme, autoGrowNote, toggleEdit } from './08-mode.js';
 import { _renderSplash } from './11-overlays.js';
 import { _dbgLog } from './12-debug.js';
 import { _gpsInit } from './14-gps.js';
@@ -62,6 +62,8 @@ syncBorderAddr();
 if(!S._pendingRestore) save();
 initRideSwipe();
 initNormalSwipe();
+// メモ欄(textarea)の自動高さ調整：入力のたびに高さを再計算
+(()=>{const _note=document.getElementById('inp-note');if(_note)_note.addEventListener('input',()=>autoGrowNote(_note));})();
 renderTabs();
 updateClock();
 render();

@@ -114,6 +114,7 @@ export function setFormAdd(){
   _dom('form-title').textContent='地点を追加';
   _dom('save-btn').textContent='＋ 追加';
   ['inp-name','inp-addr','inp-note','inp-log'].forEach(id=>_dom(id).value='');
+  autoGrowNote(_dom('inp-note'));
   ['inp-arr','inp-dep','inp-act-arr','inp-act-dep'].forEach(id=>{
     const el=_dom(id);
     if(el){el.value='';if(id==='inp-dep') el.style.borderColor='';}
@@ -130,6 +131,7 @@ export function openEditStop(id){
     const ds=stops(),s=ds.find(s=>s.id===id);if(!s)return;
     S.editingId=id;_dom('form-title').textContent='✏️ '+s.name;_dom('save-btn').textContent='✅ 更新';
     _dom('inp-name').value=s.name;_dom('inp-addr').value=s.addr||'';_dom('inp-arr').value=s.arr||'';_dom('inp-dep').value=s.dep||'';_dom('inp-note').value=s.note||'';_dom('inp-log').value=s.log||'';
+    autoGrowNote(_dom('inp-note'));
     const _actArr=_dom('inp-act-arr'),_actDep=_dom('inp-act-dep');
     if(_actArr)_actArr.value=s.actArr||'';if(_actDep)_actDep.value=s.actDep||'';
     _setFuelCheck(!!s.fuel);
@@ -166,4 +168,11 @@ export function _confirmLeaveEdit(){
     ?'地点の編集内容が保存されていません。\n保存せずに移動しますか？'
     :'入力中のデータが保存されていません。\n移動すると入力内容が失われます。\n移動しますか？';
   return confirm(msg);
+}
+
+/* textarea 自動高さ調整（入力量に応じて伸縮） */
+export function autoGrowNote(el){
+  if(!el)return;
+  el.style.height='auto';
+  el.style.height=Math.max(el.scrollHeight,298)+'px';
 }
