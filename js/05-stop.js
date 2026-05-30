@@ -47,7 +47,7 @@ export function saveStop(){
   const actArr=isValidTime(_dom('inp-act-arr')?.value||'')?(_dom('inp-act-arr')?.value||''):'';
   const actDep=isValidTime(_dom('inp-act-dep')?.value||'')?(_dom('inp-act-dep')?.value||''):'';
   const fuel=_dom('fuel-check-box')?.classList.contains('checked')||false;
-  const old=_dom('val-error');if(old)old.remove();
+  const old=document.getElementById('val-error');if(old)old.remove();// 動的生成要素なので_dom()のキャッシュは使わない（削除済みのゴミを掴むのを防ぐ）
   try{
     const ds=data.days[S.currentDay].stops;
     let updatedId=null; // 更新時のID退避（setFormAdd()でS.editingId=nullになるため事前に保存）

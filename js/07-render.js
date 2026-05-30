@@ -134,7 +134,9 @@ export function openRideNote(id){
   document.body.appendChild(ov);
 }
 export function closeRideNote(){
-  const el=_dom('ride-note-overlay');
+  // ※ _dom()は要素をキャッシュするため使わない。モーダルは都度生成・削除されるので
+  //   キャッシュに残った削除済みの古い要素を掴んでしまい、2回目以降閉じなくなる。
+  const el=document.getElementById('ride-note-overlay');
   if(el){if(el._onKey)document.removeEventListener('keydown',el._onKey);el.remove();}
 }
 
