@@ -61,7 +61,7 @@ export function actDiffHtml(plan,actual){const d=actDiff(plan,actual);if(d===nul
 export function moveDur(dep,nextArr){const d=toMin(dep),a=toMin(nextArr);if(d===null||a===null)return'';let diff=a-d;if(diff<0)diff+=1440;if(diff<=0||diff>720)return'';return fmtHM(diff);}
 export function moveDurLevel(dep,nextArr){const d=toMin(dep),a=toMin(nextArr);if(d===null||a===null)return -1;let diff=a-d;if(diff<0)diff+=1440;if(diff<=0||diff>720)return -1;return diff<=60?0:diff<=120?1:2;}
 export function moveDurRide(dep,nextArr){const d=toMin(dep),a=toMin(nextArr);if(d===null||a===null)return null;let diff=a-d;if(diff<0)diff+=1440;if(diff<=0||diff>720)return null;const level=diff<=60?0:diff<=120?1:2;const html=fmtHM(diff,{span:true});return{html,level};}
-export function sanitize(s,max){if(typeof s!=='string')return'';return s.replace(/<[^>]*>/g,'').replace(/javascript\s*:/gi,'').replace(/on\w+\s*=/gi,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'').slice(0,max).trim();}
+export function sanitize(s,max){if(typeof s!=='string')return'';return s.replace(/<[^>]*>/g,'').replace(/javascript\s*:/gi,'').replace(/on\w+\s*=/gi,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'').slice(0,max).replace(/[\uD800-\uDBFF]$/,'').trim();}
 export function isSafeUrl(s){if(!s)return true;try{const u=new URL(s);return u.protocol==='http:'||u.protocol==='https:';}catch(e){return false;}}
 export function isValidTime(s){return typeof s==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(s);}
 export function isValidDate(s){return typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s);}
@@ -102,7 +102,7 @@ export function _sanitizeImportedData(p){
       // mk16新規フィールド（旧データには存在しないためデフォルト付与）
       s.actArr=isValidTime(s.actArr)?s.actArr:'';
       s.actDep=isValidTime(s.actDep)?s.actDep:'';
-      s.log=sanitize(s.log||'',LIMIT.log);
+      s.log=sanitize((typeof s.log==='string'?s.log:'').replace(/[\r\n]+/g,' '),LIMIT.log);
     }
   }
   return truncated;

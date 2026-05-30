@@ -115,6 +115,7 @@ export function setFormAdd(){
   _dom('save-btn').textContent='＋ 追加';
   ['inp-name','inp-addr','inp-note','inp-log'].forEach(id=>_dom(id).value='');
   autoGrowNote(_dom('inp-note'));
+  syncLogPreview();
   ['inp-arr','inp-dep','inp-act-arr','inp-act-dep'].forEach(id=>{
     const el=_dom(id);
     if(el){el.value='';if(id==='inp-dep') el.style.borderColor='';}
@@ -132,6 +133,7 @@ export function openEditStop(id){
     S.editingId=id;_dom('form-title').textContent='✏️ '+s.name;_dom('save-btn').textContent='✅ 更新';
     _dom('inp-name').value=s.name;_dom('inp-addr').value=s.addr||'';_dom('inp-arr').value=s.arr||'';_dom('inp-dep').value=s.dep||'';_dom('inp-note').value=s.note||'';_dom('inp-log').value=s.log||'';
     autoGrowNote(_dom('inp-note'));
+    syncLogPreview();
     const _actArr=_dom('inp-act-arr'),_actDep=_dom('inp-act-dep');
     if(_actArr)_actArr.value=s.actArr||'';if(_actDep)_actDep.value=s.actDep||'';
     _setFuelCheck(!!s.fuel);
@@ -217,4 +219,48 @@ export function _updateNoteCount(){
   const mt=document.getElementById('note-modal-text');
   const c=document.getElementById('note-modal-count');
   if(mt&&c) c.textContent=(mt.value.length)+' / 1000';
+}
+
+/* 走行メモ欄プレビュー更新（隠しinput #inp-log の内容を #log-preview に反映） */
+export function syncLogPreview(){
+  const ta=_dom('inp-log');
+  const pv=document.getElementById('log-preview');
+  if(!ta||!pv) return;
+  const v=ta.value||'';
+  if(v.trim()===''){
+    pv.textContent='📝 走行メモ';
+    pv.classList.add('is-empty');
+    pv.classList.remove('is-clamped');
+  }else{
+    pv.textContent=v;
+    pv.classList.remove('is-empty');
+    requestAnimationFrame(()=>{pv.classList.toggle('is-clamped',pv.scrollHeight>pv.clientHeight+2);});
+  }
+}
+/* 走行メモ全画面モーダル */
+export function openLogModal(){
+  const ta=_dom('inp-log');
+  const mt=document.getElementById('log-modal-text');
+  const md=document.getElementById('log-modal');
+  if(!ta||!mt||!md) return;
+  mt.value=ta.value||'';
+  _updateLogCount();
+  md.style.display='flex';
+  const h=document.querySelector('header'); if(h) md._prevHz=h.style.zIndex, h.style.zIndex='1';
+  requestAnimationFrame(()=>{mt.focus();const n=mt.value.length;try{mt.setSelectionRange(n,n);}catch(e){}});
+}
+export function closeLogModal(commit){
+  const ta=_dom('inp-log');
+  const mt=document.getElementById('log-modal-text');
+  const md=document.getElementById('log-modal');
+  if(!md) return;
+  if(commit&&ta&&mt){ ta.value=mt.value.replace(/[\r\n]+/g,' '); syncLogPreview(); }
+  if(document.activeElement) document.activeElement.blur();
+  md.style.display='none';
+  const h=document.querySelector('header'); if(h) h.style.zIndex=md._prevHz||'';
+}
+export function _updateLogCount(){
+  const mt=document.getElementById('log-modal-text');
+  const c=document.getElementById('log-modal-count');
+  if(mt&&c) c.textContent=(mt.value.length)+' / 200';
 }
