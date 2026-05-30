@@ -26,6 +26,8 @@ export function _applyTheme(day){
   document.body.classList.toggle('day-mode',day);
   const btn=document.getElementById('theme-btn');
   if(btn) btn.textContent=day?'🌙':'☀️';
+  const ic=document.getElementById('theme-icon');
+  if(ic) ic.textContent=day?'🌙':'☀️';
   _resetClockTs(); // テーマ切替時はキャッシュリセットして色を即時更新
   updateClock();
 }
@@ -263,4 +265,27 @@ export function _updateLogCount(){
   const mt=document.getElementById('log-modal-text');
   const c=document.getElementById('log-modal-count');
   if(mt&&c) c.textContent=(mt.value.length)+' / 200';
+}
+
+/* ══ ハンバーガーメニュー（ドロワー） ══ */
+export function toggleMenu(){
+  const d=document.getElementById('menu-drawer');
+  if(!d) return;
+  d.classList.contains('open') ? closeMenu() : openMenu();
+}
+export function openMenu(){
+  const d=document.getElementById('menu-drawer');
+  const ov=document.getElementById('menu-overlay');
+  const b=document.getElementById('menu-toggle-btn');
+  if(d) d.classList.add('open');
+  if(ov) ov.classList.add('open');
+  if(b) b.classList.add('open');
+}
+export function closeMenu(){
+  const d=document.getElementById('menu-drawer');
+  const ov=document.getElementById('menu-overlay');
+  const b=document.getElementById('menu-toggle-btn');
+  if(d) d.classList.remove('open');
+  if(ov) ov.classList.remove('open');
+  if(b) b.classList.remove('open');
 }
