@@ -34,11 +34,13 @@ Object.assign(window, {
    ・const のコレクション（wxStopRes 等）は getter のみ（中身操作はそのまま効く）
    ══════════════════════════════════════════════════════ */
 import { S, data as _stateData, setData, _dom } from './01-state.js';
-import { render, renderRide } from './07-render.js';
+import { render, renderRide, hideInfoToast } from './07-render.js';
 import { toggleEdit } from './08-mode.js';
 import { ensureAllWeather, wxStopRes, wxQueue, wxQueueFast, wxQueueIds, geoCache } from './04-weather.js';
 import { nowMin } from './02-utils.js';
-import { _setDetailsOpen } from './11-overlays.js';
+import { _setDetailsOpen, _setFuelCheck, splashSettings } from './11-overlays.js';
+import { save } from './03-storage.js';
+import { renderTabs, _updateStickyTops, currentDayFlat } from './06-day.js';
 
 // ── S.* 状態変数（読み書き両対応）──
 ['isEdit','isRide','editingId','currentDay','manualCurrentId',
@@ -60,7 +62,14 @@ Object.defineProperty(window, 'data', {
 // ── 関数・コレクション類（読み取りのみ。中身の操作はそのまま反映される）──
 Object.assign(window, {
   render, renderRide, toggleEdit, ensureAllWeather, nowMin,
-  _setDetailsOpen, _dom, setData,
+  _setDetailsOpen, _setFuelCheck, _dom, setData, save, hideInfoToast,
+  renderTabs, _updateStickyTops, currentDayFlat,
   wxStopRes, wxQueue, wxQueueFast, wxQueueIds, geoCache,
+});
+
+// ── splashSettings（let だが再代入されずプロパティ更新のみ。読み取り用 getter）──
+Object.defineProperty(window, 'splashSettings', {
+  configurable:true,
+  get(){ return splashSettings; },
 });
 /* ▲▲▲ 自動テスト用ブリッジ ここまで ▲▲▲ */
