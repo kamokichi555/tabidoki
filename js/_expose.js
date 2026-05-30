@@ -11,7 +11,7 @@ import { retryStopWeather } from './04-weather.js';
 import { delStop, saveStop, setCurrentStop } from './05-stop.js';
 import { _commitTitle, _saveRouteDebounced, _saveTitleDebounced, addDay, deleteCurrentDay, saveDayDate, switchDay } from './06-day.js';
 import { checkTimeOrder, closeRideNote, dismissAppError, openRideNote, rideNavigate, toggleRideAction } from './07-render.js';
-import { _toggleTheme, autoGrowNote, cancelEdit, cancelToRide, onEditBtnClick, openEditStop, tapStopInEdit, toggleRide } from './08-mode.js';
+import { _toggleTheme, autoGrowNote, cancelEdit, cancelToRide, closeNoteModal, onEditBtnClick, openEditStop, openNoteModal, tapStopInEdit, toggleRide } from './08-mode.js';
 import { _cancelTouchDrag, onMouseDragStart, onTouchDragEnd, onTouchDragMove, onTouchDragStart } from './09-drag.js';
 import { filterGasStation, filterHighwayDebounced, filterMichiDebounced, openGasStation, openHighway, openKaikatsu, openMichinoEki, openToiletMap, selectGasStation, selectHighway, selectMichi } from './10-pickers.js';
 import { _closeOverlay, _saveSplashSettings, _updateEpisodePreview, openSplashSettings, toggleDetails, toggleFuelCheck } from './11-overlays.js';
@@ -19,7 +19,7 @@ import { _dbgClear, _dbgCopy, _dbgDownload, _dbgSetEnabled } from './12-debug.js
 import { toggleGps } from './14-gps.js';
 
 Object.assign(window, {
-  _cancelTouchDrag, _closeOverlay, _commitTitle, _dbgClear, _dbgCopy, _dbgDownload, _dbgSetEnabled, _saveRouteDebounced, _saveSplashSettings, _saveTitleDebounced, _toggleTheme, _updateEpisodePreview, addDay, autoGrowNote, cancelEdit, cancelToRide, checkTimeOrder, closeRideNote, delStop, deleteCurrentDay, dismissAppError, filterGasStation, filterHighwayDebounced, filterMichiDebounced, loadJSON, loadSampleData, onEditBtnClick, openEditStop, onFileSelected, onMouseDragStart, onTouchDragEnd, onTouchDragMove, onTouchDragStart, openGasStation, openHighway, openKaikatsu, openMichinoEki, openRideNote, openSplashSettings, openToiletMap, retryStopWeather, rideNavigate, saveDayDate, saveJSON, saveRecord, saveStop, selectGasStation, selectHighway, selectMichi, setCurrentStop, shareItinerary, switchDay, tapStopInEdit, toggleDetails, toggleFuelCheck, toggleGps, toggleRide, toggleRideAction,
+  _cancelTouchDrag, _closeOverlay, _commitTitle, _dbgClear, _dbgCopy, _dbgDownload, _dbgSetEnabled, _saveRouteDebounced, _saveSplashSettings, _saveTitleDebounced, _toggleTheme, _updateEpisodePreview, addDay, autoGrowNote, cancelEdit, cancelToRide, checkTimeOrder, closeRideNote, delStop, deleteCurrentDay, dismissAppError, filterGasStation, filterHighwayDebounced, filterMichiDebounced, loadJSON, loadSampleData, onEditBtnClick, openEditStop, openNoteModal, closeNoteModal, onFileSelected, onMouseDragStart, onTouchDragEnd, onTouchDragMove, onTouchDragStart, openGasStation, openHighway, openKaikatsu, openMichinoEki, openRideNote, openSplashSettings, openToiletMap, retryStopWeather, rideNavigate, saveDayDate, saveJSON, saveRecord, saveStop, selectGasStation, selectHighway, selectMichi, setCurrentStop, shareItinerary, switchDay, tapStopInEdit, toggleDetails, toggleFuelCheck, toggleGps, toggleRide, toggleRideAction,
 });
 
 

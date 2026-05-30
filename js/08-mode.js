@@ -170,13 +170,51 @@ export function _confirmLeaveEdit(){
   return confirm(msg);
 }
 
-/* textarea 自動高さ調整（入力量に応じて伸縮） */
-export function autoGrowNote(el){
-  if(!el)return;
-  el.style.height='auto';
-  // 内容に合わせて伸ばすが、CSSのmax-heightを超えたら内部スクロール
-  const max=parseFloat(getComputedStyle(el).maxHeight)||Infinity;
-  const h=Math.min(el.scrollHeight,max);
-  el.style.height=h+'px';
-  el.style.overflowY=el.scrollHeight>max?'auto':'hidden';
+/* メモ欄プレビュー更新（隠しtextarea #inp-note の内容を #note-preview に反映） */
+export function syncNotePreview(){
+  const ta=_dom('inp-note');
+  const pv=document.getElementById('note-preview');
+  if(!ta||!pv) return;
+  const v=ta.value||'';
+  if(v.trim()===''){
+    pv.textContent='メモ（食事・注意点など）';
+    pv.classList.add('is-empty');
+    pv.classList.remove('is-clamped');
+  }else{
+    pv.textContent=v;
+    pv.classList.remove('is-empty');
+    // 内容がプレビュー高さを超えるならフェードマスク表示
+    requestAnimationFrame(()=>{pv.classList.toggle('is-clamped',pv.scrollHeight>pv.clientHeight+2);});
+  }
+}
+// 互換: 旧 autoGrowNote 呼び出し箇所はプレビュー更新に読み替え
+export function autoGrowNote(el){ syncNotePreview(); }
+
+/* メモ全画面モーダル */
+export function openNoteModal(){
+  const ta=_dom('inp-note');
+  const mt=document.getElementById('note-modal-text');
+  const md=document.getElementById('note-modal');
+  if(!ta||!mt||!md) return;
+  mt.value=ta.value||'';
+  _updateNoteCount();
+  md.style.display='flex';
+  // ヘッダーがモーダル前面に来ないよう退避（オーバーレイと同様の措置）
+  const h=document.querySelector('header'); if(h) md._prevHz=h.style.zIndex, h.style.zIndex='1';
+  requestAnimationFrame(()=>{mt.focus();const n=mt.value.length;try{mt.setSelectionRange(n,n);}catch(e){}});
+}
+export function closeNoteModal(commit){
+  const ta=_dom('inp-note');
+  const mt=document.getElementById('note-modal-text');
+  const md=document.getElementById('note-modal');
+  if(!md) return;
+  if(commit&&ta&&mt){ ta.value=mt.value; syncNotePreview(); }
+  if(document.activeElement) document.activeElement.blur();
+  md.style.display='none';
+  const h=document.querySelector('header'); if(h) h.style.zIndex=md._prevHz||'';
+}
+export function _updateNoteCount(){
+  const mt=document.getElementById('note-modal-text');
+  const c=document.getElementById('note-modal-count');
+  if(mt&&c) c.textContent=(mt.value.length)+' / 1000';
 }
