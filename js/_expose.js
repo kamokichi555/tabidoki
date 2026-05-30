@@ -37,7 +37,7 @@ import { S, data as _stateData, setData, _dom } from './01-state.js';
 import { render, renderRide, hideInfoToast } from './07-render.js';
 import { toggleEdit } from './08-mode.js';
 import { ensureAllWeather, wxStopRes, wxQueue, wxQueueFast, wxQueueIds, geoCache } from './04-weather.js';
-import { nowMin } from './02-utils.js';
+import { nowMin, _setNowMinOverride } from './02-utils.js';
 import { _setDetailsOpen, _setFuelCheck, splashSettings } from './11-overlays.js';
 import { save } from './03-storage.js';
 import { renderTabs, _updateStickyTops, currentDayFlat } from './06-day.js';
@@ -64,7 +64,7 @@ Object.defineProperty(window, 'data', {
 
 // ── 関数・コレクション類（読み取りのみ。中身の操作はそのまま反映される）──
 Object.assign(window, {
-  render, renderRide, toggleEdit, ensureAllWeather, nowMin,
+  render, renderRide, toggleEdit, ensureAllWeather, nowMin, _setNowMinOverride,
   _setDetailsOpen, _setFuelCheck, _dom, setData, save, hideInfoToast,
   renderTabs, _updateStickyTops, currentDayFlat,
   esc, isSafeUrl, _isoToday, onMouseDragEnd: _drag.onMouseDragEnd,

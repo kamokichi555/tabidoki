@@ -30,7 +30,15 @@ export function hasCachedCoords(addr){return buildGeoTargets(addr).some(q=>!!_ge
 export function pClass(p){return typeof p==='number'?(p>=70?'high':p>=40?'mid':'low'):'low';}
 export function toMin(t){if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+m;}
 export function fromMin(m){m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
-export function nowMin(){const n=new Date();return n.getHours()*60+n.getMinutes();}
+/* nowMin: 現在時刻を「時×60+分」で返す。
+   _nowMinOverride が非nullのときはその固定値を返す（自動テストで現在時刻を固定するためのフック。
+   本番では常に null のため通常動作には影響しない）。 */
+export let _nowMinOverride=null;
+export function _setNowMinOverride(v){ _nowMinOverride=(v===null||v===undefined)?null:v; }
+export function nowMin(){
+  if(_nowMinOverride!==null) return _nowMinOverride;
+  const n=new Date();return n.getHours()*60+n.getMinutes();
+}
 /* ── 共通: 分数→「○時間○分」整形 ──
    opt.span : 単位を <span style="font-size:.75em"> で小さく表示し、両表記時は分を2桁ゼロ詰め
    opt.paren: 全体を ( ) で囲む
