@@ -11,7 +11,7 @@
 
 /* --- 自動生成: モジュール依存のインポート --- */
 import { S, data } from './01-state.js';
-import { buildGeoTargets } from './02-utils.js';
+import { buildGeoTargets, lsGet, lsSet } from './02-utils.js';
 import { _geoCacheGet, _isoToday, enqueueStop } from './04-weather.js';
 import { setCurrentStop } from './05-stop.js';
 import { currentDayFlat } from './06-day.js';
@@ -155,7 +155,7 @@ export function _gpsOnError(err){
   _dbgLog('gps_error',{code:err.code,msg:err.message});
   if(err.code===1){ // PERMISSION_DENIED
     _gpsEnabled=false;
-    try{localStorage.setItem('touring_gps','0');}catch(e){} // 次回起動で誤ONにしない
+    lsSet('touring_gps','0'); // 次回起動で誤ONにしない
     _gpsStop();
     _gpsUpdateBtn();
     showInfoToast('⚠️ 位置情報の許可が必要です',4000);
@@ -192,7 +192,7 @@ export function _gpsStop(){
 /* ══ ユーザーがGPSボタンを押したとき ══ */
 export function toggleGps(){
   _gpsEnabled=!_gpsEnabled;
-  try{localStorage.setItem('touring_gps',_gpsEnabled?'1':'0');}catch(e){}
+  lsSet('touring_gps',_gpsEnabled?'1':'0');
   if(_gpsEnabled){
     if(S.isRide) _gpsStart();
     showInfoToast('📍 GPS自動追跡をオンにしました',2500);
@@ -229,6 +229,6 @@ export function _gpsUpdateStatus(){
 
 /* ══ 初期化（localStorageから設定復元） ══ */
 export function _gpsInit(){
-  try{_gpsEnabled=localStorage.getItem('touring_gps')==='1';}catch(e){_gpsEnabled=false;}
+  _gpsEnabled=lsGet('touring_gps')==='1'; // 取得不可時は null==='1' → false
   _gpsUpdateBtn();
 }

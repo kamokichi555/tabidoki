@@ -144,3 +144,8 @@ export async function fetchWithTimeout(url,opts={},ms=8000){
   try{ return await fetch(url,{...opts,signal:ctrl.signal}); }
   finally{ clearTimeout(t); }
 }
+/* best-effort localStorage（プライベートモード等の例外を握りつぶす軽量版）。
+   設定値など「保存できなくても黙って諦めてよい」用途専用。
+   容量管理が要る本体データ/キャッシュは 04-weather の _lsSetItem を使うこと。 */
+export function lsGet(key){try{return localStorage.getItem(key);}catch(e){return null;}}
+export function lsSet(key,val){try{localStorage.setItem(key,val);return true;}catch(e){return false;}}

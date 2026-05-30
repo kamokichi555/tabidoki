@@ -764,7 +764,7 @@ export function renderGasStationList(q){
   const list=document.getElementById('gs-list');
   if(!list) return;
   const filtered=q?GAS_STATION_CHAINS.filter(g=>g[0].includes(q)||g[1].includes(q)):GAS_STATION_CHAINS;
-  if(!filtered.length){list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:14px">見つかりません</div>';return;}
+  if(!filtered.length){list.innerHTML=_PICKER_EMPTY_HTML;return;}
   list.innerHTML=filtered.map(g=>`<div onclick="selectGasStation('${escJsAttr(g[0])}')" style="padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer">
     <div style="font-weight:700;font-size:15px;color:var(--text)">⛽ ${esc(g[0])}</div>
     <div style="font-size:12px;color:var(--text3);margin-top:2px">${esc(g[1])}</div>
