@@ -84,8 +84,11 @@ header{position:sticky;top:0;background:var(--bg);z-index:100000;border-bottom:2
 #gps-btn.on .mi-label{color:var(--green)}
 #record-save-btn.has-record .mi-label{color:var(--amber)}
 /* ══ 文字サイズ設定（老眼向け）: 本文コンテンツだけを拡大。ヘッダー/ドロワー/dvh計算には触れない ══ */
-body.fs-lg #normal-view,body.fs-lg #ride-content{zoom:1.12}
-body.fs-xl #normal-view,body.fs-xl #ride-content{zoom:1.25}
+/* #normal-view 自体は JS で高さを px 指定（可視ビューポート基準）するため、ここに zoom を掛けると
+   高さも 1.25 倍され、編集画面の下部（メモ欄・追加ボタン等）が画面外にはみ出して切れる。
+   そこで #ride-content と同様、外側の高さ枠ではなく内側のコンテンツ（直下の子）だけを拡大する。 */
+body.fs-lg #normal-view>*,body.fs-lg #ride-content{zoom:1.12}
+body.fs-xl #normal-view>*,body.fs-xl #ride-content{zoom:1.25}
 #fontsize-btn .mi-sub{color:var(--amber)}
 body.day-mode #menu-drawer{background:#ffffff}
 body.day-mode #menu-toggle-btn span{background:#0a0a0a}
