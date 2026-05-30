@@ -41,6 +41,9 @@ import { nowMin } from './02-utils.js';
 import { _setDetailsOpen, _setFuelCheck, splashSettings } from './11-overlays.js';
 import { save } from './03-storage.js';
 import { renderTabs, _updateStickyTops, currentDayFlat } from './06-day.js';
+import { esc, isSafeUrl } from './02-utils.js';
+import { _isoToday } from './04-weather.js';
+import * as _drag from './09-drag.js';
 
 // ── S.* 状態変数（読み書き両対応）──
 ['isEdit','isRide','editingId','currentDay','manualCurrentId',
@@ -64,7 +67,18 @@ Object.assign(window, {
   render, renderRide, toggleEdit, ensureAllWeather, nowMin,
   _setDetailsOpen, _setFuelCheck, _dom, setData, save, hideInfoToast,
   renderTabs, _updateStickyTops, currentDayFlat,
+  esc, isSafeUrl, _isoToday, onMouseDragEnd: _drag.onMouseDragEnd,
   wxStopRes, wxQueue, wxQueueFast, wxQueueIds, geoCache,
+});
+
+// ── ドラッグ状態変数（09-drag の let。テストは読み取りのみ）──
+// モジュール名前空間オブジェクト経由なので常に最新値を返す
+['tGhost','tDragId','tDragEl','tStopRows',
+ 'mGhost','mDragId','mDragEl','mStopRows'].forEach(key=>{
+  Object.defineProperty(window, key, {
+    configurable:true,
+    get(){ return _drag[key]; },
+  });
 });
 
 // ── splashSettings（let だが再代入されずプロパティ更新のみ。読み取り用 getter）──
