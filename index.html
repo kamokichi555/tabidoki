@@ -94,6 +94,10 @@
         <span class="mi-icon" id="theme-icon">☀️</span><span class="mi-label">テーマ切替</span>
         <span class="mi-sub">昼/夜の配色を変更</span>
       </button>
+      <button class="menu-item" id="fontsize-btn" onclick="_cycleFontSize()">
+        <span class="mi-icon">🔠</span><span class="mi-label">文字サイズ</span>
+        <span class="mi-sub" id="fontsize-sub">標準</span>
+      </button>
       <button class="menu-item" onclick="closeMenu();openSplashSettings()">
         <span class="mi-icon">📜</span><span class="mi-label">タイトル設定</span>
         <span class="mi-sub">表示名・サブタイトル</span>
@@ -136,7 +140,7 @@
       </div>
       <div class="form-gap">
         <input id="inp-title" type="text" maxlength="60" placeholder="例：紅葉の道志みちツーリング" autocomplete="off" autocapitalize="off" oninput="_saveTitleDebounced()" onblur="_commitTitle()">
-        <div style="font-size:12px;color:var(--text3);font-weight:600">保存時のファイル名・共有テキスト・走行記録に使われます</div>
+        <div style="font-size:15px;color:var(--text3);font-weight:600">保存時のファイル名・共有テキスト・走行記録に使われます</div>
       </div>
     </div>
     <div class="edit-panel">
@@ -163,8 +167,8 @@
             <input id="inp-dep" type="time" oninput="checkTimeOrder()">
           </div>
         </div>
-        <div id="stay-dur-preview" style="font-size:13px;color:var(--text3);font-weight:600;text-align:right;display:none;margin-top:-4px"></div>
-        <div id="time-order-error" style="display:none;font-size:13px;color:var(--red);margin-top:-4px">⚠ 出発時刻は到着時刻より後にしてください</div>
+        <div id="stay-dur-preview" style="font-size:16px;color:var(--text3);font-weight:600;text-align:right;display:none;margin-top:-4px"></div>
+        <div id="time-order-error" style="display:none;font-size:16px;color:var(--red);margin-top:-4px">⚠ 出発時刻は到着時刻より後にしてください</div>
         <textarea id="inp-note" maxlength="1000" rows="6" placeholder="メモ（食事・注意点など）" style="display:none"></textarea>
         <div id="note-preview" class="is-empty" role="button" tabindex="0" onclick="openNoteModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openNoteModal()}"></div>
         <input id="inp-log" type="text" maxlength="200" placeholder="📝 走行メモ" style="display:none">
@@ -179,7 +183,7 @@
             <div class="fuel-check-box" id="fuel-check-box"></div>
             <span class="fuel-check-label">⛽ 給油ポイント</span>
           </div>
-          <div style="font-size:13px;color:rgba(77,166,255,.9);font-weight:700;margin-top:4px;letter-spacing:.04em">実績時刻</div>
+          <div style="font-size:16px;color:rgba(77,166,255,.9);font-weight:700;margin-top:4px;letter-spacing:.04em">実績時刻</div>
           <div class="time-inline-row">
             <div class="time-inline-item">
               <span class="time-inline-label" style="color:rgba(77,166,255,.9)">実着</span>
