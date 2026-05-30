@@ -174,5 +174,9 @@ export function _confirmLeaveEdit(){
 export function autoGrowNote(el){
   if(!el)return;
   el.style.height='auto';
-  el.style.height=Math.max(el.scrollHeight,298)+'px';
+  // 内容に合わせて伸ばすが、CSSのmax-heightを超えたら内部スクロール
+  const max=parseFloat(getComputedStyle(el).maxHeight)||Infinity;
+  const h=Math.min(el.scrollHeight,max);
+  el.style.height=h+'px';
+  el.style.overflowY=el.scrollHeight>max?'auto':'hidden';
 }
