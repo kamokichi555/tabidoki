@@ -25,6 +25,11 @@ export const S={
   // 起動時の復元確認が保留中のデータ。null以外の間は保存系をガードし、
   // localStorageの保存データを空データで上書き破壊しないようにする。
   _pendingRestore:null,
+  // 起動時の復元確認で「いいえ（読み込まない）」を選んだ直後など、
+  // 前回データをlocalStorageに温存したまま空のdataで新規開始している状態を表す。
+  // この間は背面化保存(_persistPendingEdits)が空dataで前回データを破壊しないよう保存を抑止する。
+  // ユーザーが能動的に編集してsave()が走った時点で false に解除（＝新規開始を確定）。
+  _freshStartPreserve:false,
 };
 
 /* データ変更の可否を1箇所で判定する。

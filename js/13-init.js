@@ -198,6 +198,8 @@ if(!S.isEdit&&!S.isRide){
       }else{
         // 新規開始: data は空のままなので、ブラウザが復元した入力欄の値を明示的にクリアする。
         // _syncTitleInput=ツーリング名、renderTabs=ルートURL/日付欄をdataから再同期。
+        // 前回データはlocalStorageに温存するため、能動編集まで背面化保存で空dataを書き込ませない。
+        S._freshStartPreserve=true;
         _syncTitleInput();
         renderTabs();
         // localStorageの前回データはあえて上書きせず保持する（restoreFromStorageで復旧できるように）。
@@ -227,6 +229,10 @@ window.addEventListener('pageshow',()=>{
 // 両方で発火させ、バックグラウンドでデバウンスタイマーが間引かれるケースも塞ぐ。
 // localStorageは同期書き込みなので、フリーズ前に確実に永続化される。_flush系・saveは _canEditData ガード済み。
 function _persistPendingEdits(){
+  // 復元確認で「いいえ」を選んだ直後など、前回データをlocalStorageに温存中（_freshStartPreserve）は
+  // 背面化のたびに空dataでsave()して前回データを破壊し、[読み込む]復旧を不能にしないよう保存しない。
+  // ユーザーが能動編集すればsave()側でフラグが解除され、以降は通常どおり背面化保存が効く。
+  if(S._freshStartPreserve) return;
   _flushTitle();      // 未確定タイトル → data.title（save非経由・メモリ反映のみ）
   _flushRouteSave();  // 未確定ルートURL → data.days[].routeUrl
   save();             // localStorageへ確定

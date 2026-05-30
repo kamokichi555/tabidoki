@@ -27,6 +27,10 @@ export function save(){
   // この間に空のdataをlocalStorageへ書き込むと前回データを破壊してしまうため保存しない。
   // 確認に応答すると 13-init.js が S._pendingRestore=null にしてからsave/restoreを行う。
   if(!_canEditData()) return;
+  // ここに到達するsave()は能動的な保存（編集・読込等）。背面化保存(_persistPendingEdits)は
+  // _freshStartPreserve中はsave()前にreturnするため到達しない。よって到達時点で温存状態を解除し、
+  // 以降は通常どおりlocalStorageへ反映する（新規開始を確定）。
+  S._freshStartPreserve=false;
   try{
     data.currentStopId=S.manualCurrentId;
     data.version=DEFAULT.version;
