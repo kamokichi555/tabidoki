@@ -10,7 +10,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { EC, EC_MSG } from './00-constants.js';
 import { S, _dom, data } from './01-state.js';
-import { actDiffHtml, esc, fmtHM, isTimeOrderOk, moveDur, moveDurLevel, moveDurRide, nowMin, stayDur, toMin, wrapDiff } from './02-utils.js';
+import { actDiffHtml, esc, fmtHM, isTimeOrderOk, mapsSearchUrl, moveDur, moveDurLevel, moveDurRide, nowMin, stayDur, toMin, wrapDiff } from './02-utils.js';
 import { _isoToday, enqueueStop, ensureDayWeather, rideWxCompact, stopWxInner } from './04-weather.js';
 import { getStatus } from './05-stop.js';
 import { _getCdi, _updateRecordBtn, currentDayFlat, stops, switchDay } from './06-day.js';
@@ -132,7 +132,7 @@ export function renderRide(){
   _dom('sw-arr-l').classList.toggle('dim',S.rideViewIdx===0);
   _dom('sw-arr-r').classList.toggle('dim',S.rideViewIdx===flat.length-1);
   /* ── ライドカード共通パーツ ── */
-  const _mapLink=s=>s.addr?`<a class="ride-route-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 マップで確認</a>`:'';
+  const _mapLink=s=>s.addr?`<a class="ride-route-btn" href="${mapsSearchUrl(s.name)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 マップで確認</a>`:'';
   const _fuelBadge=(s,extra='')=>s.fuel?`<div class="stop-fuel-badge" style="width:100%;justify-content:center${extra}">⛽ 給油ポイント</div>`:'';
   const _noteCompact=s=>s.note?`<div class="ride-note-compact" title="${esc(s.note)}">${esc(s.note)}</div>`:'';
   const _logHtml=s=>s.log?`<div class="ride-log">📝 ${esc(s.log)}</div>`:'';
@@ -367,7 +367,7 @@ export function render(){
     ${!isLast&&_mdur?`<div class="move-dur-label${_mlv>=0?' lv'+_mlv:''}">→ 次まで ${_mdur}</div>`:''}
     ${S.isEdit&&S.editingId===null&&S.activeEditStopId===s.id?`<div class="stop-edit-row">      <button class="small amber-outline" onclick="event.stopPropagation();setCurrentStop('${s.id}')">📍 現在</button>
       <button class="small amber-outline" onclick="event.stopPropagation();openEditStop('${s.id}')">✏️ 編集</button>
-      ${s.addr?`<a class="map-link-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener">🗺 マップ</a>`:''}
+      ${s.addr?`<a class="map-link-btn" href="${mapsSearchUrl(s.name)}" target="_blank" rel="noopener">🗺 マップ</a>`:''}
       <button class="small danger" onclick="event.stopPropagation();delStop('${s.id}')">削除</button>
     </div>`:''}
   </div>

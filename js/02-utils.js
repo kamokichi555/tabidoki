@@ -133,3 +133,14 @@ export function _resolveCurrentStopId(d){
 }
 export function isTimeOrderOk(a,d){if(!a||!d)return true;return toMin(a)<=toMin(d);}
 export function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
+/* Googleマップ検索URLを生成（q は自動で encodeURIComponent。href/window.open 共通） */
+export const MAPS_SEARCH_BASE='https://maps.google.com/?q=';
+export function mapsSearchUrl(q){return MAPS_SEARCH_BASE+encodeURIComponent(q);}
+/* タイムアウト付き fetch（AbortController+setTimeout の定型を集約）。
+   ms 経過で abort。Response をそのまま返すので呼び出し側は通常通り r.ok / r.json() を扱う。 */
+export async function fetchWithTimeout(url,opts={},ms=8000){
+  const ctrl=new AbortController();
+  const t=setTimeout(()=>ctrl.abort(),ms);
+  try{ return await fetch(url,{...opts,signal:ctrl.signal}); }
+  finally{ clearTimeout(t); }
+}
