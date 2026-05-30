@@ -100,3 +100,20 @@ export function onMouseDragEnd(e){
   mDragId=null;mDragEl=null;mStopRows=null;
 }
 
+/* ── 復帰時の安全リセット ──
+   画面消灯・バックグラウンド・bfcache復帰で touchend/touchcancel/mouseup が
+   失われると、ゴースト(tGhost/mGhost)が残り対象行に .dragging が付いたままになる
+   （走行スワイプのフリーズと同じ系統の不具合）。可視化／pageshow で進行中ドラッグを
+   強制終了し、残骸・documentリスナーを確実に除去する。 */
+export function _resetDragState(){
+  _cancelTouchDrag(); // touch: tGhost が無ければ何もしない
+  document.removeEventListener('mousemove',onMouseDragMove);
+  document.removeEventListener('mouseup',onMouseDragEnd);
+  if(mStopRows)mStopRows.forEach(r=>r.classList.remove('drag-over'));
+  if(mDragEl)mDragEl.classList.remove('dragging');
+  if(mGhost){mGhost.remove();mGhost=null;}
+  mDragId=null;mDragEl=null;mStopRows=null;
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')_resetDragState();});
+window.addEventListener('pageshow',()=>{_resetDragState();});
+
