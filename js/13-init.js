@@ -11,7 +11,7 @@ import { S, _canEditData, data, setData } from './01-state.js';
 import { _migrateData, _resolveCurrentStopId, _sanitizeImportedData } from './02-utils.js';
 import { restoreFromStorage, save } from './03-storage.js';
 import { ensureAllWeather } from './04-weather.js';
-import { _syncTitleInput, _updateStickyTops, currentDayFlat, renderTabs, syncBorderAddr } from './06-day.js';
+import { _flushRouteSave, _flushTitle, _syncTitleInput, _updateStickyTops, currentDayFlat, renderTabs, syncBorderAddr } from './06-day.js';
 import { _depCountdownHtml, initNormalSwipe, initRideSwipe, render, showInfoToast, updateClock } from './07-render.js';
 import { _initTheme, _initFontSize, _updateNoteCount, syncNotePreview, toggleEdit } from './08-mode.js';
 import { _renderSplash } from './11-overlays.js';
@@ -220,6 +220,19 @@ window.addEventListener('pageshow',()=>{
   // 少し遅延させて確実にその後でdata.titleへ上書き同期する
   if(S.isEdit){ _syncTitleInput(); setTimeout(()=>{ if(S.isEdit) _syncTitleInput(); },120); }
 });
+
+// アプリが背面化／終了する瞬間に、デバウンス（400ms）未確定のツーリング名・ルートURLを確定保存する。
+// これが無いと「入力直後400ms以内に、フォーカスを外さないままホームに戻る／OSがPWAを強制終了」した場合に
+// 直近の入力が失われる。pagehide（離脱・bfcache入り）と visibilitychange→hidden（画面消灯・背面化）の
+// 両方で発火させ、バックグラウンドでデバウンスタイマーが間引かれるケースも塞ぐ。
+// localStorageは同期書き込みなので、フリーズ前に確実に永続化される。_flush系・saveは _canEditData ガード済み。
+function _persistPendingEdits(){
+  _flushTitle();      // 未確定タイトル → data.title（save非経由・メモリ反映のみ）
+  _flushRouteSave();  // 未確定ルートURL → data.days[].routeUrl
+  save();             // localStorageへ確定
+}
+window.addEventListener('pagehide',_persistPendingEdits);
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) _persistPendingEdits(); });
 
 // 縦向き固定（Android Chrome対応・iOS Safari/一部デスクトップはlock未実装のため無視）
 // ※ lock() の呼び出しも optional-chain する。screen.orientation はあるが lock が
