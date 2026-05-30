@@ -21,3 +21,46 @@ import { toggleGps } from './14-gps.js';
 Object.assign(window, {
   _cancelTouchDrag, _closeOverlay, _commitTitle, _dbgClear, _dbgCopy, _dbgDownload, _dbgSetEnabled, _saveRouteDebounced, _saveSplashSettings, _saveTitleDebounced, _toggleTheme, _updateEpisodePreview, addDay, cancelEdit, cancelToRide, checkTimeOrder, delStop, deleteCurrentDay, dismissAppError, filterGasStation, filterHighwayDebounced, filterMichiDebounced, loadJSON, loadSampleData, onEditBtnClick, openEditStop, onFileSelected, onMouseDragStart, onTouchDragEnd, onTouchDragMove, onTouchDragStart, openGasStation, openHighway, openKaikatsu, openMichinoEki, openSplashSettings, openToiletMap, retryStopWeather, rideNavigate, saveDayDate, saveJSON, saveRecord, saveStop, selectGasStation, selectHighway, selectMichi, setCurrentStop, shareItinerary, switchDay, tapStopInEdit, toggleDetails, toggleFuelCheck, toggleGps, toggleRide, toggleRideAction,
 });
+
+
+/* ══════════════════════════════════════════════════════
+   ▼▼▼ 自動テスト用ブリッジ（Playwright E2E から状態・関数を参照するため）▼▼▼
+   通常のアプリ動作には影響しない。テストは page.evaluate() 内で
+   isEdit / data / currentDay / render() などをグローバル名で参照するが、
+   ESモジュール化でこれらはモジュールスコープに閉じているため、
+   ここで window 上に getter/setter ブリッジを張る。
+   ・S.* の状態（isEdit等）は getter/setter で S に読み書きする
+   ・data は setData() 経由で差し替える（再代入バインディング制約のため）
+   ・const のコレクション（wxStopRes 等）は getter のみ（中身操作はそのまま効く）
+   ══════════════════════════════════════════════════════ */
+import { S, data as _stateData, setData, _dom } from './01-state.js';
+import { render, renderRide } from './07-render.js';
+import { toggleEdit } from './08-mode.js';
+import { ensureAllWeather, wxStopRes, wxQueue, wxQueueFast, wxQueueIds, geoCache } from './04-weather.js';
+import { nowMin } from './02-utils.js';
+import { _setDetailsOpen } from './11-overlays.js';
+
+// ── S.* 状態変数（読み書き両対応）──
+['isEdit','isRide','editingId','currentDay','manualCurrentId',
+ 'rideViewIdx','activeEditStopId','rideActionVisible'].forEach(key=>{
+  Object.defineProperty(window, key, {
+    configurable:true,
+    get(){ return S[key]; },
+    set(v){ S[key]=v; },
+  });
+});
+
+// ── data（再代入は setData 経由）──
+Object.defineProperty(window, 'data', {
+  configurable:true,
+  get(){ return _stateData; },
+  set(v){ setData(v); },
+});
+
+// ── 関数・コレクション類（読み取りのみ。中身の操作はそのまま反映される）──
+Object.assign(window, {
+  render, renderRide, toggleEdit, ensureAllWeather, nowMin,
+  _setDetailsOpen, _dom, setData,
+  wxStopRes, wxQueue, wxQueueFast, wxQueueIds, geoCache,
+});
+/* ▲▲▲ 自動テスト用ブリッジ ここまで ▲▲▲ */
