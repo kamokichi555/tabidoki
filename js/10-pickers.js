@@ -7,7 +7,7 @@
    ══════════════════════════════════════════════════════ */
 
 /* --- 自動生成: モジュール依存のインポート --- */
-import { debounce, esc, escJsAttr, fetchWithTimeout, mapsSearchUrl } from './02-utils.js';
+import { debounce, esc, escJsAttr } from './02-utils.js';
 import { _lsSetItem } from './04-weather.js';
 import { _updateStickyTops } from './06-day.js';
 import { _bindOverlayVp, _closeAllOverlays, _closeOverlay, _lowerHeaderForOverlay, _makeApplyVp, _setDetailsOpen, _setFuelCheck } from './11-overlays.js';
@@ -257,10 +257,14 @@ export function _readFacilityCache(key,ttlMs,minCount){
 }
 /* ── 共通: Overpass APIへPOST（120秒タイムアウト） → elements配列 ── */
 export async function _overpassFetch(body){
-  const resp=await fetchWithTimeout('https://overpass-api.de/api/interpreter',{method:'POST',body,credentials:'omit'},120000);
-  if(!resp.ok) throw new Error('HTTP '+resp.status);
-  const json=await resp.json();
-  return json.elements||[];
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),120000);
+  try{
+    const resp=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body,signal:ctrl.signal,credentials:'omit'});
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const json=await resp.json();
+    return json.elements||[];
+  }finally{ clearTimeout(timer); }
 }
 
 /* ── 共通: 施設選択ボトムシートを開く（高速/道の駅/GS共通） ──
@@ -296,54 +300,40 @@ export function _openPickerModal(cfg){
   setTimeout(()=>{const el=document.getElementById(id+'-search');if(el){el.focus();if(_q) el.select();}},100);
 }
 
-/* 施設オンライン取得の共通スケルトン（高速/道の駅）。cfg:
-   {isLoading, setLoading, searchId, filter, cacheKey, minCount, query, parseEls, merge, kind, failMsg}
-   ・キャッシュ確認(24h,minCount件)→Overpass取得→parseElsで整形→minCount超なら保存&マージ
-   ・loadingフラグのON/OFFと検索ボックス再描画(filter)はここで一元化 */
-async function _fetchFacilityOnline(cfg){
-  if(cfg.isLoading()) return;
-  cfg.setLoading(true);
-  const _refresh=()=>{const s=document.getElementById(cfg.searchId);if(s)cfg.filter();};
-  _refresh();
-  try{
-    const cached=_readFacilityCache(cfg.cacheKey,24*60*60*1000,cfg.minCount);
-    if(cached){cfg.merge(cached.d);return;}
-    const els=await _overpassFetch(cfg.query);
-    const result=cfg.parseEls(els);
-    if(result.length>cfg.minCount){
-      const json=JSON.stringify({d:result,t:Date.now()});if(json.length<600000)try{_lsSetItem(cfg.cacheKey,json);}catch(e){}
-      cfg.merge(result);
-    }
-  }catch(e){
-    console.log(cfg.failMsg,e?.message);
-    _dbgLog('facility_fetch_failed',{kind:cfg.kind,err:String(e&&e.message||e).slice(0,120)});
-  }finally{
-    cfg.setLoading(false);
-    const s=document.getElementById(cfg.searchId);if(s)cfg.filter();
-  }
-}
 export function _mergeHighwayData(online){
   HIGHWAY_DATA=_mergeFacilityData(HIGHWAY_FALLBACK,online);
 }
 
 export async function _fetchHighwayOnline(){
-  return _fetchFacilityOnline({
-    isLoading:()=>_highwayLoading, setLoading:v=>{_highwayLoading=v;},
-    searchId:'highway-search', filter:filterHighway,
-    cacheKey:'highway_online_v1', minCount:30,
-    query:`[out:json][timeout:100];\nnwr["highway"="services"]["name"~"SA|PA|サービスエリア|パーキングエリア|オアシス|EXPASA|NEOPASA"](24,122,46,155);\nout center tags;`,
-    parseEls:els=>{
-      const result=[];const seen=new Set();
-      for(const el of els){
-        const name=(el.tags?.name||'').trim();
-        if(!name||seen.has(name)) continue;
-        seen.add(name);
-        result.push([name,_extractAddr(el.tags)]);
-      }
-      return result;
-    },
-    merge:_mergeHighwayData, kind:'highway', failMsg:'高速施設オンライン取得失敗（フォールバック使用）:'
-  });
+  if(_highwayLoading) return;
+  _highwayLoading=true;
+  const _refresh=()=>{const s=document.getElementById('highway-search');if(s)filterHighway();};
+  _refresh();
+  try{
+    const CACHE_KEY='highway_online_v1';
+    const cached=_readFacilityCache(CACHE_KEY,24*60*60*1000,30);
+    if(cached){_mergeHighwayData(cached.d);return;}
+    // Overpass APIで高速道路SA/PA取得
+    const els=await _overpassFetch(`[out:json][timeout:100];\nnwr["highway"="services"]["name"~"SA|PA|サービスエリア|パーキングエリア|オアシス|EXPASA|NEOPASA"](24,122,46,155);\nout center tags;`);
+    const result=[];
+    const seen=new Set();
+    for(const el of els){
+      const name=(el.tags?.name||'').trim();
+      if(!name||seen.has(name)) continue;
+      seen.add(name);
+      result.push([name,_extractAddr(el.tags)]);
+    }
+    if(result.length>30){
+      const _hwJson=JSON.stringify({d:result,t:Date.now()});if(_hwJson.length<600000)try{_lsSetItem(CACHE_KEY,_hwJson);}catch(e){}
+      _mergeHighwayData(result);
+    }
+  }catch(e){
+    console.log('高速施設オンライン取得失敗（フォールバック使用）:',e?.message);
+    _dbgLog('facility_fetch_failed',{kind:'highway',err:String(e&&e.message||e).slice(0,120)});
+  }finally{
+    _highwayLoading=false;
+    const s=document.getElementById('highway-search');if(s)filterHighway();
+  }
 }
 
 (function _initHighwayData(){
@@ -374,42 +364,19 @@ export function filterHighway(){
 }
 /* キーストロークごとの全件再描画を防ぐためdebounce（モーダルopen時・データ到着時は即時のfilterHighwayを使用） */
 export const filterHighwayDebounced=debounce(filterHighway,140);
-/* 空状態の共通スニペット（高速/道の駅で同一） */
-const _PICKER_EMPTY_HTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:14px">見つかりません</div>';
-/* 施設リスト共通描画（高速/道の駅）。cfg:
-   {listId, getData, isLoading, labelPrefix, selectFn, loadingMode:'top'|'footer'}
-   ・loadingMode 'top'  … 取得中を上部ステータスで表示し件数footerは常設（高速）
-   ・loadingMode 'footer'… 取得中をfooter差し替えで表示（道の駅） */
-function _renderFacilityList(cfg,q){
-  const list=document.getElementById(cfg.listId);
+export function renderHighwayList(q){
+  const list=document.getElementById('highway-list');
   if(!list) return;
-  const data=cfg.getData();
-  const filtered=q?data.filter(m=>m[0].includes(q)||m[1].includes(q)):data;
-  if(!filtered.length){list.innerHTML=_PICKER_EMPTY_HTML;return;}
-  const loading=cfg.isLoading();
+  const filtered=q?HIGHWAY_DATA.filter(m=>m[0].includes(q)||m[1].includes(q)):HIGHWAY_DATA;
+  if(!filtered.length){list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:14px">見つかりません</div>';return;}
+  const status=_highwayLoading?'<div style="padding:6px 16px;font-size:11px;color:var(--text3)">🌐 最新データ取得中…</div>':'';
   const shown=filtered.length>PICKER_CAP?filtered.slice(0,PICKER_CAP):filtered;
   const capNote=filtered.length>PICKER_CAP?`<div style="padding:10px 16px;font-size:12px;color:var(--text3);text-align:center;border-top:1px solid var(--border)">他 ${filtered.length-PICKER_CAP} 件… 検索で絞り込んでください</div>`:'';
-  const countFooter=`<div style="padding:7px 16px;font-size:11px;color:var(--text3);text-align:right;border-top:1px solid var(--border)">${data.length}件</div>`;
-  const status=(cfg.loadingMode==='top'&&loading)?'<div style="padding:6px 16px;font-size:11px;color:var(--text3)">🌐 最新データ取得中…</div>':'';
-  const footer=(cfg.loadingMode==='footer'&&loading)
-    ?'<div style="padding:10px 16px;font-size:12px;color:var(--text3);text-align:center;border-top:1px solid var(--border)">🌐 最新データを取得中…</div>'
-    :countFooter;
-  const rows=shown.map(m=>`<div onclick="${cfg.selectFn}('${escJsAttr(m[0])}','${escJsAttr(m[1])}','${cfg.labelPrefix}${escJsAttr(m[0])}')" style="padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer">
-    <div style="font-weight:700;font-size:15px;color:var(--text)">${cfg.labelPrefix}${esc(m[0])}</div>
+  const footer=`<div style="padding:7px 16px;font-size:11px;color:var(--text3);text-align:right;border-top:1px solid var(--border)">${HIGHWAY_DATA.length}件</div>`;
+  list.innerHTML=status+shown.map(m=>`<div onclick="selectHighway('${escJsAttr(m[0])}','${escJsAttr(m[1])}','${escJsAttr(m[0])}')" style="padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer">
+    <div style="font-weight:700;font-size:15px;color:var(--text)">${esc(m[0])}</div>
     <div style="font-size:12px;color:var(--text3);margin-top:2px">${esc(m[1])}</div>
-  </div>`).join('');
-  list.innerHTML=status+rows+capNote+footer;
-}
-export function renderHighwayList(q){
-  _renderFacilityList({listId:'highway-list',getData:()=>HIGHWAY_DATA,isLoading:()=>_highwayLoading,labelPrefix:'',selectFn:'selectHighway',loadingMode:'top'},q);
-}
-/* 施設選択後の共通後処理: オーバーレイ閉じ→キーボード閉じ→入力ビュー先頭へ */
-function _afterFacilityPick(overlayId){
-  _closeOverlay(overlayId); // visualViewport リスナーリーク防止
-  document.activeElement?.blur(); // キーボードを閉じる
-  setTimeout(()=>{
-    document.getElementById('normal-view')?.scrollTo({top:0,behavior:'instant'});
-  },50);
+  </div>`).join('')+capNote+footer;
 }
 export function selectHighway(name,addr,fullName){
   _dbgLog('selectHighway',{name:String(fullName||name).slice(0,40),addr:String(addr||'').slice(0,40)});
@@ -418,7 +385,11 @@ export function selectHighway(name,addr,fullName){
   if(ni) ni.value=fullName;
   if(ai) ai.value=addr;
   if(addr) _setDetailsOpen(true);
-  _afterFacilityPick('highway-overlay');
+  _closeOverlay('highway-overlay'); // visualViewport リスナーリーク防止
+  document.activeElement?.blur(); // キーボードを閉じる
+  setTimeout(()=>{
+    document.getElementById('normal-view')?.scrollTo({top:0,behavior:'instant'});
+  },50);
 }
 
 /* ══ 道の駅選択モーダル ══ */
@@ -661,27 +632,42 @@ export function _mergeMichiData(online){
 }
 
 export async function _fetchMichiOnline(){
-  return _fetchFacilityOnline({
-    isLoading:()=>_michiLoading, setLoading:v=>{_michiLoading=v;},
-    searchId:'michi-search', filter:filterMichi,
-    cacheKey:'michi_online_v2', minCount:100,
-    query:`[out:json][timeout:100];
+  if(_michiLoading) return;
+  _michiLoading = true;
+  // モーダルが開いていれば「取得中」表示を更新
+  const _refreshModal = ()=>{const s=document.getElementById('michi-search');if(s)filterMichi();};
+  _refreshModal();
+  try{
+    const CACHE_KEY='michi_online_v2';
+    // キャッシュ確認（24時間有効）
+    const cached=_readFacilityCache(CACHE_KEY,24*60*60*1000,100);
+    if(cached){_mergeMichiData(cached.d);return;}
+    // Overpass API で全国道の駅取得
+    const els=await _overpassFetch(`[out:json][timeout:100];
 nwr["name"~"^道の駅"](24,122,46,155);
-out center tags;`,
-    parseEls:els=>{
-      const result=[];const seen=new Set();
-      for(const el of els){
-        const fullName=el.tags?.name||'';
-        if(!fullName.startsWith('道の駅')) continue;
-        const shortName=fullName.replace(/^道の駅[\s　]*/,'').trim();
-        if(!shortName||seen.has(shortName)) continue;
-        seen.add(shortName);
-        result.push([shortName,_extractAddr(el.tags)]);
-      }
-      return result;
-    },
-    merge:_mergeMichiData, kind:'michi', failMsg:'道の駅一覧オンライン取得失敗（フォールバック使用）:'
-  });
+out center tags;`);
+    const result=[];
+    const seen=new Set();
+    for(const el of els){
+      const fullName=el.tags?.name||'';
+      if(!fullName.startsWith('道の駅')) continue;
+      const shortName=fullName.replace(/^道の駅[\s　]*/,'').trim();
+      if(!shortName||seen.has(shortName)) continue;
+      seen.add(shortName);
+      result.push([shortName,_extractAddr(el.tags)]);
+    }
+    if(result.length>100){
+      const _mcJson=JSON.stringify({d:result,t:Date.now()});if(_mcJson.length<600000)try{_lsSetItem('michi_online_v2',_mcJson);}catch(e){}
+      _mergeMichiData(result);
+    }
+  }catch(e){
+    console.log('道の駅一覧オンライン取得失敗（フォールバック使用）:',e?.message);
+    _dbgLog('facility_fetch_failed',{kind:'michi',err:String(e&&e.message||e).slice(0,120)});
+  }finally{
+    _michiLoading=false;
+    // モーダルが開いていれば一覧を更新
+    const s=document.getElementById('michi-search');if(s)filterMichi();
+  }
 }
 
 // キャッシュがあれば即時反映、なければバックグラウンド取得
@@ -715,7 +701,19 @@ export function filterMichi(){
 /* キーストロークごとの全件再描画を防ぐためdebounce */
 export const filterMichiDebounced=debounce(filterMichi,140);
 export function renderMichiList(q){
-  _renderFacilityList({listId:'michi-list',getData:()=>MICHI_NO_EKI,isLoading:()=>_michiLoading,labelPrefix:'道の駅 ',selectFn:'selectMichi',loadingMode:'footer'},q);
+  const list=document.getElementById('michi-list');
+  if(!list) return;
+  const filtered=q?MICHI_NO_EKI.filter(m=>m[0].includes(q)||m[1].includes(q)):MICHI_NO_EKI;
+  if(!filtered.length){list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:14px">見つかりません</div>';return;}
+  const shown=filtered.length>PICKER_CAP?filtered.slice(0,PICKER_CAP):filtered;
+  const capNote=filtered.length>PICKER_CAP?`<div style="padding:10px 16px;font-size:12px;color:var(--text3);text-align:center;border-top:1px solid var(--border)">他 ${filtered.length-PICKER_CAP} 件… 検索で絞り込んでください</div>`:'';
+  const footer=_michiLoading
+    ?'<div style="padding:10px 16px;font-size:12px;color:var(--text3);text-align:center;border-top:1px solid var(--border)">🌐 最新データを取得中…</div>'
+    :`<div style="padding:7px 16px;font-size:11px;color:var(--text3);text-align:right;border-top:1px solid var(--border)">${MICHI_NO_EKI.length}件</div>`;
+  list.innerHTML=shown.map(m=>`<div onclick="selectMichi('${escJsAttr(m[0])}','${escJsAttr(m[1])}','道の駅 ${escJsAttr(m[0])}')" style="padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer">
+    <div style="font-weight:700;font-size:15px;color:var(--text)">道の駅 ${esc(m[0])}</div>
+    <div style="font-size:12px;color:var(--text3);margin-top:2px">${esc(m[1])}</div>
+  </div>`).join('')+capNote+footer;
 }
 export function selectMichi(name,addr,fullName){
   _dbgLog('selectMichi',{name:String(fullName||name).slice(0,40),addr:String(addr||'').slice(0,40)});
@@ -724,7 +722,11 @@ export function selectMichi(name,addr,fullName){
   if(ni) ni.value=fullName;
   if(ai) ai.value=addr;
   if(addr) _setDetailsOpen(true);
-  _afterFacilityPick('michi-overlay');
+  _closeOverlay('michi-overlay'); // visualViewport リスナーリーク防止
+  document.activeElement?.blur(); // キーボードを閉じる
+  setTimeout(()=>{
+    document.getElementById('normal-view')?.scrollTo({top:0,behavior:'instant'});
+  },50);
 }
 
 /* ══ ガソリンスタンド選択 ══ */
@@ -764,7 +766,7 @@ export function renderGasStationList(q){
   const list=document.getElementById('gs-list');
   if(!list) return;
   const filtered=q?GAS_STATION_CHAINS.filter(g=>g[0].includes(q)||g[1].includes(q)):GAS_STATION_CHAINS;
-  if(!filtered.length){list.innerHTML=_PICKER_EMPTY_HTML;return;}
+  if(!filtered.length){list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:14px">見つかりません</div>';return;}
   list.innerHTML=filtered.map(g=>`<div onclick="selectGasStation('${escJsAttr(g[0])}')" style="padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer">
     <div style="font-weight:700;font-size:15px;color:var(--text)">⛽ ${esc(g[0])}</div>
     <div style="font-size:12px;color:var(--text3);margin-top:2px">${esc(g[1])}</div>
@@ -775,19 +777,23 @@ export function selectGasStation(chain){
   const ni=document.getElementById('inp-name');
   if(ni) ni.value=chain+' SS';
   _setFuelCheck(true);
-  _afterFacilityPick('gs-overlay');
+  _closeOverlay('gs-overlay'); // visualViewport リスナーリーク防止
+  document.activeElement?.blur(); // キーボードを閉じる
+  setTimeout(()=>{
+    document.getElementById('normal-view')?.scrollTo({top:0,behavior:'instant'});
+  },50);
 }
 
 /* ══ 近くの快活CLUB検索（Googleマップ直接遷移） ══ */
 export function openKaikatsu(){
   _dbgLog('openKaikatsu',{});
-  window.open(mapsSearchUrl('快活CLUB'),'_blank','noopener');
+  window.open('https://maps.google.com/?q=快活CLUB','_blank','noopener');
 }
 
 
 /* ══ 近くのトイレ検索（Googleマップ直接遷移） ══ */
 export function openToiletMap(){
   _dbgLog('openToiletMap',{});
-  window.open(mapsSearchUrl('トイレ'),'_blank','noopener');
+  window.open('https://maps.google.com/?q=トイレ','_blank','noopener');
 }
 

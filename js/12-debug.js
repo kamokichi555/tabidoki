@@ -9,7 +9,6 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { S, data } from './01-state.js';
 import { EC } from './00-constants.js';
-import { lsGet, lsSet } from './02-utils.js';
 import { showAppError, showInfoToast } from './07-render.js';
 /* ══ デバッグログ機構 ══ */
 export const DBG_KEY='dbg_log_v1';
@@ -27,7 +26,7 @@ export function _dbgPersistSchedule(){
   _dbgPersistTimer=setTimeout(()=>{
     _dbgPersistTimer=null;
     if(_dbgDirty){
-      lsSet(DBG_KEY,JSON.stringify({buf:_dbgBuf,err:_dbgErrCount}));
+      try{localStorage.setItem(DBG_KEY,JSON.stringify({buf:_dbgBuf,err:_dbgErrCount}));}catch(e){}
       _dbgDirty=false;
     }
   },3000);
@@ -122,7 +121,7 @@ export function _dbgClear(){
 
 export function _dbgSetEnabled(on){
   _dbgEnabled=!!on;
-  lsSet(DBG_ENABLED_KEY,on?'1':'0');
+  try{localStorage.setItem(DBG_ENABLED_KEY,on?'1':'0');}catch(e){}
   if(on){
     _dbgLog('debug_enabled', _dbgSnapshot);
   }else{
@@ -154,9 +153,9 @@ export function _dbgRefreshSettings(){
 }
 
 export function _dbgInit(){
-  _dbgEnabled=lsGet(DBG_ENABLED_KEY)==='1';
+  try{_dbgEnabled=localStorage.getItem(DBG_ENABLED_KEY)==='1';}catch(e){}
   try{
-    const raw=lsGet(DBG_KEY);
+    const raw=localStorage.getItem(DBG_KEY);
     if(raw){const obj=JSON.parse(raw);_dbgBuf=Array.isArray(obj?.buf)?obj.buf:[];_dbgErrCount=obj?.err|0;}
   }catch(e){_dbgBuf=[];_dbgErrCount=0;}
   // クリックを全部拾う
@@ -202,7 +201,7 @@ export function _dbgInit(){
   }catch(e){}
   // ページ離脱前に永続化（beforeunload=デスクトップ、pagehide=iOS Safari対応）
   function _dbgFlush(){
-    if(_dbgDirty){lsSet(DBG_KEY,JSON.stringify({buf:_dbgBuf,err:_dbgErrCount}));}
+    if(_dbgDirty){try{localStorage.setItem(DBG_KEY,JSON.stringify({buf:_dbgBuf,err:_dbgErrCount}));}catch(e){}}
   }
   window.addEventListener('beforeunload',_dbgFlush);
   window.addEventListener('pagehide',_dbgFlush);

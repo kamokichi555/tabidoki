@@ -10,7 +10,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { EC } from './00-constants.js';
 import { S, _dom, data } from './01-state.js';
-import { lsGet, lsSet, stayDur } from './02-utils.js';
+import { stayDur } from './02-utils.js';
 import { ensureDayWeather } from './04-weather.js';
 import { _flushRouteSave, _syncTitleInput, _updateStickyTops, currentDayFlat, currentDayIdxOf, renderTabs, stops } from './06-day.js';
 import { _lastClockTs, _resetClockTs, render, renderRide, showAppError, updateClock } from './07-render.js';
@@ -30,7 +30,8 @@ export function _applyTheme(day){
   updateClock();
 }
 export function _initTheme(){
-  const saved=lsGet('touring_theme');
+  let saved=null;
+  try{saved=localStorage.getItem('touring_theme');}catch(e){}
   if(saved){_themeManual=true;_applyTheme(saved==='day');}
   else{_applyTheme(_isDayTime());}
 }
@@ -38,7 +39,7 @@ export function _toggleTheme(){
   const isDay=document.body.classList.contains('day-mode');
   _themeManual=true;
   _applyTheme(!isDay);
-  lsSet('touring_theme',!isDay?'day':'night');
+  try{localStorage.setItem('touring_theme',!isDay?'day':'night');}catch(e){}
 }
 setInterval(()=>{if(!_themeManual)_applyTheme(_isDayTime());},60000);
 export function toggleRide(){

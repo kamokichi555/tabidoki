@@ -9,7 +9,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { S, data } from './01-state.js';
 import { SK, WMO } from './00-constants.js';
-import { buildGeoTargets, fetchWithTimeout, hasCachedCoords, pClass } from './02-utils.js';
+import { buildGeoTargets, hasCachedCoords, pClass } from './02-utils.js';
 import { currentDayFlat } from './06-day.js';
 import { renderRide, showInfoToast, updateClock } from './07-render.js';
 import { _dbgLog } from './12-debug.js';
@@ -219,8 +219,11 @@ export function _wttrToWmo(c){
 
 /* ── wttr.in フォールバックフェッチ ── */
 export async function _fetchWttr(lat,lon,date,arrHour){
+  const ctrl=new AbortController();
+  const t=setTimeout(()=>ctrl.abort(),8000);
   try{
-    const r=await fetchWithTimeout(`https://wttr.in/${lat},${lon}?format=j1`,{credentials:'omit'},8000);
+    const r=await fetch(`https://wttr.in/${lat},${lon}?format=j1`,{signal:ctrl.signal,credentials:'omit'});
+    clearTimeout(t);
     if(!r.ok) return null;
     const j=await r.json();
     const dayData=j?.weather?.find(w=>w.date===date)??j?.weather?.[0];
@@ -245,7 +248,7 @@ export async function _fetchWttr(lat,lon,date,arrHour){
         precip=Math.max(...dayData.hourly.map(h=>parseInt(h.chanceofrain??0)));
     }
     return{wcode,temp,tmax:isNaN(tmax)?null:tmax,tmin:isNaN(tmin)?null:tmin,precip,time:Date.now()};
-  }catch(e){return null;}
+  }catch(e){clearTimeout(t);return null;}
 }
 
 /* ── 予報フェッチ（Open-Meteoはレート制限なし） ── */
@@ -260,6 +263,8 @@ export async function _fetchForecast(stop,lat,lon,date){
     return;
   }
   const doReq=async(model)=>{
+    const ctrl=new AbortController();
+    const t=setTimeout(()=>ctrl.abort(),8000);
     let u;
     if(useHourly){
       u=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
@@ -273,8 +278,8 @@ export async function _fetchForecast(stop,lat,lon,date){
         +`&timezone=Asia%2FTokyo&start_date=${date}&end_date=${date}`
         +(model?`&models=${model}`:'');
     }
-    const r=await fetchWithTimeout(u,{mode:'cors',credentials:'omit'},8000);
-    if(!r.ok)throw new Error(r.status);return r.json();
+    const r=await fetch(u,{signal:ctrl.signal,mode:'cors',credentials:'omit'});
+    clearTimeout(t);if(!r.ok)throw new Error(r.status);return r.json();
   };
   // wttr.in フォールバック呼び出し用ヘルパー（1リクエスト保証）
   let _wttrPromise=null;
@@ -351,11 +356,14 @@ export async function _fetchForecast(stop,lat,lon,date){
 /* ── ジオコーディング（国土地理院→Nominatim フォールバック） ── */
 export async function _geocodeGSI(q){
   // 国土地理院 住所検索API（日本住所専用・CORS完全対応・APIキー不要）
+  const ctrl=new AbortController();
+  const t=setTimeout(()=>ctrl.abort(),6000);
   try{
-    const r=await fetchWithTimeout(
+    const r=await fetch(
       `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(q)}`,
-      {},6000
+      {signal:ctrl.signal}
     );
+    clearTimeout(t);
     if(r.ok){
       const j=await r.json();
       if(j&&j.length>0){
@@ -365,20 +373,23 @@ export async function _geocodeGSI(q){
         if(!isNaN(lat)&&!isNaN(lon)) return {lat,lon};
       }
     }
-  }catch(e){}
+  }catch(e){clearTimeout(t);}
   return null;
 }
 export async function _geocodeNominatim(q){
+  const ctrl=new AbortController();
+  const t=setTimeout(()=>ctrl.abort(),6000);
   try{
-    const r=await fetchWithTimeout(
+    const r=await fetch(
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=jp&accept-language=ja`,
-      {credentials:'omit'},6000
+      {signal:ctrl.signal,credentials:'omit'}
     );
+    clearTimeout(t);
     if(r.ok){
       const j=await r.json();
       if(j&&j.length>0) return {lat:parseFloat(j[0].lat),lon:parseFloat(j[0].lon)};
     }
-  }catch(e){}
+  }catch(e){clearTimeout(t);}
   return null;
 }
 
@@ -443,7 +454,7 @@ export async function doFetchStop(stop,date){
   const name=(stop.name||"").trim();
   if(!addr&&!name){if(_stopStillValid(stop))wxStopRes[stop.id]={error:true,date,time:Date.now()};return;}
   // 今日の日付（diff計算の基準）
-  const todayStr=_isoToday();
+  const todayStr=(d=>{return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");})(new Date());
   const diff=Math.round((new Date(date+"T12:00:00")-new Date(todayStr+"T12:00:00"))/86400000);
   if(diff<0){if(_stopStillValid(stop))wxStopRes[stop.id]={isPast:true,date,time:Date.now()};return;}     // 過去日付は取得しない
   if(diff>15){if(_stopStillValid(stop))wxStopRes[stop.id]={outOfRange:true,date,time:Date.now()};return;} // 16日先以降は予報期間外
