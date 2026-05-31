@@ -10,7 +10,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { EC, EC_MSG } from './00-constants.js';
 import { S, _dom, data } from './01-state.js';
-import { actDiffHtml, esc, escJsAttr, fmtHM, isTimeOrderOk, moveDur, moveDurLevel, moveDurRide, nowMin, stayDur, toMin, wrapDiff } from './02-utils.js';
+import { actDiffHtml, esc, escJsAttr, fmtHM, isTimeOrderOk, mdw, moveDur, moveDurLevel, moveDurRide, nowMin, stayDur, toMin, wrapDiff } from './02-utils.js';
 import { _isoToday, enqueueStop, ensureDayWeather, rideWxCompact, stopWxInner } from './04-weather.js';
 import { getStatus } from './05-stop.js';
 import { _getCdi, _updateRecordBtn, currentDayFlat, stops, switchDay } from './06-day.js';
@@ -217,8 +217,7 @@ export function renderRide(){
     const ns=flat[ni];
     const _mdr=moveDurRide(vs.dep,ns.arr);
     let cd='';
-    if(isCurr){const am=toMin(ns.arr);if(am!==null){let diff=am-nowMin();if(diff<-720)diff+=1440;if(diff>720)diff-=1440; // 深夜またぎ補正
-if(diff>0){const hh=Math.floor(diff/60),mm=diff%60;cd=hh>0&&mm>0?`あと ${hh}時間${mm}分`:hh>0?`あと ${hh}時間`:`あと ${mm}分`;}else if(diff>-30)cd='まもなく到着';}}
+    if(isCurr){const am=toMin(ns.arr);if(am!==null){let diff=wrapDiff(am-nowMin());if(diff>0){const hh=Math.floor(diff/60),mm=diff%60;cd=hh>0&&mm>0?`あと ${hh}時間${mm}分`:hh>0?`あと ${hh}時間`:`あと ${mm}分`;}else if(diff>-30)cd='まもなく到着';}}
     h+=`${_mdr?`<div class="ride-move-dur${_mdr.level>=0?' lv'+_mdr.level:''}">→ 次まで ${_mdr.html}</div>`:''}`;
     h+=`<div class="ride-card">
       <div class="ride-tag">↓ 次の目的地${cd?`<span style="margin-left:8px;color:var(--green);font-size:15px">${cd}</span>`:''}<span id="ride-next-dist" class="ride-next-dist"></span></div>
@@ -375,8 +374,7 @@ export function provisionalDateBanner(dayIdx){
   const day=data.days[dayIdx];
   if(!day||day.date) return '';
   const pd=new Date();pd.setDate(pd.getDate()+dayIdx);
-  const w=['日','月','火','水','木','金','土'][pd.getDay()];
-  const ds=`${pd.getMonth()+1}/${pd.getDate()}(${w})`;
+  const ds=mdw(pd);
   const _s='margin:0 0 14px;padding:8px 12px;background:var(--amber-bg);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--r,12px);color:var(--text2);font-size:16px;line-height:1.5';
   return `<div class="provisional-date-note" style="${_s}">📅 日付未設定のため <b style="color:var(--amber);font-weight:700">${ds}</b> の予報を表示しています</div>`;
 }

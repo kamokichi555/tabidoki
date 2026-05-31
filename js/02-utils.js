@@ -55,6 +55,13 @@ export function fmtHM(min,opt){
 }
 /* ── 共通: 深夜またぎ補正（±12時間を超える差を1日分巻き戻す） ── */
 export function wrapDiff(d){if(d<-720)d+=1440;if(d>720)d-=1440;return d;}
+/* ── 共通: 曜日・日付整形（WEEK配列とフォーマット重複を1箇所に集約） ──
+   parseISODate: "YYYY-MM-DD" を正午のDateへ（不正・空は null）。
+   mdw  : Date → "M/D(曜)"。  ymdw: Date → "YYYY年M月D日(曜)"。 */
+export const WEEK=['日','月','火','水','木','金','土'];
+export function parseISODate(iso){if(!iso)return null;const d=new Date(iso+'T12:00:00');return isNaN(d.getTime())?null:d;}
+export function mdw(d){return `${d.getMonth()+1}/${d.getDate()}(${WEEK[d.getDay()]})`;}
+export function ymdw(d){return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日(${WEEK[d.getDay()]})`;}
 export function stayDur(arr,dep){const a=toMin(arr),d=toMin(dep);if(a===null||d===null)return'';const diff=d-a;if(diff<=0)return'';return fmtHM(diff,{paren:true});}
 export function actDiff(plan,actual){const p=toMin(plan),a=toMin(actual);if(p===null||a===null)return null;return wrapDiff(a-p);}
 export function actDiffHtml(plan,actual){const d=actDiff(plan,actual);if(d===null)return'';const str=fmtHM(Math.abs(d));if(d===0)return`<span class="stop-act-diff ontime">定刻</span>`;if(d>0)return`<span class="stop-act-diff late">+${str}</span>`;return`<span class="stop-act-diff early">-${str}</span>`;}

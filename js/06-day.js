@@ -10,7 +10,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { EC, LIMIT } from './00-constants.js';
 import { S, _canEditData, _dom, data } from './01-state.js';
-import { debounce, isSafeUrl, sanitize } from './02-utils.js';
+import { debounce, isSafeUrl, mdw, parseISODate, sanitize } from './02-utils.js';
 import { save } from './03-storage.js';
 import { wxQueueIds, wxStopRes } from './04-weather.js';
 import { render, showAppError, showInfoToast, showUrlError } from './07-render.js';
@@ -21,8 +21,8 @@ export function stops(){return data.days[S.currentDay].stops;}
 export function dayTabLabel(day,idx){
   const n=idx+1;
   if(!day.stops||!day.stops.length) return `${n}日目\n未設定`;
-  if(day.date){try{const d=new Date(day.date+'T12:00:00');if(isNaN(d.getTime()))return `${n}日目\n未設定`;const m=d.getMonth()+1,dd=d.getDate();const w=['日','月','火','水','木','金','土'][d.getDay()];return `${n}日目\n${m}/${dd}(${w})`;}catch(e){}}
-  return `${n}日目\n未設定`;
+  const d=parseISODate(day.date);
+  return d?`${n}日目\n${mdw(d)}`:`${n}日目\n未設定`;
 }
 
 // 走行モード用：現在タブの地点のみ

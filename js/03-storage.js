@@ -10,7 +10,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { DEFAULT, EC, LIMIT, SK } from './00-constants.js';
 import { S, _canEditData, _dom, data, setData } from './01-state.js';
-import { IS_IOS, _migrateData, _resolveCurrentStopId, _sanitizeImportedData, actDiff, stayDur } from './02-utils.js';
+import { IS_IOS, WEEK, _migrateData, _resolveCurrentStopId, _sanitizeImportedData, actDiff, fmtHM, mdw, parseISODate, stayDur, ymdw } from './02-utils.js';
 import { _bumpWxGen, _lsSetItem, wxGen, wxQueue, wxQueueFast, wxQueueIds, wxStopRes } from './04-weather.js';
 import { _cachedCdiForId, _flushTitle, _invalidateCdi, _scrollNormalViewToFirstStop, _syncTitleInput, renderTabs } from './06-day.js';
 import { _lastClockTs, _resetClockTs, hideInfoToast, render, showAppError, showInfoToast, updateClock } from './07-render.js';
@@ -41,11 +41,10 @@ export function save(){
 export function shareItinerary(){
   _closeAllOverlays();
   _flushTitle(); // 入力中のツーリング名を確定してから共有文を生成
-  const WEEK=['日','月','火','水','木','金','土'];
   const fmtDate=iso=>{
     if(!iso) return '日付未設定';
-    try{const d=new Date(iso+'T12:00:00');if(isNaN(d.getTime()))return iso;return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日(${WEEK[d.getDay()]})`;}
-    catch(e){return iso;}
+    const d=parseISODate(iso);
+    return d?ymdw(d):iso; // パース不能なら原文を返す（従来挙動）
   };
   const lines=[];
   const title=data.title||'ツーリング行程';
@@ -70,32 +69,85 @@ export function shareItinerary(){
   lines.push('───────────────────────');
   lines.push(`  旅刻 / Powered by 鴨吉`);
   const text=lines.join('\n');
-  // Web Share APIは使わず常に自前モーダルで全文表示
+  // Web Share APIは使わず常に自前モーダルで全文表示（共有・書き出しと同じ _openTextModal を使用）
+  _openTextModal({id:'share-overlay',title:'📋 行程テキスト',text,
+    hint:'💡 LINEやメモに貼り付けてバックアップにも',allowShare:false});
+}
+
+/* ── 共通: テキスト全文表示モーダル（行程共有・走行記録書き出しで共用） ──
+   全文を <pre>.textContent で表示（innerHTML不使用＝XSS安全）。
+   📋コピー: navigator.clipboard、失敗時は選択範囲フォールバック。
+   opt.allowShare && navigator.share 対応時のみ 📤共有ボタンを出し、
+   ファイル共有可ならファイルで、不可・失敗時は本文テキストで共有シートへ。
+   opt: {id, title, text, hint?, allowShare?, filename?, mime?} */
+export function _openTextModal(opt){
+  _closeAllOverlays();
   const ov=document.createElement('div');
-  ov.id='share-overlay';
+  ov.id=opt.id;
   Object.assign(ov.style,{position:'fixed',inset:'0',zIndex:'999999',background:'rgba(0,0,0,.82)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'});
+  const canShare=!!opt.allowShare&&typeof navigator!=='undefined'&&typeof navigator.share==='function';
   ov.innerHTML=`<div style="background:var(--bg2);border:1.5px solid var(--border2);border-radius:16px;padding:20px;width:100%;max-width:440px;max-height:92dvh;display:flex;flex-direction:column;gap:12px">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
-      <span style="font-weight:700;font-size:16px">📋 行程テキスト</span>
-      <button onclick="_closeOverlay('share-overlay')" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3)">✕</button>
+      <span style="font-weight:700;font-size:16px">${opt.title}</span>
+      <button id="${opt.id}-close" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3)">✕</button>
     </div>
     <div style="overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch">
-      <pre id="share-text" style="margin:0;white-space:pre-wrap;word-break:break-word;background:var(--bg3);border:1.5px solid var(--border2);border-radius:10px;color:var(--text2);font-size:14px;line-height:1.8;padding:12px;font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif"></pre>
+      <pre id="${opt.id}-text" style="margin:0;white-space:pre-wrap;word-break:break-word;background:var(--bg3);border:1.5px solid var(--border2);border-radius:10px;color:var(--text2);font-size:14px;line-height:1.8;padding:12px;font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif"></pre>
     </div>
-    <button id="share-copy-btn" onclick="(async()=>{try{await navigator.clipboard.writeText(document.getElementById('share-text').textContent);const b=document.getElementById('share-copy-btn');b.textContent='✅ コピーしました';b.style.background='var(--green)';b.style.color='#000';setTimeout(()=>{_closeOverlay('share-overlay');},1200);}catch(e){const r=document.createRange();r.selectNode(document.getElementById('share-text'));window.getSelection().removeAllRanges();window.getSelection().addRange(r);}})()\" style="width:100%;justify-content:center;padding:13px;font-size:16px;flex-shrink:0">📋 クリップボードにコピー</button>
-    <div style="font-size:12px;color:var(--text3);text-align:center;flex-shrink:0">💡 LINEやメモに貼り付けてバックアップにも</div>
+    <button id="${opt.id}-copy" style="width:100%;justify-content:center;padding:13px;font-size:16px;flex-shrink:0">📋 クリップボードにコピー</button>
+    ${canShare?`<button id="${opt.id}-share" style="width:100%;justify-content:center;padding:13px;font-size:16px;flex-shrink:0;background:var(--bg3)">📤 共有 / ファイルに保存</button>`:''}
+    <div style="font-size:12px;color:var(--text3);text-align:center;flex-shrink:0">${opt.hint||''}</div>
   </div>`;
-  // 背景タップで閉じる
-  ov.addEventListener('click',e=>{if(e.target===ov) _closeOverlay('share-overlay');});
+  ov.addEventListener('click',e=>{if(e.target===ov) _closeOverlay(opt.id);}); // 背景タップで閉じる
   _lowerHeaderForOverlay();document.body.appendChild(ov);
-  document.getElementById('share-text').textContent=text;
+  const pre=document.getElementById(opt.id+'-text');
+  pre.textContent=opt.text;
+  const closeBtn=document.getElementById(opt.id+'-close');
+  if(closeBtn) closeBtn.onclick=()=>_closeOverlay(opt.id);
+
+  // 📋コピー（clipboard→失敗時は選択範囲フォールバック）
+  const copyBtn=document.getElementById(opt.id+'-copy');
+  if(copyBtn) copyBtn.onclick=async()=>{
+    try{
+      await navigator.clipboard.writeText(pre.textContent);
+      copyBtn.textContent='✅ コピーしました';
+      copyBtn.style.background='var(--green)';copyBtn.style.color='#000';
+      setTimeout(()=>_closeOverlay(opt.id),1200);
+    }catch(e){
+      const r=document.createRange();r.selectNode(pre);
+      window.getSelection().removeAllRanges();window.getSelection().addRange(r);
+    }
+  };
+
+  // 📤共有（allowShare かつ対応端末のみ）。ファイル共有可ならファイルで、不可・失敗時は本文テキストへ。
+  const shareBtn=canShare?document.getElementById(opt.id+'-share'):null;
+  if(shareBtn) shareBtn.onclick=async()=>{
+    // MIMEは呼び出し元(blobType)を使い拡張子と不一致にしない（例: .json を text/plain で渡すとiOSが無言でrejectする）
+    const tryFileShare=async()=>{
+      const type=opt.mime||'text/plain';
+      let file;
+      try{ file=new File([opt.text],opt.filename||'旅刻_記録.txt',{type}); }catch(e){ return false; }
+      if(!(navigator.canShare&&navigator.canShare({files:[file]}))) return false;
+      await navigator.share({files:[file],title:opt.filename||'旅刻'});
+      return true;
+    };
+    try{
+      const ok=await tryFileShare();
+      if(!ok) await navigator.share({title:opt.filename||'旅刻',text:opt.text});
+    }catch(e){
+      // ユーザーが共有シートを閉じた(AbortError)なら何もしない。それ以外は本文テキスト共有でリトライ。
+      if(e&&e.name==='AbortError') return;
+      try{ await navigator.share({title:opt.filename||'旅刻',text:opt.text}); }
+      catch(e2){ if(!(e2&&e2.name==='AbortError')) showInfoToast('⚠️ 共有できませんでした。コピーをお使いください',3000); }
+    }
+  };
 }
 
 /* ── 共通: テキストをファイルとして保存 ──
    PC: Blob+aタグでダウンロード。
    iOS: タブを開く方式(data:/blob: URL)はSafari/PWAでブロックや空白タブになるため、
         shareItineraryと同じ画面内オーバーレイで全文表示し、コピー/共有(ネイティブ共有シート)で取り出す。
-   opt: {text, filename, blobType, dataMime, btnId, iosBtnText, desktopToast} */
+   opt: {text, filename, blobType, btnId, desktopToast} */
 export function downloadTextFile(opt){
   const btn=opt.btnId?document.getElementById(opt.btnId):null;
   const flash=(t,bg,ms)=>{if(!btn)return;const orig=btn.textContent;btn.textContent=t;btn.style.background=bg;btn.style.color='#000';setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},ms);};
@@ -113,73 +165,12 @@ export function downloadTextFile(opt){
   }
 }
 
-/* ── iOS向け: テキスト書き出しオーバーレイ（shareItineraryと同じ作法） ──
+/* ── iOS向け: テキスト書き出し（共有モーダルと同じ _openTextModal を使用） ──
    タブを開かないのでSafari通常タブ/ホーム画面PWA/オフラインのいずれでも安定動作する。
-   ・全文を <pre>.textContent で表示（innerHTML不使用＝XSS安全）
-   ・📋コピー: navigator.clipboard、失敗時は選択範囲フォールバック
-   ・共有: navigator.share 対応時のみ表示。ファイルとして共有できる環境(canShare+files)なら
-          .txtファイルで、不可ならテキスト本文で共有シートを開く（「ファイルに保存」「メモ」等へ）。*/
+   共有ボタン付き（ファイル共有可ならファイルで、不可ならテキスト本文で共有シートを開く）。*/
 export function _openExportOverlay(text,filename,mime){
-  _closeAllOverlays();
-  const ov=document.createElement('div');
-  ov.id='export-overlay';
-  Object.assign(ov.style,{position:'fixed',inset:'0',zIndex:'999999',background:'rgba(0,0,0,.82)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'});
-  const canShare=typeof navigator!=='undefined'&&typeof navigator.share==='function';
-  ov.innerHTML=`<div style="background:var(--bg2);border:1.5px solid var(--border2);border-radius:16px;padding:20px;width:100%;max-width:440px;max-height:92dvh;display:flex;flex-direction:column;gap:12px">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
-      <span style="font-weight:700;font-size:16px">📝 走行記録</span>
-      <button onclick="_closeOverlay('export-overlay')" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3)">✕</button>
-    </div>
-    <div style="overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch">
-      <pre id="export-text" style="margin:0;white-space:pre-wrap;word-break:break-word;background:var(--bg3);border:1.5px solid var(--border2);border-radius:10px;color:var(--text2);font-size:14px;line-height:1.8;padding:12px;font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif"></pre>
-    </div>
-    <button id="export-copy-btn" style="width:100%;justify-content:center;padding:13px;font-size:16px;flex-shrink:0">📋 クリップボードにコピー</button>
-    ${canShare?`<button id="export-share-btn" style="width:100%;justify-content:center;padding:13px;font-size:16px;flex-shrink:0;background:var(--bg3)">📤 共有 / ファイルに保存</button>`:''}
-    <div style="font-size:12px;color:var(--text3);text-align:center;flex-shrink:0">💡 コピーしてLINEやメモに貼り付け／共有から「ファイルに保存」もできます</div>
-  </div>`;
-  ov.addEventListener('click',e=>{if(e.target===ov) _closeOverlay('export-overlay');});
-  _lowerHeaderForOverlay();document.body.appendChild(ov);
-  const pre=document.getElementById('export-text');
-  pre.textContent=text;
-
-  // 📋コピー（shareItineraryと同じ挙動: clipboard→失敗時は選択範囲）
-  const copyBtn=document.getElementById('export-copy-btn');
-  if(copyBtn) copyBtn.onclick=async()=>{
-    try{
-      await navigator.clipboard.writeText(pre.textContent);
-      copyBtn.textContent='✅ コピーしました';
-      copyBtn.style.background='var(--green)';copyBtn.style.color='#000';
-      setTimeout(()=>_closeOverlay('export-overlay'),1200);
-    }catch(e){
-      const r=document.createRange();r.selectNode(pre);
-      window.getSelection().removeAllRanges();window.getSelection().addRange(r);
-    }
-  };
-
-  // 📤共有（対応端末のみ）。ファイル共有が可能ならファイルで、不可・失敗時は本文テキストで共有シートへ。
-  const shareBtn=document.getElementById('export-share-btn');
-  if(shareBtn) shareBtn.onclick=async()=>{
-    // ファイル共有を試す。MIMEはdownloadTextFile由来(blobType)を使い、拡張子と不一致にしない
-    // （例: .json を text/plain で渡すとiOSの共有が無言でrejectする）。失敗時は本文テキスト共有へ。
-    const tryFileShare=async()=>{
-      const type=mime||'text/plain';
-      let file;
-      try{ file=new File([text],filename||'旅刻_記録.txt',{type}); }catch(e){ return false; }
-      if(!(navigator.canShare&&navigator.canShare({files:[file]}))) return false;
-      await navigator.share({files:[file],title:filename||'旅刻'});
-      return true;
-    };
-    try{
-      const ok=await tryFileShare();
-      if(!ok) await navigator.share({title:filename||'旅刻',text});
-    }catch(e){
-      // ユーザーが共有シートを閉じた(AbortError)なら何もしない。
-      // それ以外（ファイル共有がrejectされた等）は本文テキスト共有でリトライする。
-      if(e&&e.name==='AbortError') return;
-      try{ await navigator.share({title:filename||'旅刻',text}); }
-      catch(e2){ if(!(e2&&e2.name==='AbortError')) showInfoToast('⚠️ 共有できませんでした。コピーをお使いください',3000); }
-    }
-  };
+  _openTextModal({id:'export-overlay',title:'📝 走行記録',text,filename,mime,allowShare:true,
+    hint:'💡 コピーしてLINEやメモに貼り付け／共有から「ファイルに保存」もできます'});
 }
 
 export function saveJSON(){
@@ -199,8 +190,8 @@ export function saveJSON(){
     const title=(data.title||'ツーリング行程').replace(/[\\/:*?"<>|]/g,'_');
     downloadTextFile({
       text:json, filename:`${title}.json`,
-      blobType:'application/json', dataMime:'application/json;charset=utf-8',
-      btnId:'json-save-btn', iosBtnText:'📄 タブで開きました'
+      blobType:'application/json',
+      btnId:'json-save-btn'
     });
   }catch(e){alert('保存に失敗しました: '+e.message);}
 }
@@ -213,9 +204,8 @@ export function saveRecord(){
     if(totalStops===0){showInfoToast('⚠️ 地点が登録されていません',3000);return;}
     if(!confirm('ツーリングお疲れ様でした。\n走行記録をテキストファイルに保存しますか？')) return;
     const now=new Date();
-    const WEEK=['日','月','火','水','木','金','土'];
-    const fmtDate=iso=>{if(!iso)return'';try{const d=new Date(iso+'T12:00:00');if(isNaN(d.getTime()))return iso;return`${d.getMonth()+1}/${d.getDate()}(${WEEK[d.getDay()]})`;}catch(e){return iso;}};
-    const fmtDiff=d=>{if(d===null)return'';const abs=Math.abs(d),h=Math.floor(abs/60),m=abs%60;const str=h>0&&m>0?`${h}時間${m}分`:h>0?`${h}時間`:`${m}分`;return d===0?'定刻':d>0?`+${str}`:`-${str}`;};
+    const fmtDate=iso=>{if(!iso)return'';const d=parseISODate(iso);return d?mdw(d):iso;};
+    const fmtDiff=d=>{if(d===null)return'';if(d===0)return'定刻';const str=fmtHM(Math.abs(d));return d>0?`+${str}`:`-${str}`;};
     const HR='─'.repeat(30);
     const lines=[];
     lines.push('旅刻 走行記録');
@@ -252,8 +242,8 @@ export function saveRecord(){
     const filename=`旅刻_記録_${title}_${dateStr}.txt`;
     downloadTextFile({
       text, filename,
-      blobType:'text/plain;charset=utf-8', dataMime:'text/plain;charset=utf-8',
-      btnId:'record-save-btn', iosBtnText:'📄',
+      blobType:'text/plain;charset=utf-8',
+      btnId:'record-save-btn',
       desktopToast:`📝 記録を保存しました：${filename}`
     });
   }catch(e){alert('記録の保存に失敗しました: '+e.message);}

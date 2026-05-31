@@ -303,7 +303,6 @@ export function _openPickerModal(cfg){
 export function _mergeHighwayData(online){
   HIGHWAY_DATA=_mergeFacilityData(HIGHWAY_FALLBACK,online);
 }
-
 export async function _fetchHighwayOnline(){
   if(_highwayLoading) return;
   _highwayLoading=true;
@@ -378,18 +377,26 @@ export function renderHighwayList(q){
     <div style="font-size:12px;color:var(--text3);margin-top:2px">${esc(m[1])}</div>
   </div>`).join('')+capNote+footer;
 }
-export function selectHighway(name,addr,fullName){
-  _dbgLog('selectHighway',{name:String(fullName||name).slice(0,40),addr:String(addr||'').slice(0,40)});
+/* ── 共通: ピッカー選択確定（高速/道の駅/GS共通の後処理） ──
+   地点名/住所をフォームへ反映し、住所があれば詳細を開く・給油指定があればONにし、
+   オーバーレイを閉じてキーボードを下げ、通常ビューを先頭へ戻す。
+   opt: {name?, addr?, fuel?, overlayId} */
+export function _pickerCommit(opt){
   const ni=document.getElementById('inp-name');
   const ai=document.getElementById('inp-addr');
-  if(ni) ni.value=fullName;
-  if(ai) ai.value=addr;
-  if(addr) _setDetailsOpen(true);
-  _closeOverlay('highway-overlay'); // visualViewport リスナーリーク防止
+  if(ni&&opt.name!=null) ni.value=opt.name;
+  if(ai&&opt.addr!=null) ai.value=opt.addr;
+  if(opt.addr) _setDetailsOpen(true);
+  if(opt.fuel) _setFuelCheck(true);
+  _closeOverlay(opt.overlayId); // visualViewport リスナーリーク防止
   document.activeElement?.blur(); // キーボードを閉じる
   setTimeout(()=>{
     document.getElementById('normal-view')?.scrollTo({top:0,behavior:'instant'});
   },50);
+}
+export function selectHighway(name,addr,fullName){
+  _dbgLog('selectHighway',{name:String(fullName||name).slice(0,40),addr:String(addr||'').slice(0,40)});
+  _pickerCommit({name:fullName,addr,overlayId:'highway-overlay'});
 }
 
 /* ══ 道の駅選択モーダル ══ */
@@ -717,16 +724,7 @@ export function renderMichiList(q){
 }
 export function selectMichi(name,addr,fullName){
   _dbgLog('selectMichi',{name:String(fullName||name).slice(0,40),addr:String(addr||'').slice(0,40)});
-  const ni=document.getElementById('inp-name');
-  const ai=document.getElementById('inp-addr');
-  if(ni) ni.value=fullName;
-  if(ai) ai.value=addr;
-  if(addr) _setDetailsOpen(true);
-  _closeOverlay('michi-overlay'); // visualViewport リスナーリーク防止
-  document.activeElement?.blur(); // キーボードを閉じる
-  setTimeout(()=>{
-    document.getElementById('normal-view')?.scrollTo({top:0,behavior:'instant'});
-  },50);
+  _pickerCommit({name:fullName,addr,overlayId:'michi-overlay'});
 }
 
 /* ══ ガソリンスタンド選択 ══ */
@@ -774,14 +772,7 @@ export function renderGasStationList(q){
 }
 export function selectGasStation(chain){
   _dbgLog('selectGasStation',{chain});
-  const ni=document.getElementById('inp-name');
-  if(ni) ni.value=chain+' SS';
-  _setFuelCheck(true);
-  _closeOverlay('gs-overlay'); // visualViewport リスナーリーク防止
-  document.activeElement?.blur(); // キーボードを閉じる
-  setTimeout(()=>{
-    document.getElementById('normal-view')?.scrollTo({top:0,behavior:'instant'});
-  },50);
+  _pickerCommit({name:chain+' SS',fuel:true,overlayId:'gs-overlay'});
 }
 
 /* ══ 近くの快活CLUB検索（Googleマップ直接遷移） ══ */
