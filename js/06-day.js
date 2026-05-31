@@ -29,8 +29,8 @@ export function dayTabLabel(day,idx){
 export function currentDayFlat(){
   const day=data.days[S.currentDay];
   if(!day) return [];
-  const dayLabel=dayTabLabel(day,S.currentDay); // 全stopで同一のラベルを1回だけ計算
-  return (day.stops||[]).map(s=>({...s,dayIdx:S.currentDay,dayLabel}));
+  // dayIdx だけ付与（dayLabel は読み手がいないため計算しない）
+  return (day.stops||[]).map(s=>({...s,dayIdx:S.currentDay}));
 }
 export function currentDayIdxOf(id){return currentDayFlat().findIndex(s=>s.id===id);}
 export function _updateRecordBtn(){

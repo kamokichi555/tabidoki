@@ -372,7 +372,7 @@ export function renderHighwayList(q){
   const shown=filtered.length>PICKER_CAP?filtered.slice(0,PICKER_CAP):filtered;
   const capNote=filtered.length>PICKER_CAP?`<div style="padding:10px 16px;font-size:12px;color:var(--text3);text-align:center;border-top:1px solid var(--border)">他 ${filtered.length-PICKER_CAP} 件… 検索で絞り込んでください</div>`:'';
   const footer=`<div style="padding:7px 16px;font-size:11px;color:var(--text3);text-align:right;border-top:1px solid var(--border)">${HIGHWAY_DATA.length}件</div>`;
-  list.innerHTML=status+shown.map(m=>`<div onclick="selectHighway('${escJsAttr(m[0])}','${escJsAttr(m[1])}','${escJsAttr(m[0])}')" style="padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer">
+  list.innerHTML=status+shown.map(m=>`<div onclick="selectHighway('${escJsAttr(m[0])}','${escJsAttr(m[1])}')" style="padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer">
     <div style="font-weight:700;font-size:15px;color:var(--text)">${esc(m[0])}</div>
     <div style="font-size:12px;color:var(--text3);margin-top:2px">${esc(m[1])}</div>
   </div>`).join('')+capNote+footer;
@@ -394,9 +394,9 @@ export function _pickerCommit(opt){
     document.getElementById('normal-view')?.scrollTo({top:0,behavior:'instant'});
   },50);
 }
-export function selectHighway(name,addr,fullName){
-  _dbgLog('selectHighway',{name:String(fullName||name).slice(0,40),addr:String(addr||'').slice(0,40)});
-  _pickerCommit({name:fullName,addr,overlayId:'highway-overlay'});
+export function selectHighway(name,addr){
+  _dbgLog('selectHighway',{name:String(name||'').slice(0,40),addr:String(addr||'').slice(0,40)});
+  _pickerCommit({name,addr,overlayId:'highway-overlay'});
 }
 
 /* ══ 道の駅選択モーダル ══ */

@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk16 — types.d.ts（共有型定義 / 型専用・実行時には読み込まれない）
+   旅刻 mk17 — types.d.ts（共有型定義 / 型専用・実行時には読み込まれない）
    各JSの先頭に // @ts-check を付けると、エディタがここで定義した
    データ構造に照らして、フィールド名の誤りや null アクセスを警告する。
    ※ index.html からは読み込まないこと（型情報のみで実行コードは無い）。
@@ -45,6 +45,7 @@ interface AppState {
   activeEditStopId: string | null;
   rideActionVisible: boolean;
   _pendingRestore: TouringData | null;
+  _freshStartPreserve: boolean;
 }
 
 /* ── DOM/ブラウザ型の最小拡張 ──

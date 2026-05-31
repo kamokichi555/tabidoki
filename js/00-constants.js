@@ -24,4 +24,4 @@ export const DEFAULT={
 export const SK='touring_data';
 export const EC={SAVE:'E-SV01',LOAD:'E-LD01',RENDER:'E-RD01',RIDE:'E-RD02',STOP:'E-ST01',SORT:'E-ST02',CASCADE:'E-ST03',DAY_SW:'E-DY01',DAY_ADD:'E-DY02',DAY_DEL:'E-DY03',ROUTE:'E-RT01',EDIT_OPEN:'E-ES01',GLOBAL:'E-GL01'};
 export const EC_MSG={'E-SV01':'ファイルの保存に失敗しました','E-LD01':'ファイルの読み込みに失敗しました','E-RD01':'画面の描画に失敗しました','E-RD02':'ライドモードの描画に失敗しました','E-ST01':'地点の保存に失敗しました','E-ST02':'行程の並び替えに失敗しました','E-ST03':'時刻の自動調整に失敗しました','E-DY01':'日程の切り替えに失敗しました','E-DY02':'日程の追加に失敗しました','E-DY03':'日程の削除に失敗しました','E-RT01':'ルートURLの保存に失敗しました','E-ES01':'編集フォームの表示に失敗しました','E-GL01':'予期しないエラーが発生しました'};
-export const LIMIT={name:50,addr:100,note:1000,log:200,title:60,url:500,stopsPerDay:20};
+export const LIMIT={name:50,addr:100,note:1000,log:200,title:60,url:500,stopsPerDay:20,splashStar:20,splashTitle:40};

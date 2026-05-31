@@ -7,6 +7,7 @@
    ══════════════════════════════════════════════════════ */
 
 /* --- 自動生成: モジュール依存のインポート --- */
+import { LIMIT } from './00-constants.js';
 import { esc, sanitize } from './02-utils.js';
 import { _lsSetItem } from './04-weather.js';
 import { _updateStickyTops } from './06-day.js';
@@ -79,9 +80,9 @@ export let splashSettings=(()=>{
     if(s&&typeof s==='object'){
       const epNum=parseInt(s.episode,10);
       return {
-        star:sanitize(s.star,20),
+        star:sanitize(s.star,LIMIT.splashStar),
         episode:(Number.isInteger(epNum)&&epNum>=1&&epNum<=99)?String(epNum):'',
-        title:sanitize(s.title,40),
+        title:sanitize(s.title,LIMIT.splashTitle),
       };
     }
   }catch(e){}
@@ -116,7 +117,7 @@ export function openSplashSettings(){
       <div class="form-gap">
         <div class="input-group">
           <div class="input-label">主演（空欄で「あなた」を表示）</div>
-          <input id="ss-star" type="text" maxlength="20" placeholder="例：田中太郎" value="${esc(splashSettings.star||'')}">
+          <input id="ss-star" type="text" maxlength="${LIMIT.splashStar}" placeholder="例：田中太郎" value="${esc(splashSettings.star||'')}">
         </div>
         <div class="input-group">
           <div class="input-label">第◯話（数字を入力すると漢数字に変換・空欄でランダム）</div>
@@ -127,7 +128,7 @@ export function openSplashSettings(){
         </div>
         <div class="input-group">
           <div class="input-label">タイトル（空欄で紋次郎風ランダム）</div>
-          <input id="ss-title" type="text" maxlength="40" placeholder="例：甲州街道に月を追う" value="${esc(splashSettings.title||'')}">
+          <input id="ss-title" type="text" maxlength="${LIMIT.splashTitle}" placeholder="例：甲州街道に月を追う" value="${esc(splashSettings.title||'')}">
         </div>
       </div>
       <div style="margin-top:14px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r)">
@@ -190,11 +191,11 @@ export function _updateEpisodePreview(){
   if(prev) prev.textContent=val?_numToEpisode(val):'';
 }
 export function _saveSplashSettings(){
-  splashSettings.star=sanitize(document.getElementById('ss-star')?.value||'',20);
+  splashSettings.star=sanitize(document.getElementById('ss-star')?.value||'',LIMIT.splashStar);
   const epRaw=(document.getElementById('ss-episode')?.value||'').trim();
   const epNum=parseInt(epRaw,10);
   splashSettings.episode=(Number.isInteger(epNum)&&epNum>=1&&epNum<=99)?String(epNum):'';
-  splashSettings.title=sanitize(document.getElementById('ss-title')?.value||'',40);
+  splashSettings.title=sanitize(document.getElementById('ss-title')?.value||'',LIMIT.splashTitle);
   try{_lsSetItem(SPLASH_SK,JSON.stringify(splashSettings));}catch(e){}
   document.getElementById('ss-close-btn')?.click();
   showInfoToast('📜 タイトル設定を保存しました',2000);

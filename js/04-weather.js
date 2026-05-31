@@ -454,7 +454,7 @@ export async function doFetchStop(stop,date){
   const name=(stop.name||"").trim();
   if(!addr&&!name){if(_stopStillValid(stop))wxStopRes[stop.id]={error:true,date,time:Date.now()};return;}
   // 今日の日付（diff計算の基準）
-  const todayStr=(d=>{return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");})(new Date());
+  const todayStr=_isoToday();
   const diff=Math.round((new Date(date+"T12:00:00")-new Date(todayStr+"T12:00:00"))/86400000);
   if(diff<0){if(_stopStillValid(stop))wxStopRes[stop.id]={isPast:true,date,time:Date.now()};return;}     // 過去日付は取得しない
   if(diff>15){if(_stopStillValid(stop))wxStopRes[stop.id]={outOfRange:true,date,time:Date.now()};return;} // 16日先以降は予報期間外
