@@ -30,7 +30,7 @@ try{
     if(_p&&typeof _p==='object'&&Array.isArray(_p.days)){
       _migrateData(_p); // 旧バージョン移行（02-utils、_applyImportedDataと共用）
       _sanitizeImportedData(_p);
-      if(!_p.days.length) _p.days=[{label:'1日目',date:'',routeUrl:'',stops:[]}];
+      if(!_p.days.length) _p.days=[{date:'',routeUrl:'',stops:[]}];
       // 地点データがある場合は読み込むか確認する
       const _hasStops=(_p.days||[]).some(d=>d.stops&&d.stops.length>0);
       if(!_hasStops){

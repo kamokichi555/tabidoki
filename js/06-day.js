@@ -197,7 +197,7 @@ export function addDay(){
       addr: prevLast.addr,
       arr:'', dep:'', note:'', log:'', actArr:'', actDep:'', fuel:false,
     }] : [];
-    data.days.push({label:`${data.days.length+1}日目\n未設定`,date:nextDate,routeUrl:'',stops:inheritStop});
+    data.days.push({date:nextDate,routeUrl:'',stops:inheritStop});
     S.currentDay=data.days.length-1;
     if(nextDate) _sortDays();
     syncBorderAddr();save();renderTabs();render();

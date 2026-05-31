@@ -21,7 +21,6 @@ interface Stop {
 
 /** 1日（デイ）。 */
 interface Day {
-  label: string;
   date: string;    // "YYYY-MM-DD"（未設定は ""）
   routeUrl: string;
   stops: Stop[];

@@ -15,6 +15,7 @@ import { _isoToday, enqueueStop, ensureDayWeather, rideWxCompact, stopWxInner } 
 import { getStatus } from './05-stop.js';
 import { _getCdi, _updateRecordBtn, currentDayFlat, stops, switchDay } from './06-day.js';
 import { _gpsNotifySwipe, _gpsUpdateNextDist } from './14-gps.js';
+import { _dbgLog } from './12-debug.js'; // app_errorをデバッグログへ記録（try/catch捕捉エラーも残す）
 
 
 /* ════ 7セグメントディスプレイ ════
@@ -167,7 +168,7 @@ export function renderRide(){
   _dom('sw-arr-l').classList.toggle('dim',S.rideViewIdx===0);
   _dom('sw-arr-r').classList.toggle('dim',S.rideViewIdx===flat.length-1);
   /* ── ライドカード共通パーツ ── */
-  const _mapLink=s=>s.addr?`<a class="ride-route-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 マップで確認</a>`:'';
+  const _mapLink=s=>s.addr?`<a class="ride-route-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.addr)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 マップで確認</a>`:'';
   const _fuelBadge=(s,extra='')=>s.fuel?`<div class="stop-fuel-badge" style="width:100%;justify-content:center${extra}">⛽ 給油ポイント</div>`:'';
   const _noteCompact=s=>s.note?`<div class="ride-note-compact" title="${esc(s.note)}" role="button" tabindex="0" onclick="event.stopPropagation();openRideNote('${escJsAttr(s.id)}')"><span class="ride-note-txt">${esc(s.note)}</span><span class="ride-note-more">タップで全文 ›</span></div>`:'';
   const _logHtml=s=>s.log?`<div class="ride-log">📝 ${esc(s.log)}</div>`:'';
@@ -300,7 +301,7 @@ export function rideNavigate(dir){
 
 /* ══ エラーハンドリング ══ */
 export let _appErrTimer=null;
-export function showAppError(code,err){const toast=document.getElementById('app-error-toast');if(!toast)return;const detail=err instanceof Error?err.message.slice(0,100):(err?String(err).slice(0,100):'');document.getElementById('app-err-code').textContent=code;document.getElementById('app-err-msg').textContent=(EC_MSG[code]||'エラー')+(detail?' — '+detail:'');toast.style.display='block';if(_appErrTimer)clearTimeout(_appErrTimer);_appErrTimer=setTimeout(dismissAppError,8000);console.error('[旅刻 '+code+']',err);}
+export function showAppError(code,err){_dbgLog('app_error',{code,err:err instanceof Error?(err.message+' | '+(err.stack||'').slice(0,200)):String(err).slice(0,200)});const toast=document.getElementById('app-error-toast');if(!toast)return;const detail=err instanceof Error?err.message.slice(0,100):(err?String(err).slice(0,100):'');document.getElementById('app-err-code').textContent=code;document.getElementById('app-err-msg').textContent=(EC_MSG[code]||'エラー')+(detail?' — '+detail:'');toast.style.display='block';if(_appErrTimer)clearTimeout(_appErrTimer);_appErrTimer=setTimeout(dismissAppError,8000);console.error('[旅刻 '+code+']',err);}
 export function dismissAppError(){const t=document.getElementById('app-error-toast');if(t)t.style.display='none';if(_appErrTimer){clearTimeout(_appErrTimer);_appErrTimer=null;}}
 
 export let _infoTimer=null;
@@ -415,7 +416,7 @@ export function render(){
     ${!isLast&&_mdur?`<div class="move-dur-label${_mlv>=0?' lv'+_mlv:''}">→ 次まで ${_mdur}</div>`:''}
     ${S.isEdit&&S.editingId===null&&S.activeEditStopId===s.id?`<div class="stop-edit-row">      <button class="small amber-outline" onclick="event.stopPropagation();setCurrentStop('${s.id}')">📍 現在</button>
       <button class="small amber-outline" onclick="event.stopPropagation();openEditStop('${s.id}')">✏️ 編集</button>
-      ${s.addr?`<a class="map-link-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.name)}" target="_blank" rel="noopener">🗺 マップ</a>`:''}
+      ${s.addr?`<a class="map-link-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.addr)}" target="_blank" rel="noopener">🗺 マップ</a>`:''}
       <button class="small danger" onclick="event.stopPropagation();delStop('${s.id}')">削除</button>
     </div>`:''}
   </div>

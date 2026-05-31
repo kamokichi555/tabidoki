@@ -280,7 +280,7 @@ export function restoreFromStorage(){
 /** @param {any} p 外部由来の未検証データ @param {string} [titleFallback] @param {boolean} [skipConfirm] */
 export function _applyImportedData(p,titleFallback,skipConfirm){
   if(!p||typeof p!=='object'||!Array.isArray(p.days)) throw new Error('フォーマットが正しくありません');
-  if(!p.days.length) p.days=[{label:'1日目',date:'',routeUrl:'',stops:[]}];
+  if(!p.days.length) p.days=[{date:'',routeUrl:'',stops:[]}];
   _migrateData(p); // 旧バージョン移行（02-utils）
   const _truncated=_sanitizeImportedData(p);
   const title=p.title||titleFallback||'（タイトルなし）';

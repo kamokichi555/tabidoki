@@ -190,15 +190,8 @@ export function _dbgInit(){
     _dbgUpdateBadge();
     showAppError(EC.GLOBAL,e.reason);
   });
-  // showAppError をフック（デバッグログへの記録用）
-  try{
-    const _orig=showAppError;
-    window.showAppError=function(code,err){
-      _dbgLog('app_error',{code,err:err instanceof Error?(err.message+' | '+(err.stack||'').slice(0,200)):String(err).slice(0,200)});
-      _dbgUpdateBadge();
-      return _orig.apply(this,arguments);
-    };
-  }catch(e){}
+  // app_error のデバッグログ記録は 07-render.js の showAppError 内で直接行う
+  // （window.showAppError フックはモジュール束縛経由の呼び出しを捕捉できず機能しなかったため廃止）
   // ページ離脱前に永続化（beforeunload=デスクトップ、pagehide=iOS Safari対応）
   function _dbgFlush(){
     if(_dbgDirty){try{localStorage.setItem(DBG_KEY,JSON.stringify({buf:_dbgBuf,err:_dbgErrCount}));}catch(e){}}

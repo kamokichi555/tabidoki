@@ -84,7 +84,6 @@ export function _sanitizeImportedData(p){
     if(!d||typeof d!=='object')continue;
     d.date=isValidDate(d.date)?d.date:'';
     d.routeUrl=isSafeUrl(d.routeUrl)?sanitize(d.routeUrl,LIMIT.url):'';
-    if('label' in d) d.label=sanitize(d.label,40);
     if(!Array.isArray(d.stops)){d.stops=[];continue;}
     if(d.stops.length>LIMIT.stopsPerDay){d.stops=d.stops.slice(0,LIMIT.stopsPerDay);truncated=true;}
     for(const s of d.stops){

@@ -18,7 +18,7 @@ export const WMO={
 export const DEFAULT={
   version:'mk17-v1',title:'',currentStopId:null,
   days:[
-    {label:'1日目',date:'',routeUrl:'',stops:[]}
+    {date:'',routeUrl:'',stops:[]}
   ]
 };
 export const SK='touring_data';
