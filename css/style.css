@@ -78,7 +78,7 @@ header{position:sticky;top:0;background:var(--bg);z-index:100000;border-bottom:2
 .menu-item{width:100%;background:transparent!important;border:none!important;border-radius:0!important;display:grid;grid-template-columns:28px 1fr;grid-template-rows:auto auto;column-gap:14px;align-items:center;padding:12px 20px!important;text-align:left;justify-content:flex-start}
 .menu-item:active{background:var(--bg3)!important}
 .menu-item .mi-icon{grid-row:1 / span 2;font-size:20px;text-align:center}
-.menu-item .mi-label{font-size:15px;font-weight:700;color:var(--text)}
+.menu-item .mi-label{font-size:15px;font-weight:700;color:var(--text);grid-column:2}
 .menu-item .mi-sub{font-size:14px;font-weight:600;color:var(--text3);grid-column:2}
 #gps-btn.on .mi-icon{filter:none}
 #gps-btn.on .mi-label{color:var(--green)}
