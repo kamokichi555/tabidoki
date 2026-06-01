@@ -9,7 +9,7 @@
 import { EC } from './00-constants.js';
 import { S, _canEditData, data } from './01-state.js';
 import { save } from './03-storage.js';
-import { render, showAppError } from './07-render.js';
+import { render, showAppError, showInfoToast } from './07-render.js';
 import { updateDragHint } from './08-mode.js';
 import { _dbgLog } from './12-debug.js';
 /* ══ タッチドラッグ ══
@@ -29,6 +29,7 @@ export function _commitReorder(fromId,toId){
       ds.splice(ti,0,m);
       _dbgLog('reorder',{from:si,to:ti,id:fromId});
       save();render();
+      showInfoToast('✅ 並び順を保存しました',2000); // 即時保存である事をユーザーに明示
     }
   }catch(e){showAppError(EC.SORT,e);}
 }

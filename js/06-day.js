@@ -216,6 +216,7 @@ export function deleteCurrentDay(){
       day.stops.forEach(s=>{delete wxStopRes[s.id];wxQueueIds.delete(s.id);});
       day.stops=[];day.date="";day.routeUrl="";
       setFormAdd();save();syncBorderAddr();renderTabs();render();
+      showInfoToast('🗑️ 地点をすべて削除しました',2000);
       return;
     }
     if(!confirm(`「${dayTabLabel(data.days[S.currentDay],S.currentDay)}」を削除しますか？`))return;
@@ -225,6 +226,7 @@ export function deleteCurrentDay(){
     data.days.splice(S.currentDay,1);S.currentDay=Math.max(0,S.currentDay-1);
     _cachedCdiForId=null; // splice後は後続dayのインデックスがズレるためcdiキャッシュを必ず無効化
     save();renderTabs();render();
+    showInfoToast('🗑️ 日程を削除しました',2000);
   }catch(e){showAppError(EC.DAY_DEL,e);}
 }
 
