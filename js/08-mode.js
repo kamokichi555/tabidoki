@@ -296,6 +296,7 @@ export function toggleMenu(){
   if(!d) return;
   d.classList.contains('open') ? closeMenu() : openMenu();
 }
+let _menuOnKey=null;
 export function openMenu(){
   const d=document.getElementById('menu-drawer');
   const ov=document.getElementById('menu-overlay');
@@ -303,6 +304,11 @@ export function openMenu(){
   if(d) d.classList.add('open');
   if(ov) ov.classList.add('open');
   if(b) b.classList.add('open');
+  document.body.classList.add('menu-open');
+  if(!_menuOnKey){
+    _menuOnKey=e=>{if(e.key==='Escape')closeMenu();};
+    document.addEventListener('keydown',_menuOnKey);
+  }
 }
 export function closeMenu(){
   const d=document.getElementById('menu-drawer');
@@ -311,4 +317,9 @@ export function closeMenu(){
   if(d) d.classList.remove('open');
   if(ov) ov.classList.remove('open');
   if(b) b.classList.remove('open');
+  document.body.classList.remove('menu-open');
+  if(_menuOnKey){
+    document.removeEventListener('keydown',_menuOnKey);
+    _menuOnKey=null;
+  }
 }
