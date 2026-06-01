@@ -63,6 +63,19 @@
     <input type="file" id="load-file-input" accept=".json,application/json" style="display:none" onchange="onFileSelected(event)">
   </div>
 
+  <div class="day-tabs" id="day-tabs"></div>
+  <div class="day-manage" id="day-manage" style="display:none">
+    <div class="day-manage-btns">
+      <button onclick="addDay()">＋ 日程追加</button>
+      <button onclick="deleteCurrentDay()" class="danger">🗑️ 削除</button>
+    </div>
+    <div class="day-inline-row">
+      <input id="inp-day-date" type="date" oninput="saveDayDate()" style="flex:0 0 auto;width:140px">
+      <input id="inp-route-url" type="text" maxlength="500" placeholder="🗺 ルートURL" oninput="_saveRouteDebounced()" style="flex:1;min-width:0">
+    </div>
+  </div>
+</header>
+
   <!-- ハンバーガーメニュー（ドロワー） -->
   <div id="menu-overlay" onclick="closeMenu()"></div>
   <nav id="menu-drawer" aria-label="メニュー">
@@ -118,18 +131,6 @@
       </button>
     </div>
   </nav>
-  <div class="day-tabs" id="day-tabs"></div>
-  <div class="day-manage" id="day-manage" style="display:none">
-    <div class="day-manage-btns">
-      <button onclick="addDay()">＋ 日程追加</button>
-      <button onclick="deleteCurrentDay()" class="danger">🗑️ 削除</button>
-    </div>
-    <div class="day-inline-row">
-      <input id="inp-day-date" type="date" oninput="saveDayDate()" style="flex:0 0 auto;width:140px">
-      <input id="inp-route-url" type="text" maxlength="500" placeholder="🗺 ルートURL" oninput="_saveRouteDebounced()" style="flex:1;min-width:0">
-    </div>
-  </div>
-</header>
 
 <main>
 <div id="normal-view">
