@@ -40,10 +40,10 @@ let _tLongPressTimer=null,_tLongPressed=false;
 const LONG_PRESS_MS=180;   // 長押し判定時間(ms)
 const LONG_PRESS_SLOP=8;   // この距離(px)以上動いたらスクロールとみなしキャンセル
 
-/** 長押しタイマー＆予備状態をクリア（ゴースト生成前の中断用） */
+/** 長押しタイマーだけをクリア（_tLongPressed フラグには触れない）。
+    フラグはクリーンアップ各所で明示リセットする（end処理前に消すと入れ替えに到達できないため） */
 function _clearLongPressTimer(){
   if(_tLongPressTimer!==null){clearTimeout(_tLongPressTimer);_tLongPressTimer=null;}
-  _tLongPressed=false;
 }
 
 /** ゴーストを生成してドラッグ本開始 */
@@ -62,6 +62,7 @@ function _startDragGhost(){
 // ドラッグ中断(touchcancel等): ゴースト除去・ハイライト解除して状態リセット
 export function _cancelTouchDrag(){
   _clearLongPressTimer();
+  _tLongPressed=false;
   if(tGhost){
     if(tStopRows)tStopRows.forEach(row=>row.classList.remove('drag-over'));
     if(tDragEl)tDragEl.classList.remove('dragging');
@@ -118,11 +119,12 @@ export function onTouchDragMove(e){
   if(row&&row!==tDragEl)row.classList.add('drag-over');
 }
 
-// 終了: 長押し確定済みなら並び替え確定。未確定ならタイマーだけクリアして何もしない
+// 終了: ゴーストが存在する(=長押し確定済み)なら並び替え確定。無ければ何もしない
 export function onTouchDragEnd(e){
-  _clearLongPressTimer();
-  if(!_tLongPressed||!tGhost){
+  _clearLongPressTimer(); // 待機中タイマーがあれば止める（_tLongPressed は触らない）
+  if(!tGhost){
     // 長押し未確定のまま指を離した(= 短タップ or スクロール) → ドラッグなし
+    _tLongPressed=false;
     tDragId=null;tDragEl=null;tStopRows=null;
     return;
   }
@@ -133,6 +135,7 @@ export function onTouchDragEnd(e){
   tGhost.remove();tGhost=null;
   const el=document.elementFromPoint(t.clientX,t.clientY);
   if(el){const tr=el.closest('.stop-row[data-id]');if(tr){_commitReorder(tDragId,tr.dataset.id);}}
+  _tLongPressed=false;
   tDragId=null;tDragEl=null;tStopRows=null;
   updateDragHint();
 }
