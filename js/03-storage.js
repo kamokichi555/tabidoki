@@ -191,25 +191,19 @@ export function openSaveModal(){
         <span style="flex:1"><span style="display:block;font-size:14px;font-weight:700">端末に保存</span><span style="display:block;font-size:12px;color:var(--text3);margin-top:2px">ダウンロードフォルダへJSON保存</span></span>
         <span style="font-size:18px;color:var(--text3)">↓</span>
       </button>
-      <button id="save-modal-gdrive" style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:12px;border:1px solid #aac0f5;background:#E8F0FE;text-align:left;width:100%">
-        <span style="font-size:22px">☁️</span>
-        <span style="flex:1"><span style="display:block;font-size:14px;font-weight:700;color:#185EA5">Google Driveに保存</span><span style="display:block;font-size:12px;color:#378ADD;margin-top:2px">マイドライブへJSON保存</span></span>
-        <span style="font-size:18px;color:#378ADD">›</span>
-      </button>
       <button id="save-modal-share" style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);text-align:left;width:100%">
         <span style="font-size:22px">📤</span>
-        <span style="flex:1"><span style="display:block;font-size:14px;font-weight:700">共有シートで保存</span><span style="display:block;font-size:12px;color:var(--text3);margin-top:2px">Androidの共有メニューを開く</span></span>
+        <span style="flex:1"><span style="display:block;font-size:14px;font-weight:700">共有して保存</span><span style="display:block;font-size:12px;color:var(--text3);margin-top:2px">ドライブ・LINE・Keep等に送る</span></span>
         <span style="font-size:18px;color:var(--text3)">›</span>
       </button>
     </div>
-    <div style="font-size:11px;color:var(--text3);text-align:center">⚠️ Google Drive保存にはGoogleアカウントが必要です</div>
+    <div style="font-size:11px;color:var(--text3);text-align:center">💡 「共有して保存」からGoogleドライブやLINEにも送れます</div>
   </div>`;
   ov.addEventListener('click',e=>{if(e.target===ov)_closeOverlay('save-modal-overlay');});
   _lowerHeaderForOverlay();
   document.body.appendChild(ov);
   document.getElementById('save-modal-close').onclick=()=>_closeOverlay('save-modal-overlay');
   document.getElementById('save-modal-local').onclick=()=>{_closeOverlay('save-modal-overlay');saveJSON();};
-  document.getElementById('save-modal-gdrive').onclick=()=>{_closeOverlay('save-modal-overlay');_saveToGDrive();};
   document.getElementById('save-modal-share').onclick=()=>{_closeOverlay('save-modal-overlay');_saveViaShare();};
 }
 
@@ -231,11 +225,6 @@ export function openLoadModal(){
         <span style="flex:1"><span style="display:block;font-size:14px;font-weight:700">端末から読み込む</span><span style="display:block;font-size:12px;color:var(--text3);margin-top:2px">JSONファイルを選択</span></span>
         <span style="font-size:18px;color:var(--text3)">↑</span>
       </button>
-      <button id="load-modal-gdrive" style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:12px;border:1px solid #aac0f5;background:#E8F0FE;text-align:left;width:100%">
-        <span style="font-size:22px">☁️</span>
-        <span style="flex:1"><span style="display:block;font-size:14px;font-weight:700;color:#185EA5">Google Driveから読み込む</span><span style="display:block;font-size:12px;color:#378ADD;margin-top:2px">マイドライブのJSONを選択</span></span>
-        <span style="font-size:18px;color:#378ADD">›</span>
-      </button>
       <button id="load-modal-restore" style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);text-align:left;width:100%">
         <span style="font-size:22px">🕐</span>
         <span style="flex:1"><span style="display:block;font-size:14px;font-weight:700">前回の行程を復元</span><span style="display:block;font-size:12px;color:var(--text3);margin-top:2px">端末に自動保存されたデータを読込</span></span>
@@ -249,18 +238,11 @@ export function openLoadModal(){
   document.body.appendChild(ov);
   document.getElementById('load-modal-close').onclick=()=>_closeOverlay('load-modal-overlay');
   document.getElementById('load-modal-local').onclick=()=>{_closeOverlay('load-modal-overlay');loadJSON();};
-  document.getElementById('load-modal-gdrive').onclick=()=>{_closeOverlay('load-modal-overlay');_loadFromGDrive();};
   document.getElementById('load-modal-restore').onclick=()=>{_closeOverlay('load-modal-overlay');restoreFromStorage();};
 }
 
-/* ══ Google Drive 保存（Picker API） ══
-   Google Drive API + Picker API を使ってJSONをマイドライブに保存する。
-   CLIENT_ID は Google Cloud Console で取得したOAuth2クライアントIDに置き換えること。
-   ※現在はスタブ（未設定時はトースト表示のみ） */
-const _GDRIVE_CLIENT_ID='YOUR_CLIENT_ID_HERE'; // ← ここにクライアントIDを設定
-const _GDRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
-
-function _getGDriveJson(){
+/* ── 共有シート用にJSONテキストを生成（地点ゼロならnull） ── */
+function _getShareJson(){
   _flushTitle();
   const totalStops=(data.days||[]).reduce((sum,d)=>sum+(d.stops?.length||0),0);
   if(totalStops===0){showInfoToast('⚠️ 地点が登録されていません',3500);return null;}
@@ -269,127 +251,9 @@ function _getGDriveJson(){
   return {json:JSON.stringify(data,null,2),title:(data.title||'ツーリング行程').replace(/[\\/:*?"<>|]/g,'_')};
 }
 
-async function _saveToGDrive(){
-  if(_GDRIVE_CLIENT_ID==='YOUR_CLIENT_ID_HERE'){
-    showInfoToast('⚠️ Google Drive連携は未設定です（CLIENT_IDを設定してください）',4000);return;
-  }
-  const r=_getGDriveJson(); if(!r) return;
-  try{
-    const token=await _getGDriveToken();
-    if(!token) return;
-    const meta={name:`${r.title}.json`,mimeType:'application/json'};
-    const form=new FormData();
-    form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
-    form.append('file',new Blob([r.json],{type:'application/json'}));
-    const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
-      method:'POST',headers:{Authorization:`Bearer ${token}`},body:form
-    });
-    if(!res.ok) throw new Error(`Drive API: ${res.status}`);
-    showInfoToast(`☁️ Google Driveに保存しました：${r.title}.json`,3500);
-  }catch(e){showInfoToast(`⚠️ Drive保存に失敗しました: ${e.message}`,4000);}
-}
-
-async function _loadFromGDrive(){
-  if(_GDRIVE_CLIENT_ID==='YOUR_CLIENT_ID_HERE'){
-    showInfoToast('⚠️ Google Drive連携は未設定です（CLIENT_IDを設定してください）',4000);return;
-  }
-  // loadJSONと同様に、Pickerを開く前に一度だけ上書き確認する（選択後に二重で訊かない）
-  if(_hasAnyStops()&&!confirm('現在の行程は上書きされます。続けますか？')) return;
-  try{
-    const token=await _getGDriveToken();
-    if(!token) return;
-    // Picker APIでファイル選択
-    await _loadGooglePickerScript();
-    const fileId=await _openGDrivePicker(token);
-    if(!fileId) return;
-    const res=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,{
-      headers:{Authorization:`Bearer ${token}`}
-    });
-    if(!res.ok) throw new Error(`Drive API: ${res.status}`);
-    const p=await res.json();
-    _applyImportedData(p,p.title,true); // 事前確認済みのためskip
-  }catch(e){showInfoToast(`⚠️ Drive読み込みに失敗しました: ${e.message}`,4000);}
-}
-
-function _ensureGisLoaded(){
-  return new Promise((resolve,reject)=>{
-    if(window.google?.accounts?.oauth2){resolve();return;}
-    // 挿入済みでonload待ちの場合は新たに挿入せず、利用可能になるまでポーリング
-    if(document.querySelector('script[src="https://accounts.google.com/gsi/client"]')){
-      const t=setInterval(()=>{if(window.google?.accounts?.oauth2){clearInterval(t);resolve();}},100);
-      setTimeout(()=>{clearInterval(t);reject(new Error('GIS load timeout'));},10000);
-      return;
-    }
-    const s=document.createElement('script');
-    s.src='https://accounts.google.com/gsi/client';
-    s.async=true;s.defer=true;
-    s.onload=()=>resolve();
-    s.onerror=()=>reject(new Error('GIS script load failed'));
-    document.head.appendChild(s);
-  });
-}
-
-function _getGDriveToken(){
-  return new Promise((resolve)=>{
-    _ensureGisLoaded().then(()=>{
-      const client=window.google.accounts.oauth2.initTokenClient({
-        client_id:_GDRIVE_CLIENT_ID,scope:_GDRIVE_SCOPE,
-        callback:(resp)=>resp.error?resolve(null):resolve(resp.access_token)
-      });
-      client.requestAccessToken();
-    }).catch(()=>{
-      showInfoToast('⚠️ Google認証の読み込みに失敗しました',3500);
-      resolve(null);
-    });
-  });
-}
-
-function _loadGooglePickerScript(){
-  return new Promise((resolve,reject)=>{
-    if(window.google?.picker){resolve();return;}
-    // gapiスクリプト自体は読み込み済みだがpickerライブラリが未ロードの場合
-    if(window.gapi){window.gapi.load('picker',resolve);return;}
-    // 完全に未ロードの場合はscriptタグを挿入
-    if(document.querySelector('script[src="https://apis.google.com/js/api.js"]')){
-      // 挿入済みだがまだonload前 → gapiが使えるようになるまで待つ
-      const t=setInterval(()=>{if(window.gapi){clearInterval(t);window.gapi.load('picker',resolve);}},100);
-      setTimeout(()=>{clearInterval(t);reject(new Error('gapi load timeout'));},10000);
-      return;
-    }
-    const s=document.createElement('script');
-    s.src='https://apis.google.com/js/api.js';
-    s.onload=()=>window.gapi.load('picker',resolve);
-    s.onerror=reject;
-    document.head.appendChild(s);
-  });
-}
-
-function _openGDrivePicker(token){
-  return new Promise((resolve)=>{
-    const view=new window.google.picker.DocsView()
-      .setMimeTypes('application/json')
-      .setSelectFolderEnabled(false);
-    const picker=new window.google.picker.PickerBuilder()
-      .addView(view)
-      .setOAuthToken(token)
-      .setCallback(d=>{
-        // PICKED / CANCEL 以外（LOADED等）も来るため action で絞る
-        if(d.action===window.google.picker.Action.PICKED){
-          resolve(d.docs[0].id);
-        }else if(d.action===window.google.picker.Action.CANCEL||
-                 d.action==='dismiss'){ // 一部ブラウザで 'dismiss' が来る
-          resolve(null);
-        }
-        // それ以外(LOADED等)は何もしない
-      })
-      .build();
-    picker.setVisible(true);
-  });
-}
-
-/* ── Android共有シート経由でJSONを保存 ── */
+/* ── 共有シート経由でJSONを保存（Android等。Driveアプリ/LINE/Keep等を選べる） ── */
 async function _saveViaShare(){
-  const r=_getGDriveJson(); if(!r) return;
+  const r=_getShareJson(); if(!r) return;
   const file=new File([r.json],`${r.title}.json`,{type:'application/json'});
   if(navigator.canShare&&navigator.canShare({files:[file]})){
     try{
@@ -398,7 +262,7 @@ async function _saveViaShare(){
       if(e?.name!=='AbortError') showInfoToast('⚠️ 共有できませんでした',3000);
     }
   }else{
-    showInfoToast('⚠️ このブラウザではファイル共有に対応していません',3500);
+    showInfoToast('⚠️ このブラウザではファイル共有に対応していません（端末に保存をお使いください）',3800);
   }
 }
 
