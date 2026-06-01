@@ -419,8 +419,20 @@ export function render(){
   </div>
 </div>`;
   }).join('');
+  _markClampedNotes(); // 編集モード: あふれたメモに .clamped を付けフェード表示
   _updateRecordBtn();
   }catch(e){showAppError(EC.RENDER,e);}
+}
+
+/* 編集モードのメモ欄で、max-height を超えて切り詰められている(=続きがある)ものに .clamped を付与。
+   CSSはこのクラスが付いたメモだけ下端をフェードする（短いメモには付けない）。 */
+function _markClampedNotes(){
+  if(!(S.isEdit&&S.editingId===null)) return; // 編集モード以外はクランプ自体しないので不要
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('.timeline.edit-mode .stop-note').forEach(el=>{
+      el.classList.toggle('clamped', el.scrollHeight>el.clientHeight+1);
+    });
+  });
 }
 
 
