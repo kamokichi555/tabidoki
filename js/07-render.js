@@ -407,7 +407,9 @@ export function render(){
     <div id="wx-${s.id}">${stopWxInner(s.id,!!(s.addr))}</div>
     ${s.fuel?'<div class="stop-fuel-badge">⛽ 給油ポイント</div>':''}
     ${(s.actArr||s.actDep)?`<div class="stop-act-row">${s.actArr?`<div class="stop-act-chip"><span class="stop-act-label">実着</span><span class="stop-act-value">${s.actArr}</span>${actDiffHtml(s.arr,s.actArr)}</div>`:''}${s.actDep?`<div class="stop-act-chip"><span class="stop-act-label">実発</span><span class="stop-act-value">${s.actDep}</span>${actDiffHtml(s.dep,s.actDep)}</div>`:''}</div>`:''}
-    ${s.note?`<div class="stop-note${isDM?' dm':''}">${esc(s.note)}</div>`:''}
+    ${s.note?(S.isEdit
+      ?`<div class="ride-note-compact${isDM?' dm':''}" title="${esc(s.note)}" role="button" tabindex="0" onclick="event.stopPropagation();openRideNote('${escJsAttr(s.id)}')"><span class="ride-note-txt">${esc(s.note)}</span><span class="ride-note-more">タップで全文 ›</span></div>`
+      :`<div class="stop-note${isDM?' dm':''}">${esc(s.note)}</div>`):''}
     ${s.log?`<div class="stop-log">📝 ${esc(s.log)}</div>`:''}
     ${st==='current'?'<div class="current-badge">▶ 現在地</div>':''}
     ${!isLast&&_mdur?`<div class="move-dur-label${_mlv>=0?' lv'+_mlv:''}">→ 次まで ${_mdur}</div>`:''}
@@ -419,20 +421,9 @@ export function render(){
   </div>
 </div>`;
   }).join('');
-  _markClampedNotes(); // 編集モード: あふれたメモに .clamped を付けフェード表示
   _updateRecordBtn();
   }catch(e){showAppError(EC.RENDER,e);}
 }
 
-/* 編集モードのメモ欄で、max-height を超えて切り詰められている(=続きがある)ものに .clamped を付与。
-   CSSはこのクラスが付いたメモだけ下端をフェードする（短いメモには付けない）。 */
-function _markClampedNotes(){
-  if(!(S.isEdit&&S.editingId===null)) return; // 編集モード以外はクランプ自体しないので不要
-  requestAnimationFrame(()=>{
-    document.querySelectorAll('.timeline.edit-mode .stop-note').forEach(el=>{
-      el.classList.toggle('clamped', el.scrollHeight>el.clientHeight+1);
-    });
-  });
-}
 
 
