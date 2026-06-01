@@ -70,6 +70,7 @@ header{position:sticky;top:0;background:var(--bg);z-index:100000;border-bottom:2
 #menu-overlay.open{opacity:1;pointer-events:auto}
 #menu-drawer{position:fixed;top:0;left:0;width:min(280px,82vw);height:100dvh;background:var(--bg2);border-right:1.5px solid var(--border2);z-index:1000002;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
 #menu-drawer.open{transform:translateX(0)}
+body.menu-open{overflow:hidden}
 .menu-drawer-head{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1.5px solid var(--border);flex-shrink:0}
 .menu-drawer-title{font-size:17px;font-weight:800;color:var(--amber);letter-spacing:.04em}
 .menu-drawer-close{background:transparent!important;border:1.5px solid var(--border)!important;color:var(--text3)!important;width:34px;height:34px;padding:0!important;border-radius:8px!important;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
