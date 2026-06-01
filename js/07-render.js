@@ -167,7 +167,7 @@ export function renderRide(){
   _dom('sw-arr-l').classList.toggle('dim',S.rideViewIdx===0);
   _dom('sw-arr-r').classList.toggle('dim',S.rideViewIdx===flat.length-1);
   /* ── ライドカード共通パーツ ── */
-  const _mapLink=s=>s.addr?`<a class="ride-route-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.addr)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 マップで確認</a>`:'';
+  const _mapLink=s=>{const q=[s.name,s.addr].filter(Boolean).join(' ');return q?`<a class="ride-route-btn" href="https://maps.google.com/?q=${encodeURIComponent(q)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 マップで確認</a>`:'';};
   const _fuelBadge=(s,extra='')=>s.fuel?`<div class="stop-fuel-badge" style="width:100%;justify-content:center${extra}">⛽ 給油ポイント</div>`:'';
   const _noteCompact=s=>s.note?`<div class="ride-note-compact" title="${esc(s.note)}" role="button" tabindex="0" onclick="event.stopPropagation();openRideNote('${escJsAttr(s.id)}')"><span class="ride-note-txt">${esc(s.note)}</span><span class="ride-note-more">タップで全文 ›</span></div>`:'';
   const _logHtml=s=>s.log?`<div class="ride-log">📝 ${esc(s.log)}</div>`:'';
@@ -413,7 +413,7 @@ export function render(){
     ${!isLast&&_mdur?`<div class="move-dur-label${_mlv>=0?' lv'+_mlv:''}">→ 次まで ${_mdur}</div>`:''}
     ${S.isEdit&&S.editingId===null&&S.activeEditStopId===s.id?`<div class="stop-edit-row">      <button class="small amber-outline" onclick="event.stopPropagation();setCurrentStop('${s.id}')">📍 現在</button>
       <button class="small amber-outline" onclick="event.stopPropagation();openEditStop('${s.id}')">✏️ 編集</button>
-      ${s.addr?`<a class="map-link-btn" href="https://maps.google.com/?q=${encodeURIComponent(s.addr)}" target="_blank" rel="noopener">🗺 マップ</a>`:''}
+      ${(()=>{const q=[s.name,s.addr].filter(Boolean).join(' ');return q?`<a class="map-link-btn" href="https://maps.google.com/?q=${encodeURIComponent(q)}" target="_blank" rel="noopener">🗺 マップ</a>`:'';})()}
       <button class="small danger" onclick="event.stopPropagation();delStop('${s.id}')">削除</button>
     </div>`:''}
   </div>
