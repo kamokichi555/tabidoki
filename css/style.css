@@ -134,6 +134,23 @@ button.small{padding:6px 10px;font-size:16px}
 .time-value{font-size:24px;font-weight:700;font-family:'SF Mono','Menlo','Courier New',monospace;color:var(--text);letter-spacing:.02em}
 .stop-note{font-size:17px;color:var(--text2);background:var(--bg3);border-left:4px solid var(--border2);border-radius:0 6px 6px 0;padding:8px 12px;margin-top:8px;line-height:1.7;word-break:break-word;overflow-wrap:anywhere;white-space:pre-wrap}
 .stop-note.dm{border-left-color:var(--red);color:#ffcccc}
+/* 編集（並び替え）モードでは長いメモを高さで切り詰めてカードを低く保ち、ドラッグ操作をしやすくする。
+   改行・箇条書き構造は維持(white-space:pre-wrapは基底ルールから継承)。
+   実際にあふれたメモ(.clamped を render後にJS付与)だけ下端をフェードして続きがある事を示す。
+   全文は ✏️編集 や走行モードで確認できる。表示モードは全文のまま。 */
+.timeline.edit-mode .stop-note{
+  max-height:8.5em;       /* line-height1.7 × 約5行ぶん */
+  overflow:hidden;
+  position:relative;
+}
+.timeline.edit-mode .stop-note.clamped::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:2.2em;
+  background:linear-gradient(to bottom,transparent,var(--bg3));
+  pointer-events:none;
+}
+body.day-mode .timeline.edit-mode .stop-note.clamped::after{
+  background:linear-gradient(to bottom,transparent,rgba(0,0,0,.06));
+}
 .current-badge{display:inline-block;font-size:14px;font-weight:800;color:#000;background:var(--amber);border-radius:6px;padding:3px 10px;margin-top:6px;letter-spacing:.03em}
 .stop-edit-row{display:flex;gap:4px;margin-top:10px;flex-wrap:wrap;align-items:center}
 .stop-edit-row button,.stop-edit-row a{white-space:nowrap;flex-shrink:0;padding:6px 7px!important;font-size:16px!important}
