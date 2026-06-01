@@ -85,11 +85,11 @@
     </div>
     <div class="menu-drawer-body">
       <div class="menu-section-label">データ</div>
-      <button class="menu-item" id="json-save-btn" onclick="closeMenu();saveJSON()">
+      <button class="menu-item" id="json-save-btn" onclick="closeMenu();openSaveModal()">
         <span class="mi-icon">💾</span>
         <span class="mi-text"><span class="mi-label">保存</span><span class="mi-sub">データを保存する</span></span>
       </button>
-      <button class="menu-item" onclick="closeMenu();loadJSON()">
+      <button class="menu-item" onclick="closeMenu();openLoadModal()">
         <span class="mi-icon">📂</span>
         <span class="mi-text"><span class="mi-label">読込</span><span class="mi-sub">前回データを復元</span></span>
       </button>
