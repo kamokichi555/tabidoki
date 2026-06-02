@@ -7,13 +7,13 @@
 
 /* --- 自動生成: モジュール依存のインポート --- */
 import { DEFAULT, SK } from './00-constants.js';
-import { S, _canEditData, data, setData } from './01-state.js';
+import { S, _canEditData, data, setData, _dom } from './01-state.js';
 import { _migrateData, _resolveCurrentStopId, _sanitizeImportedData } from './02-utils.js';
 import { restoreFromStorage, save } from './03-storage.js';
 import { ensureAllWeather } from './04-weather.js';
 import { _flushRouteSave, _flushTitle, _syncTitleInput, _updateStickyTops, currentDayFlat, renderTabs, syncBorderAddr } from './06-day.js';
 import { _depCountdownHtml, initNormalSwipe, initRideSwipe, render, showInfoToast, updateClock } from './07-render.js';
-import { _initTheme, _initFontSize, _updateNoteCount, syncNotePreview, toggleEdit } from './08-mode.js';
+import { _initTheme, _initFontSize, _updateNoteCount, syncNotePreview, toggleEdit, toggleRide } from './08-mode.js';
 import { _renderSplash } from './11-overlays.js';
 import { _dbgLog } from './12-debug.js';
 import { _gpsInit } from './14-gps.js';
@@ -179,7 +179,28 @@ setInterval(()=>{
   const cd=document.querySelector('.ride-dep-cd');
   if(cd) cd.outerHTML=html;
 },15000);
-if(!S.isEdit&&!S.isRide){
+// 走行モード自動復帰: 前回バックグラウンド化時に走行中だったかをlocalStorageから読む。
+// 走行中に画面消灯→OSがページ破棄→再読込されても、走行画面とGPS追跡へ自動で戻すため。
+const _wasRiding=(()=>{try{return localStorage.getItem('touring_ride')==='1';}catch(e){return false;}})();
+
+if(!S.isEdit&&!S.isRide&&_wasRiding&&S._pendingRestore){
+  // 走行中の再読込からの復帰。確認ダイアログを挟まず前回データを復元して走行モードへ戻す。
+  // （同一セッションの行程であることが明らかなため、ここでは確認しない）
+  S._pendingRestore=null;     // 保存ガード解除（復元確認「はい」枝と同じ扱い）
+  restoreFromStorage(true);   // silent: 行程と現在地マーカーを再適用（「読み込みました」トーストは出さない）
+  // 重要: restoreFromStorage(=_applyImportedData) は描画・isEdit設定・「isRideならライド解除」を
+  // requestAnimationFrame 内で後追い実行する。よって同期で先に toggleRide すると、直後の
+  // そのrAFが入ったばかりの走行モードを解除してしまう（GPSも止まる）。
+  // rAFコールバックは登録順に同フレームで走るため、ここで登録するコールバックは
+  // restoreFromStorage が登録したものの後に実行される。そこで走行モードへ入る。
+  requestAnimationFrame(()=>{
+    // この時点でrestoreFromStorage側のrAFが S.isEdit=true にしているため戻す。
+    // 戻さないと toggleRide が「走行モードに切り替えますか？」の確認を出す。
+    S.isEdit=false; _dom('edit-area').style.display='none';
+    toggleRide();             // S.isEdit=false のため確認は出ない。内部でGPS/WakeLockも再開
+    _dbgLog('ride_autoresume',{});
+  });
+}else if(!S.isEdit&&!S.isRide){
   toggleEdit();
   // ブラウザのフォーム値復元（bfcache/オートフィル）がdata.titleと食い違うのを防ぐため、
   // 描画が落ち着いた後にもう一度data.titleで入力欄を上書き同期する
@@ -229,6 +250,9 @@ window.addEventListener('pageshow',()=>{
 // 両方で発火させ、バックグラウンドでデバウンスタイマーが間引かれるケースも塞ぐ。
 // localStorageは同期書き込みなので、フリーズ前に確実に永続化される。_flush系・saveは _canEditData ガード済み。
 function _persistPendingEdits(){
+  // 走行モード自動復帰用: バックグラウンド化（=破棄されうる瞬間）の走行状態を記録する。
+  // _freshStartPreserveガードより前に置き、走行状態は常に正しく残す。
+  try{localStorage.setItem('touring_ride',S.isRide?'1':'0');}catch(e){}
   // 復元確認で「いいえ」を選んだ直後など、前回データをlocalStorageに温存中（_freshStartPreserve）は
   // 背面化のたびに空dataでsave()して前回データを破壊し、[読み込む]復旧を不能にしないよう保存しない。
   // ユーザーが能動編集すればsave()側でフラグが解除され、以降は通常どおり背面化保存が効く。

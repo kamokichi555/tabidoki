@@ -14,7 +14,7 @@ import { IS_IOS, WEEK, _migrateData, _resolveCurrentStopId, _sanitizeImportedDat
 import { _bumpWxGen, _lsSetItem, wxGen, wxQueue, wxQueueFast, wxQueueIds, wxStopRes } from './04-weather.js';
 import { _cachedCdiForId, _flushTitle, _invalidateCdi, _scrollNormalViewToFirstStop, _syncTitleInput, renderTabs } from './06-day.js';
 import { _lastClockTs, _resetClockTs, hideInfoToast, render, showAppError, showInfoToast, updateClock } from './07-render.js';
-import { _hasAnyStops, setFormAdd } from './08-mode.js';
+import { _hasAnyStops, setFormAdd, _releaseWakeLock } from './08-mode.js';
 import { _closeAllOverlays, _closeOverlay, _lowerHeaderForOverlay } from './11-overlays.js';
 import { _dbgLog, _dbgSnapshot } from './12-debug.js';
 import { _gpsOnRideEnd } from './14-gps.js';
@@ -348,20 +348,21 @@ export function loadJSON(){
 }
 
 /* ── localStorageの保存データを再読み込みする（起動時に「読み込まない」を選んだ後の復旧用） ── */
-export function restoreFromStorage(){
+export function restoreFromStorage(silent){
   try{
     const _raw=localStorage.getItem(SK);
     if(!_raw){showInfoToast('⚠️ 保存データが見つかりませんでした',3000);return;}
     const _p=JSON.parse(_raw);
     // saveは編集のたびに即実行されるため、localStorageは常に現在の作業内容と一致する。
     // よってここでの再読込は現状の再適用（最悪でもno-op）であり、確認は不要。
-    _applyImportedData(_p,_p.title,true);
+    // silent===true（走行モード自動復帰など）は「読み込みました」トーストを出さない。
+    _applyImportedData(_p,_p.title,true,silent===true);
   }catch(e){showAppError(EC.LOAD,e);}
 }
 
 /* ── 読み込んだJSONを適用する共通処理 ── */
-/** @param {any} p 外部由来の未検証データ @param {string} [titleFallback] @param {boolean} [skipConfirm] */
-export function _applyImportedData(p,titleFallback,skipConfirm){
+/** @param {any} p 外部由来の未検証データ @param {string} [titleFallback] @param {boolean} [skipConfirm] @param {boolean} [silent] silent=true は完了トーストを出さない */
+export function _applyImportedData(p,titleFallback,skipConfirm,silent){
   if(!p||typeof p!=='object'||!Array.isArray(p.days)) throw new Error('フォーマットが正しくありません');
   if(!p.days.length) p.days=[{date:'',routeUrl:'',stops:[]}];
   _migrateData(p); // 旧バージョン移行（02-utils）
@@ -380,14 +381,16 @@ export function _applyImportedData(p,titleFallback,skipConfirm){
   _invalidateCdi();
   save(); // 読み込んだデータを即座にlocalStorageへ反映（読み込み直後にタブを閉じても残るように）
   requestAnimationFrame(()=>{
-    if(S.isRide){S.isRide=false;if(typeof _gpsOnRideEnd==='function')_gpsOnRideEnd();document.body.classList.remove('ride-mode');_dom('normal-view').style.display='block';_dom('ride-view').classList.remove('active');_dom('ride-btn').classList.remove('on');_dom('ride-btn').textContent='🏍️';_dom('day-tabs').style.display='';_dom('day-manage').style.display='none';_dom('cancel-ride-btn').style.display='none';}
+    if(S.isRide){S.isRide=false;if(typeof _gpsOnRideEnd==='function')_gpsOnRideEnd();if(typeof _releaseWakeLock==='function')_releaseWakeLock();document.body.classList.remove('ride-mode');_dom('normal-view').style.display='block';_dom('ride-view').classList.remove('active');_dom('ride-btn').classList.remove('on');_dom('ride-btn').textContent='🏍️';_dom('day-tabs').style.display='';_dom('day-manage').style.display='none';_dom('cancel-ride-btn').style.display='none';}
     if(!S.isEdit){S.isEdit=true;_dom('edit-area').style.display='block';}
     _syncTitleInput(); // 読み込んだタイトルをツーリング名欄に反映
     setFormAdd(); // S.isEdit状態に関わらず常にフォームをリセット（既存編集中のロード時に古い入力値が残るのを防ぐ）
     S.editingId=null;S.activeEditStopId=null;
     renderTabs();render();hideInfoToast();
-    if(_truncated)showInfoToast(`⚠️ 1日${LIMIT.stopsPerDay}件を超える地点は読み込みませんでした`,4000);
-    else showInfoToast(`🗺️ 「${title}」を読み込みました`,3000);
+    if(!silent){
+      if(_truncated)showInfoToast(`⚠️ 1日${LIMIT.stopsPerDay}件を超える地点は読み込みませんでした`,4000);
+      else showInfoToast(`🗺️ 「${title}」を読み込みました`,3000);
+    }
     _resetClockTs();updateClock(); // 走行モードから戻った場合に時計サイズを即時更新
     requestAnimationFrame(_scrollNormalViewToFirstStop);
   });

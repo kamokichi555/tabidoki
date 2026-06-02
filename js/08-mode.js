@@ -67,6 +67,39 @@ export function _cycleFontSize(){
   _applyFontSize(next);
   try{localStorage.setItem('touring_fontscale',next);}catch(e){}
 }
+/* ══ 画面スリープ抑止（Screen Wake Lock） ══
+   走行モード中だけ画面を点けたままにし、ブラックアウト→ロック解錠の
+   繰り返しと、それに伴うバックグラウンド破棄→再読込を防ぐ。
+   Wake Lock はページが非表示（画面消灯/アプリ切替）になると自動解放される
+   仕様のため、visibilitychange で復帰時に走行中なら取り直す。
+   非対応端末・取得失敗時は黙って無視し、走行自体は妨げない。 */
+let _wakeLock=null,_wakeLockPending=false;
+function _acquireWakeLock(){
+  if(!('wakeLock'in navigator)) return;        // 非対応端末
+  if(_wakeLock||_wakeLockPending) return;       // 既に保持中／取得処理中は何もしない（二重取得→孤児ロック防止）
+  _wakeLockPending=true;
+  navigator.wakeLock.request('screen').then(wl=>{
+    _wakeLockPending=false;
+    if(!S.isRide){ try{wl.release();}catch(e){} return; } // 取得完了までに走行終了していたら即解放
+    _wakeLock=wl;
+    wl.addEventListener('release',()=>{ _wakeLock=null; }); // 自動解放（画面消灯等）を検知
+    _dbgLog('wakelock_acquired',null);
+  }).catch(e=>{
+    _wakeLockPending=false;_wakeLock=null;
+    _dbgLog('wakelock_failed',{err:String(e&&e.message||e).slice(0,120)});
+  });
+}
+export function _releaseWakeLock(){
+  if(!_wakeLock) return;
+  const wl=_wakeLock; _wakeLock=null;
+  try{ const p=wl.release(); if(p&&p.catch) p.catch(()=>{}); }catch(e){}
+  _dbgLog('wakelock_released',null);
+}
+// 画面復帰時：走行モード中なら取り直す（非表示中に自動解放されているため）
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&S.isRide) _acquireWakeLock();
+});
+
 export function toggleRide(){
   _closeAllOverlays();
   // 編集中にライドモードへ切り替える場合は確認（新設計では常にS.isEdit=trueのため毎回出る）
@@ -94,8 +127,10 @@ export function toggleRide(){
     ensureDayWeather(S.currentDay);
     renderRide();
     if(typeof _gpsOnRideStart==='function') _gpsOnRideStart(); // GPS自動追跡開始
+    _acquireWakeLock(); // 画面スリープ抑止（GPSのON/OFFに関係なく走行中は常に）
   }else{
     if(typeof _gpsOnRideEnd==='function') _gpsOnRideEnd(); // GPS自動追跡停止
+    _releaseWakeLock(); // 画面スリープ抑止を解除（通常のスリープに戻す）
     _updateStickyTops();
     render(); // 走行中にsetCurrentStop等で変わった地点状態をnormal-viewに反映
   }
