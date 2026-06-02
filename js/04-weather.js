@@ -253,11 +253,12 @@ export async function _fetchWttr(lat,lon,date,arrHour){
 
 /* ── 予報フェッチ（Open-Meteoはレート制限なし） ── */
 export async function _fetchForecast(stop,lat,lon,date){
-  // 到着時刻がある場合はhourlyで時間帯の天気を取得（なければ出発時刻で代替）
+  // 到着時刻がある場合はその時刻のhourly天気を取得。時刻なしは正午(12時)で代用し、
+  // 「該当日の正午あたりの気温」を常に出す（最高/最低だけでなく現在気温も揃える）。
   const arrTime=stop.arr||stop.dep||null; // "HH:MM" or null
-  const arrHour=arrTime?parseInt(arrTime.split(':')[0]):null;
-  const useHourly=arrHour!==null;
-  const fk=`${lat.toFixed(2)},${lon.toFixed(2)}_${date}${useHourly?'_h'+arrHour:''}`;
+  const arrHour=arrTime?parseInt(arrTime.split(':')[0]):12; // 時刻なしは正午で代用
+  const useHourly=true; // 常にhourlyを取得して気温を出す
+  const fk=`${lat.toFixed(2)},${lon.toFixed(2)}_${date}_h${arrHour}`;
   if(fcastCache[fk]&&Date.now()-fcastCache[fk].time<2*60*60*1000){
     if(_stopStillValid(stop)) wxStopRes[stop.id]={...fcastCache[fk],date};
     return;
