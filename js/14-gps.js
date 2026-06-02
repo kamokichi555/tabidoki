@@ -19,15 +19,19 @@ import { showInfoToast } from './07-render.js';
 import { _dbgLog } from './12-debug.js';
 /* ══ GPS状態変数 ══ */
 export let _gpsEnabled=false;          // GPS自動追跡 ON/OFF（ユーザー設定）
-export let _gpsPollTimer=null;         // ポーリング用タイマー
+export let _gpsWatchId=null;           // watchPositionの監視ID
 export let _gpsManualOverride=false;   // 手動で現在地設定後の自動切替抑制フラグ
 export let _gpsManualOverrideTimer=null;
 export let _gpsViewLock=false;         // 手動スワイプ後の表示位置固定フラグ
 export let _gpsViewLockTimer=null;
 export let _gpsLastPos=null;           // 直近のGPS座標 {lat,lon,acc,ts}
+export let _gpsStale=false;            // 一定時間 新しい位置が来ていない（トンネル等）
+let _gpsStaleTimer=null;               // 鮮度タイマー
+let _gpsLastProcessTs=0;               // 重い処理を最後に実行した時刻（間引き用）
 
 /* ══ 調整パラメータ ══ */
-export const GPS_POLL_MS=30000;        // 位置取得間隔（ms）
+export const GPS_MIN_PROCESS_MS=3000;  // 位置処理（距離計算・再描画）の最短間隔（ms）。watchPositionの高頻度発火を間引く
+export const GPS_STALE_MS=15000;       // この時間 新しい位置が来なければ「再取得中」表示にする（ms）
 export const GPS_ARRIVE_M=300;         // 到着とみなす距離（m）
 export const GPS_ACC_MAX=100;          // この精度(m)より悪いGPSは自動切替に使わない
 export const GPS_MANUAL_LOCK_MS=60000; // 手動現在地設定後の抑制時間（ms）
@@ -122,12 +126,21 @@ export function _gpsOnPosition(pos){
   if(!S.isRide||!_gpsEnabled) return;
   const lat=pos.coords.latitude,lon=pos.coords.longitude,acc=pos.coords.accuracy;
   _gpsLastPos={lat,lon,acc,ts:Date.now()};
-  _gpsUpdateStatus();
-  _gpsUpdateNextDist(); // 残り距離を更新（毎ポーリング）
+  // 新しい位置が来たので「再取得中」を解除し、鮮度タイマーを張り直す
+  _gpsStale=false;
+  if(_gpsStaleTimer) clearTimeout(_gpsStaleTimer);
+  _gpsStaleTimer=setTimeout(()=>{ _gpsStale=true; _gpsStaleTimer=null; _gpsUpdateStatus(); },GPS_STALE_MS);
+  _gpsUpdateStatus(); // ステータスは毎回更新（軽い）
+  _gpsUpdateNextDist(); // 残り距離を更新（毎回・軽い）
   // 精度が悪すぎる場合は自動切替しない
   if(acc>GPS_ACC_MAX) return;
   // 手動操作直後は抑制
   if(_gpsManualOverride) return;
+  // ここから先（全地点との距離計算）が重い。watchPositionの高頻度発火を最短間隔で間引く。
+  // 精度不良や手動抑制で上で抜けた場合はスロットを消費しない＝復帰後すぐ判定できる。
+  const now=Date.now();
+  if(now-_gpsLastProcessTs<GPS_MIN_PROCESS_MS) return;
+  _gpsLastProcessTs=now;
   const flat=currentDayFlat();
   if(!flat.length) return;
   // 最も近い地点を探す（座標が取れる地点のみ）
@@ -153,13 +166,16 @@ export function _gpsOnPosition(pos){
 
 export function _gpsOnError(err){
   _dbgLog('gps_error',{code:err.code,msg:err.message});
-  if(err.code===1){ // PERMISSION_DENIED
+  if(err.code===1){ // PERMISSION_DENIED: 許可がないと追跡不能なので止める
     _gpsEnabled=false;
     try{localStorage.setItem('touring_gps','0');}catch(e){} // 次回起動で誤ONにしない
     _gpsStop();
     _gpsUpdateBtn();
     showInfoToast('⚠️ 位置情報の許可が必要です',4000);
   }
+  // code 2(POSITION_UNAVAILABLE)/3(TIMEOUT) はトンネル等の一時的な失敗。
+  // watchPositionが自動でリトライを続けるので追跡は止めない。
+  // 鮮度タイマーが時間切れになれば _gpsUpdateStatus が「再取得中」を表示する。
   _gpsUpdateStatus();
 }
 
@@ -172,20 +188,19 @@ export function _gpsStart(){
   }
   _gpsStop(); // 二重起動防止: 既存の監視/タイマーを必ず止めてから開始する
   _gpsPrefetchCoords();
-  // 30秒ごとのポーリング（バッテリー節約）
-  const opts={enableHighAccuracy:true,maximumAge:15000,timeout:20000};
-  const poll=()=>{
-    navigator.geolocation.getCurrentPosition(_gpsOnPosition,_gpsOnError,opts);
-  };
-  poll(); // 即時1回
-  _gpsPollTimer=setInterval(poll,GPS_POLL_MS);
+  // watchPositionで位置の変化をOS側からイベントで受け取る（高速走行でも取りこぼさない）。
+  // maximumAge:0 でキャッシュを使わず常に最新を要求。高頻度発火は _gpsOnPosition 側で間引く。
+  const opts={enableHighAccuracy:true,maximumAge:0,timeout:20000};
+  _gpsLastProcessTs=0; // 開始直後の最初の位置は即処理させる
+  _gpsWatchId=navigator.geolocation.watchPosition(_gpsOnPosition,_gpsOnError,opts);
   _gpsUpdateStatus();
 }
 export function _gpsStop(){
-  if(_gpsPollTimer){clearInterval(_gpsPollTimer);_gpsPollTimer=null;}
+  if(_gpsWatchId!==null){navigator.geolocation.clearWatch(_gpsWatchId);_gpsWatchId=null;}
+  if(_gpsStaleTimer){clearTimeout(_gpsStaleTimer);_gpsStaleTimer=null;}
   if(_gpsManualOverrideTimer){clearTimeout(_gpsManualOverrideTimer);_gpsManualOverrideTimer=null;}
   if(_gpsViewLockTimer){clearTimeout(_gpsViewLockTimer);_gpsViewLockTimer=null;}
-  _gpsManualOverride=false;_gpsViewLock=false;_gpsLastPos=null;
+  _gpsManualOverride=false;_gpsViewLock=false;_gpsLastPos=null;_gpsStale=false;_gpsLastProcessTs=0;
   _gpsUpdateStatus();
 }
 
@@ -223,6 +238,7 @@ export function _gpsUpdateStatus(){
   if(!S.isRide||!_gpsEnabled){el.style.display='none';return;}
   el.style.display='';
   if(!_gpsLastPos){el.textContent='📡 GPS取得中';el.className='gps-status';return;}
+  if(_gpsStale){el.textContent='📡 GPS再取得中';el.className='gps-status warn';return;} // 一定時間 新位置なし（トンネル等）。直近の現在地は保持
   if(_gpsLastPos.acc>GPS_ACC_MAX){el.textContent='⚠️ GPS精度低';el.className='gps-status warn';return;}
   el.textContent='📍 GPS追跡中';el.className='gps-status ok';
 }
