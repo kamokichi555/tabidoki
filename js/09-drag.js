@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk17 — 09-drag.js
+   旅刻 mk18 — 09-drag.js
    タッチ / マウス ドラッグ並び替え
    実行時依存: data, S.currentDay, S.editingId, save, render, updateDragHint
    Copyright © 鴨吉 All Rights Reserved.

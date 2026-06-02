@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk17 — 14-gps.js
+   旅刻 mk18 — 14-gps.js
    GPS自動追跡（走行モードで現在地に近い地点へ自動切替）
    依存: 00-constants.js, 02-utils.js（buildGeoTargets/_geoCacheGet）,
         04-weather.js（_geocodeParallel/_geoCacheSet）,

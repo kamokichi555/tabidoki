@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk17 — 02-utils.js
+   旅刻 mk18 — 02-utils.js
    純粋ユーティリティ（DOM非依存）
    依存: 00-constants.js（LIMIT, EC等）
    Copyright © 鴨吉 All Rights Reserved.
@@ -121,7 +121,7 @@ export function _sanitizeImportedData(p){
    ※対応バージョン一覧をここ1箇所に集約（追加漏れによる移行不全を防ぐ）。 */
 /** @param {any} p 移行前（旧版・フィールド欠落あり）の未検証データを破壊的に更新 */
 export function _migrateData(p){
-  const LEGACY=['mk16-v1','mk15-v1','mk13-v1','mk8-v1','mk7-v2','mk7-v1','mk6-v1','mk5-v1','mk4-v2','mk4-v1'];
+  const LEGACY=['mk17-v1','mk16-v1','mk15-v1','mk13-v1','mk8-v1','mk7-v2','mk7-v1','mk6-v1','mk5-v1','mk4-v2','mk4-v1'];
   if(!(p&&p.version&&LEGACY.includes(p.version))) return;
   if(p.version==='mk4-v1'){let mid=null;for(const d of p.days){if(d.currentStopId){mid=d.currentStopId;break;}}p.currentStopId=mid;}
   p.version=DEFAULT.version;

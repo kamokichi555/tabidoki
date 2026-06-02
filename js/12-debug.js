@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk17 — 12-debug.js
+   旅刻 mk18 — 12-debug.js
    デバッグログ機構・バッジ・トースト
    依存: 00-constants.js（EC）, 04-weather.js（_lsSetItem）
    実行時依存: showAppError
@@ -67,7 +67,7 @@ export function _dbgLog(event,data){
 
 export function _dbgFmtAll(){
   const env={
-    app:'tabidoki mk17',
+    app:'tabidoki mk18',
     now:new Date().toISOString(),
     ua:navigator.userAgent,
     vw:window.innerWidth,vh:window.innerHeight,
@@ -75,7 +75,7 @@ export function _dbgFmtAll(){
     err:_dbgErrCount,entries:_dbgBuf.length,
     snap:_dbgSnapshot(),
   };
-  const head='# 旅刻mk17 デバッグログ\n## 環境\n'+JSON.stringify(env,null,2)+'\n\n## イベント (古い→新しい)\n';
+  const head='# 旅刻mk18 デバッグログ\n## 環境\n'+JSON.stringify(env,null,2)+'\n\n## イベント (古い→新しい)\n';
   const lines=_dbgBuf.map(en=>`[${en.t}] ${en.e}${en.d?' '+JSON.stringify(en.d):''}`).join('\n');
   return head+lines+'\n';
 }

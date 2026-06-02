@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk17 — 07-render.js
+   旅刻 mk18 — 07-render.js
    描画系（7セグ / updateClock / renderTabs / renderRide / render）
    + エラー・トースト UI（showAppError / showInfoToast）
    依存: 00-constants.js（EC/WMO）, 02-utils.js（esc/toMin等）

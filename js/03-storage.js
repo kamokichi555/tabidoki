@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk17 — 03-storage.js
+   旅刻 mk18 — 03-storage.js
    データ管理（save / share / saveJSON / saveRecord / load / migration）
    依存: 00-constants.js（SK/DEFAULT/LIMIT）, 02-utils.js（sanitize等）
    実行時依存: data, S.currentDay, render, showInfoToast, showAppError
@@ -328,7 +328,7 @@ export function saveRecord(){
       });
     });
     lines.push(HR);
-    lines.push('旅刻mk17 / Powered by 鴨吉');
+    lines.push('旅刻mk18 / Powered by 鴨吉');
     const text=lines.join('\n');
     const dateStr=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
     const title=(data.title||'ツーリング').replace(/[\\/:*?"<>|]/g,'_');

@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk17 — 06-day.js
+   旅刻 mk18 — 06-day.js
    日程・タブ管理 + データアクセサ
    （stops / dayTabLabel / currentDayFlat / addDay / switchDay 等）
    依存: 00-constants.js（EC）, 02-utils.js（toMin/fromMin/debounce）

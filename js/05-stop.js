@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk17 — 05-stop.js
+   旅刻 mk18 — 05-stop.js
    地点管理（saveStop / delStop / cascadeFrom / sort / getStatus）
    依存: 00-constants.js（EC/LIMIT）, 02-utils.js（sanitize/toMin等）
    実行時依存: data, S.currentDay, S.editingId, wxStopRes, wxQueueIds,

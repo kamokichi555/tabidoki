@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk17 — _expose.js（インラインイベントハンドラのwindow公開ブリッジ）
+   旅刻 mk18 — _expose.js（インラインイベントハンドラのwindow公開ブリッジ）
    ESM化でモジュールスコープになった関数を、HTMLの on*="fn()" 属性から
    参照できるよう window へ明示公開する。ここに列挙された関数だけが公開API。
    ※ 09-drag / 10-pickers はこのファイルのimportで初めて読み込まれる（他からimportされないため）。
@@ -35,7 +35,7 @@ Object.assign(window, {
    ══════════════════════════════════════════════════════ */
 import { S, data as _stateData, setData, _dom } from './01-state.js';
 import { render, renderRide, hideInfoToast } from './07-render.js';
-import { toggleEdit } from './08-mode.js';
+import { toggleEdit, _initFontSize, syncNotePreview, syncLogPreview } from './08-mode.js';
 import { ensureAllWeather, wxStopRes, wxQueue, wxQueueFast, wxQueueIds, geoCache } from './04-weather.js';
 import { nowMin, _setNowMinOverride } from './02-utils.js';
 import { _setDetailsOpen, _setFuelCheck, splashSettings } from './11-overlays.js';
@@ -69,6 +69,7 @@ Object.assign(window, {
   renderTabs, _updateStickyTops, currentDayFlat,
   esc, isSafeUrl, _isoToday, onMouseDragEnd: _drag.onMouseDragEnd,
   wxStopRes, wxQueue, wxQueueFast, wxQueueIds, geoCache,
+  _initFontSize, syncNotePreview, syncLogPreview,
 });
 
 // ── ドラッグ状態変数（09-drag の let。テストは読み取りのみ）──

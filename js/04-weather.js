@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk17 — 04-weather.js
+   旅刻 mk18 — 04-weather.js
    天気取得・ジオコーディング・キュー管理
    依存: 00-constants.js（WMO）, 02-utils.js（esc/pClass/buildGeoTargets等）
    実行時依存: data, S.currentDay, S.isRide, render, renderRide, showInfoToast

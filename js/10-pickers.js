@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   旅刻 mk17 — 10-pickers.js
+   旅刻 mk18 — 10-pickers.js
    施設選択モーダル（高速道路 / 道の駅 / GS / 快活CLUB / トイレ）
    依存: 00-constants.js, 02-utils.js（esc/escJsAttr）, 04-weather.js（_lsSetItem）
    実行時依存: _dbgLog, showInfoToast, _setFuelCheck, _closeOverlay
