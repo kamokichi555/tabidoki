@@ -384,7 +384,7 @@ body.day-mode::before{
   background-size:100% 3px, 26px 26px, 26px 26px;
 }
 /* スプラッシュ/メニュー/モーダルはテクスチャの上に出す */
-#splash,.modal,.overlay,[id$="-modal"]{z-index:5}
+.modal,.overlay,[id$="-modal"]{z-index:5}
 
 /* 端末ライクな見出し字間（折返しに影響しない範囲で） */
 .day-tab,#now-display{letter-spacing:.06em}
