@@ -253,8 +253,9 @@
 <div id="info-toast" style="display:none;position:fixed;bottom:max(24px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:10002;width:calc(100% - 28px);max-width:440px;background:var(--bg2);border:1.5px solid var(--border2);border-radius:14px;padding:14px 18px;box-shadow:0 4px 24px rgba(0,0,0,.5);animation:toast-in .22s cubic-bezier(.2,0,.2,1);text-align:center;font-size:15px;font-weight:700;color:var(--text)">
 </div>
 <div id="dbg-badge" onclick="openSplashSettings()" title="デバッグログ"><span id="dbg-badge-text">🐛</span></div>
-<script type="module" src="js/13-init.js"></script>
 <script>if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');</script>
+<!-- 起動ロック：パスワードが正しいときだけ js/13-init.js を読み込む -->
+<script src="js/lock.js"></script>
 <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "2f2d3229bba14f57a519f1e1c46d71c3"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
