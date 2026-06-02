@@ -1,1 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旅刻 — 実画面デモ</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:#000;font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;
+  display:flex;align-items:flex-end;justify-content:center;min-height:100vh;overflow:hidden;
+}
+/* stageは412x820固定。画面に収まるよう transform:scale で連続的に縮小（JSで算出）。
+   align-items:flex-end で常に画面下端基準 → テロップが必ず画面最下部に来る。
+   scaleなので中身(テロップ等)のpxレイアウトは一切崩れない。 */
+#stage{
+  position:relative;width:412px;height:820px;background:#0d0d0d;overflow:hidden;
+  border-radius:38px;box-shadow:0 0 0 11px #111,0 0 0 13px #2b2b2b,0 30px 90px rgba(0,0,0,.85);
+  transform-origin:bottom center;
+}
+/* 実アプリのiframe */
+#app{position:absolute;inset:0;width:100%;height:100%;border:0;background:#0d0d0d}
 
+/* ===== テロップ（高さ固定・下揃えで全シーン同じ位置に） ===== */
+/* テロップはブラウザ画面の最下部に固定（fixed）。stageの縮小・余白に影響されず、
+   どの画面サイズでも常に画面の一番下に表示される。幅はstage相当に制限して中央寄せ。 */
+#telop{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:520px;z-index:90;
+  min-height:200px;padding:0 22px 26px;box-sizing:border-box;
+  display:flex;flex-direction:column;justify-content:flex-end;
+  background:linear-gradient(to top,rgba(0,0,0,.95) 38%,rgba(0,0,0,.6) 72%,transparent);pointer-events:none}
+#telop .badge{align-self:flex-start;font-size:12px;font-weight:800;letter-spacing:.12em;
+  color:#000;background:#FFB800;padding:5px 13px;border-radius:6px;margin-bottom:11px;opacity:0}
+#telop .main{font-size:26px;font-weight:800;line-height:1.42;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.95)}
+#telop .main .hi{color:#FFB800}
+#telop .sub{font-size:14px;font-weight:700;color:#e0e0e0;margin-top:8px;line-height:1.5;text-shadow:0 1px 8px rgba(0,0,0,.9);height:3em}
+#telop .badge.in{animation:tin .45s ease both}
+#telop .main span.w{display:inline-block;opacity:0}
+#telop .main span.w.in{animation:tin .4s ease both}
+#telop .sub.in{animation:tin .45s ease .15s both}
+@keyframes tin{from{opacity:0}to{opacity:1}}
+
+/* ===== タップ波紋 ===== */
+.tap{position:absolute;width:50px;height:50px;border-radius:50%;border:3px solid #FFB800;
+  transform:translate(-50%,-50%) scale(.4);opacity:0;z-index:80;pointer-events:none;
+  box-shadow:0 0 18px rgba(255,184,0,.6)}
+.tap.go{animation:tap .65s ease-out}
+@keyframes tap{0%{opacity:.95;transform:translate(-50%,-50%) scale(.4)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.35)}}
+
+/* ===== タイトル／エンドカード ===== */
+.card-screen{position:absolute;inset:0;z-index:95;background:#0d0d0d;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  opacity:0;pointer-events:none;transition:opacity .6s}
+.card-screen.show{opacity:1}
+.logo{font-size:66px;font-weight:800;color:#FFB800;letter-spacing:.08em;
+  text-shadow:0 0 44px rgba(255,184,0,.45);animation:lg 2.6s ease-in-out infinite}
+@keyframes lg{0%,100%{text-shadow:0 0 44px rgba(255,184,0,.4)}50%{text-shadow:0 0 66px rgba(255,184,0,.72)}}
+.romaji{font-size:15px;letter-spacing:.5em;color:#aaa;font-weight:700}
+.tag{font-size:18px;color:#e0e0e0;font-weight:700;margin-top:6px;text-align:center;line-height:1.6}
+.feats{display:flex;flex-direction:column;gap:11px;margin-top:4px}
+.feat{font-size:15px;color:#e0e0e0;font-weight:700;display:flex;align-items:center;gap:11px;opacity:0}
+.feat.in{animation:tin .5s ease both}
+.feat .ic{font-size:21px;width:26px;text-align:center}
+
+#progress{position:absolute;top:0;left:0;height:3px;background:#FFB800;width:0;z-index:200;
+  box-shadow:0 0 10px #FFB800;transition:width .3s linear}
+#replay{position:absolute;right:16px;bottom:16px;z-index:210;background:rgba(20,20,20,.92);
+  border:1.5px solid #FFB800;color:#FFB800;font-family:inherit;font-size:13px;font-weight:700;
+  padding:10px 17px;border-radius:22px;cursor:pointer;opacity:0;transition:.3s}
+#replay.show{opacity:1}
+.hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);color:#666;font-size:13px;text-align:center;line-height:1.6}
+
+/* ===== 斬撃オープニング ===== */
+@import url('https://fonts.googleapis.com/css2?family=Yuji+Mai&display=swap');
+#kesa{position:absolute;inset:0;z-index:300;overflow:hidden;background:
+  linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.8)),
+  radial-gradient(ellipse at 62% 32%, #3a342c, transparent 64%),
+  radial-gradient(ellipse at 24% 78%, #241c16, transparent 58%),
+  #0c0a08;opacity:1;transition:opacity .5s}
+#kesa.gone{opacity:0;pointer-events:none}
+#kesa .kgrain{position:absolute;inset:0;opacity:.55;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.3'/%3E%3C/svg%3E");
+  background-size:170px 170px;animation:kflick .12s steps(1) infinite;pointer-events:none}
+@keyframes kflick{0%{transform:translate(0,0)}50%{transform:translate(-2px,1px)}100%{transform:translate(1px,-1px)}}
+#kesa .kwrap{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3;width:300px;height:466px}
+#kesa .khalf{position:absolute;inset:0;background:url("icons/catchcopy.png") center/contain no-repeat}
+#kesa .ktop{clip-path:none}
+#kesa .kbot{clip-path:polygon(0 22%, 100% 32%, 100% 100%, 0 100%);opacity:0}
+#kesa.run .ktop{clip-path:polygon(0 0, 100% 0, 100% 32%, 0 22%)}
+#kesa.run .kbot{opacity:1}
+#kesa .kslash{position:absolute;top:28%;left:50%;width:600px;height:3px;z-index:5;
+  background:linear-gradient(90deg,transparent,#fff 30%,#fff 70%,transparent);
+  box-shadow:0 0 14px 3px rgba(255,255,255,.9),0 0 40px 8px rgba(180,200,255,.5);
+  transform:translate(-50%,-50%) rotate(11deg) scaleX(0);transform-origin:left center;opacity:0}
+#kesa .kflash{position:absolute;inset:0;background:#fff;opacity:0;z-index:6;pointer-events:none}
+@keyframes kink{from{opacity:0;filter:blur(3px);transform:translate(-50%,-46%)}to{opacity:1;filter:blur(0);transform:translate(-50%,-50%)}}
+@keyframes kslash{0%{transform:translate(-50%,-50%) rotate(11deg) scaleX(0);opacity:0}
+  15%{opacity:1}60%{opacity:1}100%{transform:translate(-50%,-50%) rotate(11deg) scaleX(2.2);opacity:0}}
+@keyframes kflash{0%{opacity:0}40%{opacity:.55}100%{opacity:0}}
+@keyframes kslideTop{to{transform:translate(-14px,-46px) rotate(-2deg);opacity:0}}
+@keyframes kslideBot{to{transform:translate(16px,90px) rotate(2deg);opacity:0}}
+#kesa.ink .kwrap{animation:kink 1.9s cubic-bezier(.2,.8,.3,1) both}
+#kesa.run .kslash{animation:kslash .24s cubic-bezier(.6,0,.9,1) both}
+#kesa.run .kflash{animation:kflash .22s ease-out .1s both}
+#kesa.run .ktop{animation:kslideTop .9s cubic-bezier(.3,.6,.4,1) .24s both}
+#kesa.run .kbot{animation:kslideBot .9s cubic-bezier(.3,.6,.4,1) .24s both}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="progress"></div>
+  <iframe id="app" src="about:blank"></iframe>
+
+  <!-- タイトル（斬撃オープニングを使うため初期非表示） -->
+  <div class="card-screen" id="title-card">
+    <div class="logo">旅刻</div>
+    <div class="romaji">T A B I D O K I</div>
+    <div class="tag">ツーリングを、もっと自由に。</div>
+  </div>
+  <!-- エンド -->
+  <div class="card-screen" id="end-card">
+    <div class="logo">旅刻</div>
+    <div class="feats">
+      <div class="feat"><span class="ic">📝</span>施設はボタンでワンタップ追加</div>
+      <div class="feat"><span class="ic">🏍️</span>走行中はスワイプ＆GPS自動追跡</div>
+      <div class="feat"><span class="ic">📋</span>行程の共有・記録もかんたん</div>
+    </div>
+    <div class="tag" style="margin-top:14px;font-size:17px;color:#FFB800;font-weight:800">スマホひとつで、地図いらず。</div>
+    <div class="tag" style="margin-top:8px;font-size:14px;color:#bbb">無料で使える · ブラウザですぐ試せる</div>
+  </div>
+
+  <button id="replay" onclick="play()">▶ もう一度見る</button>
+
+  <!-- 斬撃オープニング（最前面） -->
+  <div id="kesa">
+    <div class="kgrain"></div>
+    <div class="kwrap" id="kcopy">
+      <div class="khalf ktop"></div>
+      <div class="khalf kbot"></div>
+    </div>
+    <div class="kslash"></div>
+    <div class="kflash"></div>
+  </div>
+</div>
+<!-- テロップ（stageの外＝ブラウザ画面の最下部に固定。画面サイズが変わっても常に一番下） -->
+<div id="telop"></div>
+<div class="hint">実際のアプリ画面をそのまま操作するデモ。画面録画でそのまま動画素材に。</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const stage=$('stage');
+let timers=[],running=false;
+const after=(ms,fn)=>{const t=setTimeout(fn,ms);timers.push(t);return t;};
+const clearAll=()=>{timers.forEach(clearTimeout);timers=[];};
+
+// iframe内のwindow/document
+function win(){return $('app').contentWindow;}
+function doc(){return $('app').contentDocument;}
+
+/* ===== テロップ ===== */
+function telop(badge,mainHtml,sub){
+  const t=$('telop');
+  t.innerHTML=`<div class="badge">${badge}</div><div class="main"></div>${sub?`<div class="sub">${sub}</div>`:''}`;
+  const main=t.querySelector('.main');
+  main.innerHTML=mainHtml.replace(/(<span class="hi">.*?<\/span>|[^<>])/g,(m)=>{
+    if(m==='<'||m==='>')return m;
+    return `<span class="w">${m}</span>`;
+  });
+  requestAnimationFrame(()=>{
+    t.querySelector('.badge').classList.add('in');
+    t.querySelectorAll('.main .w').forEach((w,i)=>{w.style.animationDelay=(0.15+i*0.018)+'s';w.classList.add('in');});
+    const s=t.querySelector('.sub');if(s)s.classList.add('in');
+  });
+}
+const clearTelop=()=>{$('telop').innerHTML='';};
+
+/* ===== タップ波紋（stage座標）===== */
+function tapAt(x,y){
+  const d=document.createElement('div');d.className='tap';d.style.left=x+'px';d.style.top=y+'px';
+  stage.appendChild(d);requestAnimationFrame(()=>d.classList.add('go'));after(700,()=>d.remove());
+}
+// iframe内要素の中心にタップ波紋を出す
+function tapEl(sel){
+  try{
+    const el=doc().querySelector(sel);if(!el)return;
+    const r=el.getBoundingClientRect();
+    tapAt(r.left+r.width/2,r.top+r.height/2);
+  }catch(e){}
+}
+
+/* ===== iframe操作ヘルパ（iframe内コンテキストで実行）===== */
+// iframe内でコードを実行（その世界のdocument/Eventを使う）
+function exec(code){
+  try{ return win().eval(code); }catch(e){ console.warn('exec',e); }
+}
+function call(fn){ exec(`typeof ${fn}==='function' && ${fn}()`); }
+
+// iframe内要素の中心にタップ波紋（stage座標へ変換）
+function tapEl(sel){
+  try{
+    const el=doc().querySelector(sel);if(!el)return;
+    const r=el.getBoundingClientRect();
+    tapAt(r.left+r.width/2,r.top+r.height/2);
+  }catch(e){}
+}
+
+// 1地点を追加（iframe内で完結実行）
+function addStop({name,arr,dep,note,addr,fuel}){
+  const j=JSON.stringify({name:name||'',arr:arr||'',dep:dep||'',note:note||'',addr:addr||'',fuel:!!fuel});
+  exec(`(function(){
+    var o=${j};
+    if(document.getElementById('edit-area').style.display==='none') onEditBtnClick();
+    document.getElementById('inp-name').value=o.name;
+    document.getElementById('inp-arr').value=o.arr;
+    document.getElementById('inp-dep').value=o.dep;
+    document.getElementById('inp-note').value=o.note;
+    if(o.addr){ try{_setDetailsOpen(true);}catch(e){} document.getElementById('inp-addr').value=o.addr; }
+    if(o.fuel){ var b=document.getElementById('fuel-check-box'); if(b&&!b.classList.contains('checked')) toggleFuelCheck(); }
+    saveStop();
+  })()`);
+}
+
+// 地点名から、その行のid・DOM要素・矩形を取得（iframe内）
+function rowInfoByName(name){
+  try{
+    const d=doc();
+    const rows=d.querySelectorAll('.stop-row[data-id]');
+    for(const row of rows){
+      const nm=row.querySelector('.stop-name-text');
+      if(nm && nm.textContent.trim()===name){
+        return {id:row.dataset.id, el:row, rect:row.getBoundingClientRect()};
+      }
+    }
+  }catch(e){}
+  return null;
+}
+
+// ドラッグ並び替えの“演出”: fromName のカードを持ち上げ→toName の位置までスーッと移動→着地で確定
+// dropBefore=true なら toName の前へ、false なら後ろへ挿入
+function dragReorder(fromName,toName,dropBefore){
+  const from=rowInfoByName(fromName);
+  const to=rowInfoByName(toName);
+  if(!from||!to){return;}
+  const ifr=$('app');
+  const ir=ifr.getBoundingClientRect();
+  const scale=ir.width/ifr.offsetWidth || 1; // stage内のiframe表示倍率
+  // iframe座標→stage座標へ変換
+  const sx=r=>ir.left-stage.getBoundingClientRect().left+r.left*scale;
+  const sy=r=>ir.top-stage.getBoundingClientRect().top+r.top*scale;
+  // 掴むカードのゴースト（stage上に複製を作る：iframe内のDOMは直接stageへ動かせないため見た目だけ再現）
+  const ghost=document.createElement('div');
+  const fr=from.rect;
+  ghost.style.cssText=`position:absolute;z-index:85;left:${sx(fr)}px;top:${sy(fr)}px;`+
+    `width:${fr.width*scale}px;height:${fr.height*scale}px;`+
+    `background:var(--bg2,#1c1c1c);border:1px solid #FFB800;border-radius:12px;`+
+    `box-shadow:0 12px 40px rgba(0,0,0,.6);opacity:.92;`+
+    `display:flex;align-items:center;justify-content:center;`+
+    `font-family:'BIZ UDPGothic',sans-serif;font-weight:800;color:#fff;font-size:${20*scale}px;`+
+    `transition:transform .85s cubic-bezier(.3,.7,.3,1),box-shadow .3s;transform:scale(1.04)`;
+  ghost.textContent=fromName;
+  stage.appendChild(ghost);
+  // 元のカードを半透明に（iframe内）
+  exec(`(function(){var r=document.querySelector('.stop-row[data-id="${from.id}"]');if(r)r.style.opacity='.35';})()`);
+  // 掴んだ位置にタップ波紋
+  tapAt(sx(fr)+fr.width*scale/2, sy(fr)+24);
+  // 目標位置（toの上端 or 下端付近）へ移動
+  const tr=to.rect;
+  const targetY = dropBefore ? sy(tr) : sy(tr)+tr.height*scale - fr.height*scale;
+  const dx=0, dy=targetY - sy(fr);
+  requestAnimationFrame(()=>{
+    ghost.style.transform=`translate(${dx}px,${dy}px) scale(1.04)`;
+  });
+  // ドロップ先をハイライト（iframe内 .drag-over）
+  after(120,()=>exec(`(function(){var r=document.querySelector('.stop-row[data-id="${to.id}"]');if(r)r.classList.add('drag-over');})()`));
+  // 着地：確定して再描画、ゴースト除去
+  after(950,()=>{
+    exec(`(function(){
+      try{ document.querySelectorAll('.stop-row').forEach(function(r){r.classList.remove('drag-over');r.style.opacity='';});
+        _commitReorder('${from.id}','${to.id}');
+      }catch(e){}
+    })()`);
+    ghost.style.transition='opacity .2s';
+    ghost.style.opacity='0';
+    after(220,()=>ghost.remove());
+  });
+}
+
+/* ===== シナリオ本体 ===== */
+function play(){
+  if(running)clearAll();
+  running=true;
+  // 前回の行程データを消す（iframe内index.htmlと同一オリジンならlocalStorageを共有するため、
+  // これで起動時の「前回データを読み込みますか？」ダイアログが出なくなる）
+  try{ localStorage.removeItem('touring_data'); }catch(e){}
+  $('replay').classList.remove('show');
+  $('end-card').classList.remove('show');
+  $('title-card').classList.remove('show'); // 独自タイトルは使わず本物のスプラッシュを見せる
+  clearTelop();
+  $('progress').style.width='0';
+  // 前回再生の名残（iframe内の最終画面）が斬撃の下に透けるのを防ぐため、即座に空へ戻す
+  try{ $('app').src='about:blank'; }catch(e){}
+
+  // ── 斬撃オープニングを先に再生 ──
+  const kesa=$('kesa');
+  // transitionを一時無効化して即座に不透明な黒画面にする（フェード中に下が透けるのを防ぐ）
+  kesa.style.transition='none';
+  kesa.classList.remove('gone','ink','run');
+  void kesa.offsetHeight;
+  kesa.style.transition=''; // 以降のフェードアウト(.gone)用に戻す
+  kesa.classList.add('ink');                       // 墨でゆっくり表示
+  after(2200,()=>kesa.classList.add('run'));        // 溜めてから斬る（短縮）
+  after(3400,()=>{ kesa.classList.add('gone'); });  // 斬り終わり→フェードアウト（短縮）
+  // 斬撃が消えたらメインデモ開始
+  after(3800,()=>{ startMainDemo(); });
+}
+
+// メインデモ（本物のスプラッシュ→アプリ操作）
+function startMainDemo(){
+  const ifr=$('app');
+  let booted=false;
+
+  // 本体(index.html)読み込み後の初期化
+  ifr.addEventListener('load',function onAppReady(){
+    if(booted)return; booted=true;
+    ifr.removeEventListener('load',onAppReady);
+    exec(`(function(){
+      try{
+        // SW登録失敗のエラートーストをデモ中は抑制
+        if(typeof showAppError==='function'){ window.showAppError=function(){}; }
+        var et=document.getElementById('app-error-toast'); if(et){et.style.display='none';}
+        // デモ中は確認ダイアログ（復元/走行モード切替など）を一切出さない＝自動進行を止めない
+        window.confirm=function(){return true;};
+        try{ localStorage.removeItem('touring_data'); }catch(e){}
+        // 空データから開始（本物のスプラッシュはそのまま再生させる）
+        data={version:'demo',title:'',currentStopId:null,days:[{label:'1日目\\n神奈川→山梨',date:'',routeUrl:'',stops:[]}]};
+        currentDay=0;manualCurrentId=null;_pendingRestore=null;rideViewIdx=0;
+        render();
+        // バズ用：スプラッシュを早く終わらせる（離脱防止のため約1.4秒でフェードアウト）
+        try{
+          var sp=document.getElementById('splash');
+          if(sp){ sp.style.animation='none'; setTimeout(function(){ sp.style.transition='opacity .4s ease'; sp.style.opacity='0'; setTimeout(function(){ sp.style.display='none'; },420); },1400); }
+        }catch(e){}
+      }catch(e){console.warn('init',e);}
+    })()`);
+    runScenario();
+  },{once:true});
+
+  // 前回データは play() 冒頭で親localStorageから削除済み（同一オリジン共有）。
+  // 念のためcache無効化のためタイムスタンプを付けて本体を読み込む。
+  ifr.src='index.html?demo='+Date.now();
+}
+
+function runScenario(){
+  const SPLASH=2000; // バズ用：スプラッシュを短縮（早く本編へ）
+  const TOTAL=27000+SPLASH;
+  // 進行バーはスプラッシュ明けから動かす
+  for(let p=SPLASH;p<=TOTAL;p+=500)after(p,()=>{$('progress').style.width=((p-SPLASH)/(TOTAL-SPLASH)*100)+'%';});
+  // 各シーンはスプラッシュ分だけ後ろ倒し（afterをラップ）
+  const at=(ms,fn)=>after(ms+SPLASH,fn);
+
+  /* ── シーン1：地点をサッと追加（テンポ重視） ── */
+  at(1200,()=>{
+    call('onEditBtnClick'); // 編集モードON
+    tapEl('#edit-btn');
+    telop('かんたん','行程は<span class="hi">足すだけ</span>',
+      '行き先と時間を入れるだけ。地図アプリはもういらない。');
+  });
+  at(2200,()=>{ tapEl('#save-btn'); addStop({name:'横浜 出発',dep:'08:00',note:'下道でのんびり',addr:'神奈川県横浜市西区'}); });
+  at(3100,()=>{ tapEl('#save-btn'); addStop({name:'宮ヶ瀬湖',arr:'09:30',dep:'10:00',note:'湖畔で休憩。紅葉が絶景',addr:'神奈川県愛甲郡清川村宮ヶ瀬'}); });
+  at(4000,()=>{ tapEl('#save-btn'); addStop({name:'山中湖',arr:'12:50',dep:'13:30',note:'富士山の眺望ポイント',addr:'山梨県南都留郡山中湖村山中'}); });
+
+  /* ── シーン2：ボタンで施設を追加（道の駅・高速・GS） ── */
+  at(5500,()=>{
+    clearTelop();
+    call('openMichinoEki'); tapEl('.picker-chip.ch-mn');
+    telop('便利機能','施設は<span class="hi">ボタンで追加</span>',
+      '道の駅・高速SA・GS・快活CLUBをワンタップで。');
+  });
+  at(6800,()=>{ exec(`(function(){var s=document.getElementById('michi-search');if(s){s.value='どうし';filterMichi();}})()`); });
+  at(7700,()=>{ tapEl('#michi-list > div:first-child'); exec(`(function(){var f=document.querySelector('#michi-list > div');if(f)f.click();})()`); });
+  at(8500,()=>{
+    exec(`(function(){
+      document.getElementById('inp-arr').value='11:15';
+      document.getElementById('inp-dep').value='12:15';
+      document.getElementById('inp-note').value='名物の鹿カレー';
+    })()`);
+  });
+  at(9200,()=>{ tapEl('#save-btn'); call('saveStop'); });
+  // 高速ピッカーをチラ見せ（モーダル生成に約1秒ラグ）
+  at(10000,()=>{ tapEl('.picker-chip.ch-hw'); call('openHighway'); });
+  at(11400,()=>{ exec(`(function(){var s=document.getElementById('highway-search');if(s){s.value='海老名';if(typeof filterHighway==='function')filterHighway();}})()`); });
+  at(12300,()=>{ exec(`(function(){_closeOverlay&&_closeOverlay('highway-overlay');})()`); });
+  // GSボタンをチラ見せ
+  at(12800,()=>{ tapEl('.picker-chip.ch-gs'); call('openGasStation'); });
+  at(13900,()=>{ exec(`(function(){var s=document.getElementById('gs-search');if(s){s.value='ENEOS';if(typeof filterGasStation==='function')filterGasStation();}})()`); });
+  at(14600,()=>{ exec(`(function(){_closeOverlay&&_closeOverlay('gs-overlay');})()`); });
+
+  /* ── シーン3：走行モード＋スワイプ＋GPS（差別化点） ── */
+  at(15400,()=>{
+    clearTelop();
+    exec(`(function(){
+      if(isEdit) onEditBtnClick();
+      try{
+        var wx={'横浜 出発':[0,21,14,0],'宮ヶ瀬湖':[1,19,13,10],'道の駅 どうし':[2,17,11,20],'山中湖':[0,15,9,0]};
+        window.wxStopRes=window.wxStopRes||{};
+        var today=new Date().toISOString().slice(0,10);
+        data.days[0].stops.forEach(function(s){var w=wx[s.name];if(w){wxStopRes[s.id]={wcode:w[0],tmax:w[1],tmin:w[2],precip:w[3],date:today};}});
+      }catch(e){}
+    })()`);
+  });
+  at(15900,()=>{
+    exec(`(function(){
+      manualCurrentId=data.days[0].stops[0].id; rideViewIdx=0;
+      if(!isRide) toggleRide();
+    })()`);
+    tapEl('#ride-btn');
+    telop('便利機能','走行中は<span class="hi">スワイプで確認</span>',
+      '現在地と次の目的地を大きく表示。指で送るだけ。');
+  });
+  // スワイプで地点送り
+  [17400,18300,19200].forEach((t)=>{
+    at(t,()=>{ tapEl('#sw-arr-r'); exec(`typeof rideNavigate==='function' && rideNavigate(1)`); });
+  });
+  // GPS ON
+  at(20400,()=>{
+    clearTelop();
+    tapEl('#gps-btn');
+    telop('便利機能','<span class="hi">GPSで現在地を自動追跡</span>',
+      '近づいた地点に画面が自動で切り替わる。');
+  });
+  at(21000,()=>{
+    exec(`(function(){
+      var btn=document.getElementById('gps-btn');if(btn)btn.classList.add('on');
+      var st=document.getElementById('gps-status');
+      if(st){st.style.display='';st.className='gps-status ok';st.textContent='📍 GPS追跡中';}
+    })()`);
+  });
+  at(22000,()=>{
+    exec(`(function(){var el=document.getElementById('ride-next-dist');if(el)el.textContent='あと 4.2 km（直線）';})()`);
+  });
+
+  /* ── エンドカード（ロゴ＋CTA） ── */
+  at(24000,()=>{
+    clearTelop();
+    $('end-card').classList.add('show');
+    $('end-card').querySelectorAll('.feat').forEach((f,i)=>{f.style.animationDelay=(0.3+i*0.18)+'s';f.classList.add('in');});
+  });
+  at(27000,()=>{$('replay').classList.add('show');running=false;});
+}
+
+// stageを画面サイズに合わせてscale（縦・横どちらも収まる倍率を採用）。
+// transform-origin:bottom center なので、縮小しても常に画面下端を基準に配置される。
+function fitStage(){
+  const margin = window.innerWidth>=900 ? 0.96 : 1; // PCは少し余白を残して枠を見せる
+  const sx = window.innerWidth  / 412;
+  const sy = window.innerHeight / 820;
+  const scale = Math.min(sx, sy) * margin;
+  stage.style.transform = 'scale('+scale+')';
+}
+window.addEventListener('resize', fitStage);
+fitStage();
+
+// 初回自動再生
+window.addEventListener('load',()=>{ fitStage(); after(500,play); });
+</script>
+</body>
+</html>
