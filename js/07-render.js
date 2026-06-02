@@ -218,8 +218,16 @@ export function renderRide(){
     let cd='';
     if(isCurr){const am=toMin(ns.arr);if(am!==null){let diff=wrapDiff(am-nowMin());if(diff>0){const hh=Math.floor(diff/60),mm=diff%60;cd=hh>0&&mm>0?`あと ${hh}時間${mm}分`:hh>0?`あと ${hh}時間`:`あと ${mm}分`;}else if(diff>-30)cd='まもなく到着';}}
     h+=`${_mdr?`<div class="ride-move-dur${_mdr.level>=0?' lv'+_mdr.level:''}">→ 次まで ${_mdr.html}</div>`:''}`;
+    // GPS区間プログレスバー（現在地を表示中のみ骨組みを出力。中身は _gpsUpdateNextDist が更新）
+    if(isCurr){
+      h+=`<div class="ride-seg" id="ride-seg" style="display:none">
+        <div class="ride-seg-top"><div class="ride-seg-remain"><span id="ride-seg-km"></span><small id="ride-seg-unit"></small></div></div>
+        <div class="ride-seg-track"><div class="ride-seg-fill" id="ride-seg-fill"></div><div class="ride-seg-bike" id="ride-seg-bike">🏍️</div></div>
+        <div class="ride-seg-ends"><span class="now">${esc(vs.name)}</span><span>${esc(ns.name)}</span></div>
+      </div>`;
+    }
     h+=`<div class="ride-card">
-      <div class="ride-tag">↓ 次の目的地${cd?`<span style="margin-left:8px;color:var(--green);font-size:15px">${cd}</span>`:''}<span id="ride-next-dist" class="ride-next-dist"></span></div>
+      <div class="ride-tag">↓ 次の目的地${cd?`<span style="margin-left:8px;color:var(--green);font-size:15px">${cd}</span>`:''}</div>
       <div class="ride-name" style="color:var(--text2)">${esc(ns.name)}</div>
       <div class="ride-times-row">${_chips(ns,'next-chip-val')}</div>
       ${rideWxCompact(ns.id,!!(ns.addr))}

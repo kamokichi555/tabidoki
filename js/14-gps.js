@@ -83,22 +83,56 @@ export function _gpsFmtDist(m){
   return Math.round(m/1000)+' km';                  // それ以上は1km刻み
 }
 
-/* ══ 現在地→次の地点 の残り直線距離をカードに反映 ══
-   「現在地」を表示中(S.rideViewIdx===rci)のときだけ、その次の地点までの距離を出す。
-   GPS位置・座標キャッシュのどちらかが欠ければ空表示（誤情報を出さない）。*/
+/* ══ 現在地→次の地点 の進捗を区間プログレスバー(#ride-seg)に反映 ══
+   「現在地」を表示中(S.rideViewIdx===rci)のときだけ表示する。
+   ・残り直線距離 = GPS現在地→次地点（実測）
+   ・進捗 = 1 − 残り距離 ÷ 区間長（現在地点⇔次地点 の直線距離）を分母にした割合
+   GPS位置・次地点座標のどちらかが欠ければバーごと非表示（誤情報を出さない）。
+   現在地点の座標が無く区間長が出せない場合は、距離だけ出してバー(🏍️)は隠す。
+   renderRide で骨組みを毎回作り直すため、この関数は中身の更新だけを担う（軽い）。*/
 export function _gpsUpdateNextDist(){
-  const el=document.getElementById('ride-next-dist');
-  if(!el) return;
-  if(!S.isRide||!_gpsEnabled||!_gpsLastPos){el.textContent='';return;}
+  const seg=document.getElementById('ride-seg');
+  if(!seg) return; // 現在地を表示していない／次地点が無い等で骨組みが無い
+  const hide=()=>{seg.style.display='none';};
+  if(!S.isRide||!_gpsEnabled||!_gpsLastPos){hide();return;}
   const flat=currentDayFlat();
   const rci=flat.findIndex(s=>s.id===S.manualCurrentId);
-  if(rci===-1||S.rideViewIdx!==rci){el.textContent='';return;} // 現在地を見ているときだけ
+  if(rci===-1||S.rideViewIdx!==rci){hide();return;}           // 現在地を見ているときだけ
   const ns=flat[rci+1];
-  if(!ns){el.textContent='';return;}                          // 次の地点がない（最終地点）
-  const c=_gpsStopCoords(ns);
-  if(!c){el.textContent='';return;}                           // 次地点の座標が未取得
-  const m=_gpsDistance(_gpsLastPos.lat,_gpsLastPos.lon,c.lat,c.lon);
-  el.textContent=`あと ${_gpsFmtDist(m)}（直線）`;
+  if(!ns){hide();return;}                                     // 次の地点がない（最終地点）
+  const nc=_gpsStopCoords(ns);
+  if(!nc){hide();return;}                                     // 次地点の座標が未取得→出せない
+  const remain=_gpsDistance(_gpsLastPos.lat,_gpsLastPos.lon,nc.lat,nc.lon);
+
+  // 残り距離テキスト（数値部と単位を分けて流し込む）
+  const kmEl=document.getElementById('ride-seg-km');
+  const unitEl=document.getElementById('ride-seg-unit');
+  let numTxt,unitTxt;
+  if(remain<1000){numTxt=String(Math.round(remain/10)*10);unitTxt=' m 先（直線）';}
+  else if(remain<10000){numTxt=(remain/1000).toFixed(1);unitTxt=' km 先（直線）';}
+  else{numTxt=String(Math.round(remain/1000));unitTxt=' km 先（直線）';}
+  if(kmEl) kmEl.textContent=numTxt;
+  if(unitEl) unitEl.textContent=unitTxt;
+
+  // 進捗（区間の直線距離を分母に）。現在地点に座標が無ければバーは出さず距離だけ。
+  const cc=_gpsStopCoords(flat[rci]);
+  const fill=document.getElementById('ride-seg-fill');
+  const bike=document.getElementById('ride-seg-bike');
+  let p=null;
+  if(cc){
+    const seglen=_gpsDistance(cc.lat,cc.lon,nc.lat,nc.lon);
+    if(seglen>50) p=Math.max(0,Math.min(1,1-remain/seglen)); // 50m以下の極短区間は進捗を出さない
+  }
+  if(p===null){
+    seg.classList.add('no-prog');                            // バー(track/🏍️)を隠し距離だけ表示
+  }else{
+    seg.classList.remove('no-prog');
+    const pct=(p*100)+'%';
+    if(fill) fill.style.width=pct;
+    if(bike) bike.style.left=pct;
+  }
+  seg.classList.toggle('stale',_gpsStale);                   // トンネル等で位置が古いときは薄く
+  seg.style.display='';
 }
 
 
