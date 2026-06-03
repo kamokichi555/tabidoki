@@ -64,8 +64,6 @@ header{position:sticky;top:0;background:var(--bg);z-index:100000;border-bottom:2
 #menu-toggle-btn.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
 .header-quick{display:flex;gap:6px;justify-self:end}
 .header-quick button{padding:6px 10px;font-size:20px;line-height:1;border-radius:10px}
-#toilet-btn{flex:0 0 auto;width:44px;height:44px;padding:0;display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1;background:var(--amber-bg);border:1.5px solid var(--green);border-radius:10px;color:var(--green)}
-#toilet-btn:active{background:var(--green);color:#000}
 #ride-btn{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
 #ride-btn.on{background:var(--amber);color:#000;border-color:var(--amber)}
 /* ══ ドロワー ══ */
