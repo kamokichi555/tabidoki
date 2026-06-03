@@ -8,7 +8,7 @@
 
 /* --- 自動生成: モジュール依存のインポート --- */
 import { S, data } from './01-state.js';
-import { SK, WMO } from './00-constants.js';
+import { LSK, SK, WMO } from './00-constants.js';
 import { buildGeoTargets, hasCachedCoords, hasGeo, pClass } from './02-utils.js';
 import { currentDayFlat } from './06-day.js';
 import { renderRide, showInfoToast, updateClock } from './07-render.js';
@@ -28,8 +28,8 @@ export function _lsSetItem(key,val){
       console.warn('[旅刻] localStorage容量超過。キャッシュを削減します');
       _dbgLog('ls_quota_exceeded',{key});
       try{localStorage.removeItem(GEO_SK);}catch(_){}
-      try{localStorage.removeItem('highway_online_v1');}catch(_){}
-      try{localStorage.removeItem('michi_online_v2');}catch(_){}
+      try{localStorage.removeItem(LSK.highwayCache);}catch(_){}
+      try{localStorage.removeItem(LSK.michiCache);}catch(_){}
       try{localStorage.setItem(key,val);}catch(e2){
         console.error('[旅刻] localStorage保存失敗（容量不足）:',key);
         _dbgLog('ls_save_failed',{key,err:String(e2&&e2.name||e2).slice(0,80)});

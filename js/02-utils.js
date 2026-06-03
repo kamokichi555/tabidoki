@@ -47,6 +47,15 @@ export function hasGeo(s){
   return !!(s&&s.geo&&Number.isFinite(s.geo.lat)&&Number.isFinite(s.geo.lon)
     &&s.geo.lat>=-90&&s.geo.lat<=90&&s.geo.lon>=-180&&s.geo.lon<=180);
 }
+/* ── 地点のGoogleマップ用URLを生成（共通） ──
+   実座標(geo)があればそれを最優先、無ければ「地点名＋住所」で検索クエリを組む。
+   座標も検索語も無ければ '' を返す（呼び出し側でボタン非表示の判定に使う）。
+   ※ 返すのは生URL。HTML属性へ埋める際は呼び出し側で esc() すること。 */
+export function buildMapHref(s){
+  if(hasGeo(s)) return `https://maps.google.com/?q=${s.geo.lat},${s.geo.lon}`;
+  const q=[s.name,s.addr].filter(Boolean).join(' ');
+  return q?`https://maps.google.com/?q=${encodeURIComponent(q)}`:'';
+}
 /* ── precip分類 ── */
 export function pClass(p){return typeof p==='number'?(p>=70?'high':p>=40?'mid':'low'):'low';}
 export function toMin(t){if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+m;}

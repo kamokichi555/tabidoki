@@ -6,7 +6,7 @@
    ══════════════════════════════════════════════════════ */
 
 /* --- 自動生成: モジュール依存のインポート --- */
-import { DEFAULT, SK } from './00-constants.js';
+import { DEFAULT, SK, LSK } from './00-constants.js';
 import { S, _canEditData, data, setData, _dom } from './01-state.js';
 import { _migrateData, _resolveCurrentStopId, _sanitizeImportedData } from './02-utils.js';
 import { restoreFromStorage, save } from './03-storage.js';
@@ -181,7 +181,7 @@ setInterval(()=>{
 },15000);
 // 走行モード自動復帰: 前回バックグラウンド化時に走行中だったかをlocalStorageから読む。
 // 走行中に画面消灯→OSがページ破棄→再読込されても、走行画面とGPS追跡へ自動で戻すため。
-const _wasRiding=(()=>{try{return localStorage.getItem('touring_ride')==='1';}catch(e){return false;}})();
+const _wasRiding=(()=>{try{return localStorage.getItem(LSK.ride)==='1';}catch(e){return false;}})();
 
 if(!S.isEdit&&!S.isRide&&_wasRiding&&S._pendingRestore){
   // 走行中の再読込からの復帰。確認ダイアログを挟まず前回データを復元して走行モードへ戻す。
@@ -252,7 +252,7 @@ window.addEventListener('pageshow',()=>{
 function _persistPendingEdits(){
   // 走行モード自動復帰用: バックグラウンド化（=破棄されうる瞬間）の走行状態を記録する。
   // _freshStartPreserveガードより前に置き、走行状態は常に正しく残す。
-  try{localStorage.setItem('touring_ride',S.isRide?'1':'0');}catch(e){}
+  try{localStorage.setItem(LSK.ride,S.isRide?'1':'0');}catch(e){}
   // 復元確認で「いいえ」を選んだ直後など、前回データをlocalStorageに温存中（_freshStartPreserve）は
   // 背面化のたびに空dataでsave()して前回データを破壊し、[読み込む]復旧を不能にしないよう保存しない。
   // ユーザーが能動編集すればsave()側でフラグが解除され、以降は通常どおり背面化保存が効く。

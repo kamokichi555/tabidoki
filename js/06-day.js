@@ -107,25 +107,27 @@ export function _sortDays(){
 }
 export function saveDayDate(){
   if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（破壊・汚染防止）
-  const v=document.getElementById('inp-day-date').value;
-  const old=data.days[S.currentDay].date;
-  _dbgLog('saveDayDate',{from:old,to:v});
-  if(v&&v!==old&&data.days.some((d,i)=>i!==S.currentDay&&d.date===v)){
-    const el=document.getElementById('inp-day-date');
-    el.value=old;
-    el.style.borderColor='var(--red)';
-    el.style.borderWidth='2px';
-    setTimeout(()=>{el.style.borderColor='';el.style.borderWidth='';},2500);
-    showInfoToast('⚠️ その日付はすでに登録されています',2500);
-    return;
-  }
-  _flushRouteSave(); // 入力中のrouteUrlを取りこぼさない（後続のrenderTabsで上書きされる前に保存）
-  data.days[S.currentDay].date=v;
-  if(old!==v){
-    for(const s of data.days[S.currentDay].stops){delete wxStopRes[s.id];wxQueueIds.delete(s.id);}
-    if(v) _sortDays();
-  }
-  save();renderTabs();render();
+  try{
+    const v=document.getElementById('inp-day-date').value;
+    const old=data.days[S.currentDay].date;
+    _dbgLog('saveDayDate',{from:old,to:v});
+    if(v&&v!==old&&data.days.some((d,i)=>i!==S.currentDay&&d.date===v)){
+      const el=document.getElementById('inp-day-date');
+      el.value=old;
+      el.style.borderColor='var(--red)';
+      el.style.borderWidth='2px';
+      setTimeout(()=>{el.style.borderColor='';el.style.borderWidth='';},2500);
+      showInfoToast('⚠️ その日付はすでに登録されています',2500);
+      return;
+    }
+    _flushRouteSave(); // 入力中のrouteUrlを取りこぼさない（後続のrenderTabsで上書きされる前に保存）
+    data.days[S.currentDay].date=v;
+    if(old!==v){
+      for(const s of data.days[S.currentDay].stops){delete wxStopRes[s.id];wxQueueIds.delete(s.id);}
+      if(v) _sortDays();
+    }
+    save();renderTabs();render();
+  }catch(e){showAppError(EC.DAY_DATE,e);}
 }
 
 export const _saveRouteDebounced=debounce(()=>{
@@ -196,6 +198,9 @@ export function addDay(){
       name: prevLast.name,
       addr: prevLast.addr,
       arr:'', dep:'', note:'', log:'', actArr:'', actDep:'', fuel:false,
+      // 実座標(geo)も引き継ぐ。📍現在地/座標貼り付けで作られた地点はaddrが座標文字列で
+      // 正確な位置はgeoにしかない。落とすと座標文字列を住所として誤ジオコーディングしてしまうため複製する。
+      geo: prevLast.geo ? {lat:prevLast.geo.lat, lon:prevLast.geo.lon} : null,
     }] : [];
     data.days.push({date:nextDate,routeUrl:'',stops:inheritStop});
     S.currentDay=data.days.length-1;

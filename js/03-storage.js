@@ -8,7 +8,7 @@
 // @ts-check
 
 /* --- 自動生成: モジュール依存のインポート --- */
-import { DEFAULT, EC, LIMIT, SK } from './00-constants.js';
+import { APP_VERSION, DEFAULT, EC, LIMIT, SK } from './00-constants.js';
 import { S, _canEditData, _dom, data, setData } from './01-state.js';
 import { IS_IOS, WEEK, _migrateData, _resolveCurrentStopId, _sanitizeImportedData, actDiff, fmtHM, mdw, parseISODate, stayDur, ymdw } from './02-utils.js';
 import { _bumpWxGen, _lsSetItem, wxGen, wxQueue, wxQueueFast, wxQueueIds, wxStopRes } from './04-weather.js';
@@ -21,6 +21,9 @@ import { _gpsOnRideEnd } from './14-gps.js';
 
 
 /* ══ データ管理（localStorage） ══ */
+
+/* ── 全日の登録地点数の合計（空データ判定で共用） ── */
+function _totalStops(){return (data.days||[]).reduce((sum,d)=>sum+(d.stops?.length||0),0);}
 
 export function save(){
   // 起動時の復元確認が保留中（S._pendingRestore）は、まだ「新規開始/復元」が未確定。
@@ -173,78 +176,72 @@ export function _openExportOverlay(text,filename,mime){
     hint:'💡 コピーしてLINEやメモに貼り付け／共有から「ファイルに保存」もできます'});
 }
 
-/* ══ 保存モーダル ══ */
-export function openSaveModal(){
+/* ── 共通: 2択モーダル（保存／読込で共用） ──
+   保存と読込はタイトル・2項目（アイコン/見出し/説明/矢印/動作）・フッター注記が違うだけで
+   枠組みは完全に同じなので1関数に集約する。
+   cfg: {id, title, hint, items:[{icon,label,sub,arrow,onClick}]} */
+function _openChoiceModal(cfg){
   _closeAllOverlays();
   const ov=document.createElement('div');
-  ov.id='save-modal-overlay';
+  ov.id=cfg.id;
   Object.assign(ov.style,{position:'fixed',inset:'0',zIndex:'999999',background:'rgba(0,0,0,.55)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'});
+  const itemsHtml=cfg.items.map(it=>`
+      <button id="${it.id}" style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);text-align:left;width:100%">
+        <span style="font-size:22px">${it.icon}</span>
+        <span style="flex:1"><span style="display:block;font-size:14px;font-weight:700">${it.label}</span><span style="display:block;font-size:12px;color:var(--text3);margin-top:2px">${it.sub}</span></span>
+        <span style="font-size:18px;color:var(--text3)">${it.arrow}</span>
+      </button>`).join('');
   ov.innerHTML=`
   <div style="background:var(--bg2);border:1.5px solid var(--border2);border-radius:16px;padding:20px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px">
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <span style="font-weight:700;font-size:16px">💾 行程を保存</span>
-      <button id="save-modal-close" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3)">✕</button>
+      <span style="font-weight:700;font-size:16px">${cfg.title}</span>
+      <button id="${cfg.closeId}" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3)">✕</button>
     </div>
-    <div style="border-top:1px solid var(--border2);padding-top:12px;display:flex;flex-direction:column;gap:8px">
-      <button id="save-modal-local" style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);text-align:left;width:100%">
-        <span style="font-size:22px">📄</span>
-        <span style="flex:1"><span style="display:block;font-size:14px;font-weight:700">端末に保存</span><span style="display:block;font-size:12px;color:var(--text3);margin-top:2px">ダウンロードフォルダへJSON保存</span></span>
-        <span style="font-size:18px;color:var(--text3)">↓</span>
-      </button>
-      <button id="save-modal-share" style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);text-align:left;width:100%">
-        <span style="font-size:22px">📤</span>
-        <span style="flex:1"><span style="display:block;font-size:14px;font-weight:700">共有して保存</span><span style="display:block;font-size:12px;color:var(--text3);margin-top:2px">ドライブ・LINE・Keep等に送る</span></span>
-        <span style="font-size:18px;color:var(--text3)">›</span>
-      </button>
+    <div style="border-top:1px solid var(--border2);padding-top:12px;display:flex;flex-direction:column;gap:8px">${itemsHtml}
     </div>
-    <div style="font-size:11px;color:var(--text3);text-align:center">💡 「共有して保存」からGoogleドライブやLINEにも送れます</div>
+    <div style="font-size:11px;color:var(--text3);text-align:center">${cfg.hint}</div>
   </div>`;
-  ov.addEventListener('click',e=>{if(e.target===ov)_closeOverlay('save-modal-overlay');});
+  ov.addEventListener('click',e=>{if(e.target===ov)_closeOverlay(cfg.id);});
   _lowerHeaderForOverlay();
   document.body.appendChild(ov);
-  document.getElementById('save-modal-close').onclick=()=>_closeOverlay('save-modal-overlay');
-  document.getElementById('save-modal-local').onclick=()=>{_closeOverlay('save-modal-overlay');saveJSON();};
-  document.getElementById('save-modal-share').onclick=()=>{_closeOverlay('save-modal-overlay');_saveViaShare();};
+  document.getElementById(cfg.closeId).onclick=()=>_closeOverlay(cfg.id);
+  cfg.items.forEach(it=>{
+    document.getElementById(it.id).onclick=()=>{_closeOverlay(cfg.id);it.onClick();};
+  });
+}
+
+/* ══ 保存モーダル ══ */
+export function openSaveModal(){
+  _openChoiceModal({
+    id:'save-modal-overlay',
+    closeId:'save-modal-close',
+    title:'💾 行程を保存',
+    hint:'💡 「共有して保存」からGoogleドライブやLINEにも送れます',
+    items:[
+      {id:'save-modal-local',icon:'📄',label:'端末に保存',sub:'ダウンロードフォルダへJSON保存',arrow:'↓',onClick:saveJSON},
+      {id:'save-modal-share',icon:'📤',label:'共有して保存',sub:'ドライブ・LINE・Keep等に送る',arrow:'›',onClick:_saveViaShare},
+    ],
+  });
 }
 
 /* ══ 読み込みモーダル ══ */
 export function openLoadModal(){
-  _closeAllOverlays();
-  const ov=document.createElement('div');
-  ov.id='load-modal-overlay';
-  Object.assign(ov.style,{position:'fixed',inset:'0',zIndex:'999999',background:'rgba(0,0,0,.55)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'});
-  ov.innerHTML=`
-  <div style="background:var(--bg2);border:1.5px solid var(--border2);border-radius:16px;padding:20px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <span style="font-weight:700;font-size:16px">📂 行程を読み込む</span>
-      <button id="load-modal-close" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3)">✕</button>
-    </div>
-    <div style="border-top:1px solid var(--border2);padding-top:12px;display:flex;flex-direction:column;gap:8px">
-      <button id="load-modal-local" style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);text-align:left;width:100%">
-        <span style="font-size:22px">📄</span>
-        <span style="flex:1"><span style="display:block;font-size:14px;font-weight:700">端末から読み込む</span><span style="display:block;font-size:12px;color:var(--text3);margin-top:2px">JSONファイルを選択</span></span>
-        <span style="font-size:18px;color:var(--text3)">↑</span>
-      </button>
-      <button id="load-modal-restore" style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);text-align:left;width:100%">
-        <span style="font-size:22px">🕐</span>
-        <span style="flex:1"><span style="display:block;font-size:14px;font-weight:700">前回の行程を復元</span><span style="display:block;font-size:12px;color:var(--text3);margin-top:2px">端末に自動保存されたデータを読込</span></span>
-        <span style="font-size:18px;color:var(--text3)">↺</span>
-      </button>
-    </div>
-    <div style="font-size:11px;color:var(--text3);text-align:center">⚠️ 読み込むと現在の行程は上書きされます</div>
-  </div>`;
-  ov.addEventListener('click',e=>{if(e.target===ov)_closeOverlay('load-modal-overlay');});
-  _lowerHeaderForOverlay();
-  document.body.appendChild(ov);
-  document.getElementById('load-modal-close').onclick=()=>_closeOverlay('load-modal-overlay');
-  document.getElementById('load-modal-local').onclick=()=>{_closeOverlay('load-modal-overlay');loadJSON();};
-  document.getElementById('load-modal-restore').onclick=()=>{_closeOverlay('load-modal-overlay');restoreFromStorage();};
+  _openChoiceModal({
+    id:'load-modal-overlay',
+    closeId:'load-modal-close',
+    title:'📂 行程を読み込む',
+    hint:'⚠️ 読み込むと現在の行程は上書きされます',
+    items:[
+      {id:'load-modal-local',icon:'📄',label:'端末から読み込む',sub:'JSONファイルを選択',arrow:'↑',onClick:loadJSON},
+      {id:'load-modal-restore',icon:'🕐',label:'前回の行程を復元',sub:'端末に自動保存されたデータを読込',arrow:'↺',onClick:restoreFromStorage},
+    ],
+  });
 }
 
 /* ── 共有シート用にJSONテキストを生成（地点ゼロならnull） ── */
 function _getShareJson(){
   _flushTitle();
-  const totalStops=(data.days||[]).reduce((sum,d)=>sum+(d.stops?.length||0),0);
+  const totalStops=_totalStops();
   if(totalStops===0){showInfoToast('⚠️ 地点が登録されていません',3500);return null;}
   data.currentStopId=S.manualCurrentId;
   data.version=DEFAULT.version;
@@ -272,7 +269,7 @@ export function saveJSON(){
   _dbgLog('saveJSON', _dbgSnapshot);
   try{
     // 空データチェック: 全日で地点が1件もない場合は保存させない
-    const totalStops=(data.days||[]).reduce((sum,d)=>sum+(d.stops?.length||0),0);
+    const totalStops=_totalStops();
     if(totalStops===0){
       showInfoToast('⚠️ 地点が登録されていません。1件以上追加してから保存してください',3500);
       return;
@@ -293,7 +290,7 @@ export function saveRecord(){
   _flushTitle(); // 入力中のツーリング名を確定してから記録を生成
   _dbgLog('saveRecord', _dbgSnapshot);
   try{
-    const totalStops=(data.days||[]).reduce((sum,d)=>sum+(d.stops?.length||0),0);
+    const totalStops=_totalStops();
     if(totalStops===0){showInfoToast('⚠️ 地点が登録されていません',3000);return;}
     if(!confirm('ツーリングお疲れ様でした。\n走行記録をテキストファイルに保存しますか？')) return;
     const now=new Date();
@@ -328,7 +325,7 @@ export function saveRecord(){
       });
     });
     lines.push(HR);
-    lines.push('旅刻mk18 / Powered by 鴨吉');
+    lines.push('旅刻'+APP_VERSION+' / Powered by 鴨吉');
     const text=lines.join('\n');
     const dateStr=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
     const title=(data.title||'ツーリング').replace(/[\\/:*?"<>|]/g,'_');

@@ -8,7 +8,7 @@
 
 /* --- 自動生成: モジュール依存のインポート --- */
 import { S, data } from './01-state.js';
-import { EC } from './00-constants.js';
+import { EC, APP_VERSION } from './00-constants.js';
 import { showAppError, showInfoToast } from './07-render.js';
 /* ══ デバッグログ機構 ══ */
 export const DBG_KEY='dbg_log_v1';
@@ -67,7 +67,7 @@ export function _dbgLog(event,data){
 
 export function _dbgFmtAll(){
   const env={
-    app:'tabidoki mk18',
+    app:'tabidoki '+APP_VERSION,
     now:new Date().toISOString(),
     ua:navigator.userAgent,
     vw:window.innerWidth,vh:window.innerHeight,
@@ -75,7 +75,7 @@ export function _dbgFmtAll(){
     err:_dbgErrCount,entries:_dbgBuf.length,
     snap:_dbgSnapshot(),
   };
-  const head='# 旅刻mk18 デバッグログ\n## 環境\n'+JSON.stringify(env,null,2)+'\n\n## イベント (古い→新しい)\n';
+  const head='# 旅刻'+APP_VERSION+' デバッグログ\n## 環境\n'+JSON.stringify(env,null,2)+'\n\n## イベント (古い→新しい)\n';
   const lines=_dbgBuf.map(en=>`[${en.t}] ${en.e}${en.d?' '+JSON.stringify(en.d):''}`).join('\n');
   return head+lines+'\n';
 }

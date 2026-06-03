@@ -143,10 +143,12 @@ export function delStop(id){
 }
 export function setCurrentStop(id,fromGps,keepView){
   _dbgLog('setCurrentStop',{id,fromGps:!!fromGps,keepView:!!keepView});
-  S.manualCurrentId=id;_invalidateCdi(); // cdiキャッシュ無効化
-  // keepView=true のときは表示中ページ(S.rideViewIdx)を動かさない（手動スワイプ後の表示固定を尊重）
-  if(!keepView){const fi=currentDayIdxOf(id);if(fi!==-1)S.rideViewIdx=fi;}
-  // GPS由来でない（=ユーザーの手動操作）ときだけGPS自動切替を一時抑制する
-  if(!fromGps&&typeof _gpsNotifyManualSet==='function') _gpsNotifyManualSet();
-  save();if(S.isRide)renderRide();else render();
+  try{
+    S.manualCurrentId=id;_invalidateCdi(); // cdiキャッシュ無効化
+    // keepView=true のときは表示中ページ(S.rideViewIdx)を動かさない（手動スワイプ後の表示固定を尊重）
+    if(!keepView){const fi=currentDayIdxOf(id);if(fi!==-1)S.rideViewIdx=fi;}
+    // GPS由来でない（=ユーザーの手動操作）ときだけGPS自動切替を一時抑制する
+    if(!fromGps&&typeof _gpsNotifyManualSet==='function') _gpsNotifyManualSet();
+    save();if(S.isRide)renderRide();else render();
+  }catch(e){showAppError(EC.CURRENT,e);}
 }

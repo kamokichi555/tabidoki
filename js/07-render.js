@@ -10,7 +10,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { EC, EC_MSG } from './00-constants.js';
 import { S, _dom, data } from './01-state.js';
-import { actDiffHtml, esc, escJsAttr, fmtHM, hasGeo, isTimeOrderOk, mdw, moveDur, moveDurLevel, moveDurRide, nowMin, stayDur, toMin, wrapDiff } from './02-utils.js';
+import { actDiffHtml, buildMapHref, esc, escJsAttr, fmtHM, hasGeo, isTimeOrderOk, mdw, moveDur, moveDurLevel, moveDurRide, nowMin, stayDur, toMin, wrapDiff } from './02-utils.js';
 import { _isoToday, enqueueStop, ensureDayWeather, rideWxCompact, stopWxInner } from './04-weather.js';
 import { getStatus } from './05-stop.js';
 import { _getCdi, _updateRecordBtn, currentDayFlat, stops, switchDay } from './06-day.js';
@@ -167,7 +167,7 @@ export function renderRide(){
   _dom('sw-arr-l').classList.toggle('dim',S.rideViewIdx===0);
   _dom('sw-arr-r').classList.toggle('dim',S.rideViewIdx===flat.length-1);
   /* ── ライドカード共通パーツ ── */
-  const _mapLink=s=>{const href=hasGeo(s)?`https://maps.google.com/?q=${s.geo.lat},${s.geo.lon}`:(()=>{const q=[s.name,s.addr].filter(Boolean).join(' ');return q?`https://maps.google.com/?q=${encodeURIComponent(q)}`:'';})();return href?`<a class="ride-route-btn" href="${href}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 マップで確認</a>`:'';};
+  const _mapLink=s=>{const href=buildMapHref(s);return href?`<a class="ride-route-btn" href="${esc(href)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 マップで確認</a>`:'';};
   const _fuelBadge=(s,extra='')=>s.fuel?`<div class="stop-fuel-badge" style="width:100%;justify-content:center${extra}">⛽ 給油ポイント</div>`:'';
   const _noteCompact=s=>s.note?`<div class="ride-note-compact" title="${esc(s.note)}" role="button" tabindex="0" onclick="event.stopPropagation();openRideNote('${escJsAttr(s.id)}')"><span class="ride-note-txt">${esc(s.note)}</span><span class="ride-note-more">タップで全文 ›</span></div>`:'';
   const _logHtml=s=>s.log?`<div class="ride-log">📝 ${esc(s.log)}</div>`:'';
@@ -423,7 +423,7 @@ export function render(){
     ${!isLast&&_mdur?`<div class="move-dur-label${_mlv>=0?' lv'+_mlv:''}">→ 次まで ${_mdur}</div>`:''}
     ${S.isEdit&&S.editingId===null&&S.activeEditStopId===s.id?`<div class="stop-edit-row">      <button class="small amber-outline" onclick="event.stopPropagation();setCurrentStop('${s.id}')">📍 現在</button>
       <button class="small amber-outline" onclick="event.stopPropagation();openEditStop('${s.id}')">✏️ 編集</button>
-      ${(()=>{const href=hasGeo(s)?`https://maps.google.com/?q=${s.geo.lat},${s.geo.lon}`:(()=>{const q=[s.name,s.addr].filter(Boolean).join(' ');return q?`https://maps.google.com/?q=${encodeURIComponent(q)}`:'';})();return href?`<a class="map-link-btn" href="${href}" target="_blank" rel="noopener">🗺 マップ</a>`:'';})()}
+      ${(()=>{const href=buildMapHref(s);return href?`<a class="map-link-btn" href="${esc(href)}" target="_blank" rel="noopener">🗺 マップ</a>`:'';})()}
       <button class="small danger" onclick="event.stopPropagation();delStop('${s.id}')">削除</button>
     </div>`:''}
   </div>

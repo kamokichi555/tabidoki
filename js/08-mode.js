@@ -8,7 +8,7 @@
    ══════════════════════════════════════════════════════ */
 
 /* --- 自動生成: モジュール依存のインポート --- */
-import { EC } from './00-constants.js';
+import { EC, LSK } from './00-constants.js';
 import { S, _dom, data } from './01-state.js';
 import { stayDur } from './02-utils.js';
 import { ensureDayWeather } from './04-weather.js';
@@ -34,7 +34,7 @@ export function _applyTheme(day){
 }
 export function _initTheme(){
   let saved=null;
-  try{saved=localStorage.getItem('touring_theme');}catch(e){}
+  try{saved=localStorage.getItem(LSK.theme);}catch(e){}
   if(saved){_themeManual=true;_applyTheme(saved==='day');}
   else{_applyTheme(_isDayTime());}
 }
@@ -42,7 +42,7 @@ export function _toggleTheme(){
   const isDay=document.body.classList.contains('day-mode');
   _themeManual=true;
   _applyTheme(!isDay);
-  try{localStorage.setItem('touring_theme',!isDay?'day':'night');}catch(e){}
+  try{localStorage.setItem(LSK.theme,!isDay?'day':'night');}catch(e){}
 }
 setInterval(()=>{if(!_themeManual)_applyTheme(_isDayTime());},60000);
 
@@ -57,7 +57,7 @@ export function _applyFontSize(cls){
 }
 export function _initFontSize(){
   let saved='';
-  try{saved=localStorage.getItem('touring_fontscale')||'';}catch(e){}
+  try{saved=localStorage.getItem(LSK.fontscale)||'';}catch(e){}
   if(saved!=='fs-lg'&&saved!=='fs-xl') saved='';
   _applyFontSize(saved);
 }
@@ -66,7 +66,7 @@ export function _cycleFontSize(){
            :document.body.classList.contains('fs-lg')?'fs-lg':'';
   const next=FS_LEVELS[(FS_LEVELS.indexOf(cur)+1)%FS_LEVELS.length];
   _applyFontSize(next);
-  try{localStorage.setItem('touring_fontscale',next);}catch(e){}
+  try{localStorage.setItem(LSK.fontscale,next);}catch(e){}
 }
 /* ══ 画面スリープ抑止（Screen Wake Lock） ══
    走行モード中だけ画面を点けたままにし、ブラックアウト→ロック解錠の

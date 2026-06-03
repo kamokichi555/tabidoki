@@ -7,6 +7,7 @@
    ══════════════════════════════════════════════════════ */
 
 /* --- 自動生成: モジュール依存のインポート --- */
+import { LSK } from './00-constants.js';
 import { debounce, esc, escJsAttr } from './02-utils.js';
 import { _lsSetItem } from './04-weather.js';
 import { _updateStickyTops } from './06-day.js';
@@ -309,7 +310,7 @@ export async function _fetchHighwayOnline(){
   const _refresh=()=>{const s=document.getElementById('highway-search');if(s)filterHighway();};
   _refresh();
   try{
-    const CACHE_KEY='highway_online_v1';
+    const CACHE_KEY=LSK.highwayCache;
     const cached=_readFacilityCache(CACHE_KEY,24*60*60*1000,30);
     if(cached){_mergeHighwayData(cached.d);return;}
     // Overpass APIで高速道路SA/PA取得
@@ -336,7 +337,7 @@ export async function _fetchHighwayOnline(){
 }
 
 (function _initHighwayData(){
-  const cached=_readFacilityCache('highway_online_v1',7*24*60*60*1000,30);
+  const cached=_readFacilityCache(LSK.highwayCache,7*24*60*60*1000,30);
   if(cached){
     _mergeHighwayData(cached.d);
     if(Date.now()-cached.t>24*60*60*1000) setTimeout(_fetchHighwayOnline,6000);
@@ -645,7 +646,7 @@ export async function _fetchMichiOnline(){
   const _refreshModal = ()=>{const s=document.getElementById('michi-search');if(s)filterMichi();};
   _refreshModal();
   try{
-    const CACHE_KEY='michi_online_v2';
+    const CACHE_KEY=LSK.michiCache;
     // キャッシュ確認（24時間有効）
     const cached=_readFacilityCache(CACHE_KEY,24*60*60*1000,100);
     if(cached){_mergeMichiData(cached.d);return;}
@@ -664,7 +665,7 @@ out center tags;`);
       result.push([shortName,_extractAddr(el.tags)]);
     }
     if(result.length>100){
-      const _mcJson=JSON.stringify({d:result,t:Date.now()});if(_mcJson.length<600000)try{_lsSetItem('michi_online_v2',_mcJson);}catch(e){}
+      const _mcJson=JSON.stringify({d:result,t:Date.now()});if(_mcJson.length<600000)try{_lsSetItem(LSK.michiCache,_mcJson);}catch(e){}
       _mergeMichiData(result);
     }
   }catch(e){
@@ -679,7 +680,7 @@ out center tags;`);
 
 // キャッシュがあれば即時反映、なければバックグラウンド取得
 (function _initMichiData(){
-  const cached=_readFacilityCache('michi_online_v2',7*24*60*60*1000,100);
+  const cached=_readFacilityCache(LSK.michiCache,7*24*60*60*1000,100);
   if(cached){
     _mergeMichiData(cached.d);
     // 1日以上経過していれば裏でリフレッシュ
@@ -757,6 +758,7 @@ export function openGasStation(){
     renderList:renderGasStationList
   });
 }
+/* GSは14件固定（オンライン取得なし）で全件再描画が一瞬で済むため、highway/michiと違いdebounce不要。 */
 export function filterGasStation(){
   renderGasStationList((document.getElementById('gs-search')?.value||'').trim());
 }

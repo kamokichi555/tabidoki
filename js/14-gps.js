@@ -10,6 +10,7 @@
    ══════════════════════════════════════════════════════ */
 
 /* --- 自動生成: モジュール依存のインポート --- */
+import { LSK } from './00-constants.js';
 import { S, data } from './01-state.js';
 import { buildGeoTargets, hasGeo } from './02-utils.js';
 import { _geoCacheGet, _isoToday, enqueueStop } from './04-weather.js';
@@ -223,7 +224,7 @@ export function _gpsOnError(err){
   _dbgLog('gps_error',{code:err.code,msg:err.message});
   if(err.code===1){ // PERMISSION_DENIED: 許可がないと追跡不能なので止める
     _gpsEnabled=false;
-    try{localStorage.setItem('touring_gps','0');}catch(e){} // 次回起動で誤ONにしない
+    try{localStorage.setItem(LSK.gps,'0');}catch(e){} // 次回起動で誤ONにしない
     _gpsStop();
     _gpsUpdateBtn();
     showInfoToast('⚠️ 位置情報の許可が必要です',4000);
@@ -263,7 +264,7 @@ export function _gpsStop(){
 /* ══ ユーザーがGPSボタンを押したとき ══ */
 export function toggleGps(){
   _gpsEnabled=!_gpsEnabled;
-  try{localStorage.setItem('touring_gps',_gpsEnabled?'1':'0');}catch(e){}
+  try{localStorage.setItem(LSK.gps,_gpsEnabled?'1':'0');}catch(e){}
   if(_gpsEnabled){
     if(S.isRide) _gpsStart();
     showInfoToast('📍 GPS自動追跡をオンにしました',2500);
@@ -301,6 +302,6 @@ export function _gpsUpdateStatus(){
 
 /* ══ 初期化（localStorageから設定復元） ══ */
 export function _gpsInit(){
-  try{_gpsEnabled=localStorage.getItem('touring_gps')==='1';}catch(e){_gpsEnabled=false;}
+  try{_gpsEnabled=localStorage.getItem(LSK.gps)==='1';}catch(e){_gpsEnabled=false;}
   _gpsUpdateBtn();
 }
