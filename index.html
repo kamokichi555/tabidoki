@@ -47,9 +47,12 @@
 
 <header>
   <div class="header-main">
-    <button id="menu-toggle-btn" onclick="toggleMenu()" title="メニュー" aria-label="メニュー">
-      <span></span><span></span><span></span>
-    </button>
+    <div class="header-left">
+      <button id="menu-toggle-btn" onclick="toggleMenu()" title="メニュー" aria-label="メニュー">
+        <span></span><span></span><span></span>
+      </button>
+      <div id="gps-status" class="gps-status" style="display:none" aria-live="polite" title="GPS状態"></div>
+    </div>
     <div class="header-clock">
       <div class="led-wrap">
         <div id="now-display"></div>
@@ -216,7 +219,6 @@
 </div>
 
 <div id="ride-view">
-  <div id="gps-status" class="gps-status" style="display:none"></div>
   <div id="ride-content-wrap">
     <div id="ride-provisional-banner"></div>
     <div id="ride-content"></div>
