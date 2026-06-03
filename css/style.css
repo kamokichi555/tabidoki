@@ -119,12 +119,6 @@ button.small{padding:6px 10px;font-size:16px}
 .ride-seg-top{display:flex;align-items:flex-end;margin-bottom:4px}
 .ride-seg-remain{font-family:'SF Mono','Menlo','Courier New',monospace;font-size:30px;font-weight:700;color:var(--green);line-height:1}
 .ride-seg-remain small{font-size:14px;color:var(--text3);margin-left:4px;font-weight:700;font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif}
-.ride-seg-track{position:relative;height:14px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);margin:16px 0 8px}
-.ride-seg-fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:8px;background:linear-gradient(90deg,var(--amber),var(--green));transition:width .5s ease}
-.ride-seg-bike{position:absolute;left:0;top:50%;transform:translate(-50%,-50%);font-size:24px;transition:left .5s ease;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))}
-.ride-seg-ends{display:flex;justify-content:space-between;font-size:13px;color:var(--text2);font-weight:700}
-.ride-seg-ends .now{color:var(--amber)}
-.ride-seg.no-prog .ride-seg-track,.ride-seg.no-prog .ride-seg-bike{display:none} /* 区間長が不明なときは距離のみ */
 .ride-seg.stale{opacity:.5} /* トンネル等で位置が古いとき薄く */
 /* ══ 次の目的地：1行コンパクト表示（案A） ══ */
 .ride-next-strip{background:var(--bg2);border:1.5px solid var(--border2);border-radius:13px;padding:9px 13px;margin-bottom:10px;cursor:pointer}
