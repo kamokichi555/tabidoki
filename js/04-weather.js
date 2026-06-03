@@ -368,7 +368,7 @@ export async function _fetchForecast(stop,lat,lon,date){
   }
 }
 
-/* ── ジオコーディング（国土地理院→Nominatim フォールバック） ── */
+/* ── ジオコーディング（国土地理院GSIを使用。Nominatimは現在未使用＝下のフォールバックを外したため） ── */
 export async function _geocodeGSI(q){
   // 国土地理院 住所検索API（日本住所専用・CORS完全対応・APIキー不要）
   const ctrl=new AbortController();
@@ -391,6 +391,8 @@ export async function _geocodeGSI(q){
   }catch(e){clearTimeout(t);}
   return null;
 }
+// ※現在は未使用（_geocodeParallel から呼んでいない）。公開ポリシー対策でGSIのみ運用中。
+//   個人利用で精度を上げたい場合は _geocodeParallel のコメントを参照して復活できる。
 export async function _geocodeNominatim(q){
   const ctrl=new AbortController();
   const t=setTimeout(()=>ctrl.abort(),6000);
@@ -436,30 +438,18 @@ export function _stopStillValid(stop){
   }
   return false;
 }
-/* ── 並列ジオコーディング（GSI + Nominatim を同時実行・先勝ち） ── */
-export async function _geocodeParallel(q,useAddrMode){
-  if(useAddrMode){
-    // 住所モード: GSI優先（日本住所に強い）
-    // GSIを先に投げ、500ms経過してもまだ返らなければNominatimも並列実行
-    // nominatimStarted フラグでNominatimの二重呼び出しを防ぐ
-    return new Promise(resolve=>{
-      let done=false,nominatimStarted=false;
-      const finish=(c)=>{if(!done){done=true;resolve(c);}};
-      const startNominatim=()=>{
-        if(nominatimStarted||done)return;
-        nominatimStarted=true;
-        _geocodeNominatim(q).then(finish).catch(()=>finish(null));
-      };
-      const gsiP=_geocodeGSI(q);
-      gsiP.then(c=>{if(c)finish(c);else startNominatim();}).catch(()=>startNominatim());
-      // 500ms経ってもGSIが返らなければNominatimも並列起動
-      setTimeout(startNominatim,500);
-    });
-  }else{
-    // 名前モード: Nominatim優先（POI・施設名に強い）→ 失敗時GSI
-    const c=await _geocodeNominatim(q);
-    return c||_geocodeGSI(q);
-  }
+/* ── ジオコーディング（国土地理院GSIのみ使用）──
+   公開時にNominatim公開APIの「アプリ全体で合計1req/秒」制限へ抵触するのを避けるため、
+   フォールバックのNominatimは外し、住所モード・名前モードともGSIだけを使う。
+   GSIは日本の住所・地名（駅名/主要施設名の一部含む）に対応し、CORS対応・APIキー不要で、
+   各ユーザーのIPから分散アクセスになるため公開しても上流に優しい。
+   ※関数名は呼び出し側の互換のため _geocodeParallel のまま（現在は並列実行しない）。
+   ※Nominatimを復活させたい場合（個人利用限定を推奨）は下のコメント参照。 */
+export async function _geocodeParallel(q){
+  return _geocodeGSI(q);
+  // ▼ Nominatimフォールバックを併用する場合（公開時は規約に注意）:
+  //   const c=await _geocodeGSI(q);
+  //   return c||_geocodeNominatim(q);
 }
 
 export async function doFetchStop(stop,date){
@@ -480,11 +470,10 @@ export async function doFetchStop(stop,date){
     lat=geoPt.lat;lon=geoPt.lon;
   }else{
     const geoTargets=addr?buildGeoTargets(addr):buildNameTargets(name);
-    const useAddrMode=!!addr;
     for(const q of geoTargets){
       const cached=_geoCacheGet(q);
       if(cached){lat=cached.lat;lon=cached.lon;break;}
-      const coords=await _geocodeParallel(q,useAddrMode);
+      const coords=await _geocodeParallel(q);
       if(coords){lat=coords.lat;lon=coords.lon;_geoCacheSet(q,lat,lon);break;}
     }
   }
