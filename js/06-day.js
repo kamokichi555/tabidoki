@@ -91,6 +91,14 @@ export function renderTabs(){
   const ri=document.getElementById('inp-route-url');if(ri) ri.value=data.days[S.currentDay].routeUrl||'';
   const di=document.getElementById('inp-day-date');if(di) di.value=data.days[S.currentDay].date||'';
   _updateStickyTops();
+  // アクティブなタブが横スクロール領域からはみ出していたら見える位置まで寄せる（最終日などで隠れない様に）
+  requestAnimationFrame(()=>{
+    const act=c.querySelector('.day-tab.on');
+    if(!act) return;
+    const cr=c.getBoundingClientRect(),ar=act.getBoundingClientRect(),m=12;
+    if(ar.left<cr.left)       c.scrollLeft-=(cr.left-ar.left)+m;       // 左に隠れている
+    else if(ar.right>cr.right)c.scrollLeft+=(ar.right-cr.right)+m;     // 右に隠れている
+  });
 }
 
 export function _sortDays(){
