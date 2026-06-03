@@ -109,15 +109,19 @@ button.small{padding:6px 10px;font-size:16px}
 #ride-btn{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
 #ride-btn.on{background:var(--amber);color:#000;border-color:var(--amber)}
 #gps-btn.on{color:var(--green)}
-.gps-status{display:inline-flex;align-items:center;gap:2px;font-size:11px;font-weight:700;line-height:1;padding:4px 7px;border-radius:999px;background:var(--amber-bg);border:1px solid var(--border);color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:30vw;flex:0 1 auto;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;transition:transform .1s}
+.gps-status{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-weight:700;line-height:1;padding:3px 8px;border-radius:14px;background:var(--amber-bg);border:1px solid var(--border);color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:30vw;flex:0 1 auto;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;transition:transform .1s}
+.gps-status .gps-ico{font-size:15px;line-height:1}
+.gps-status .gps-txt{font-size:9px;line-height:1}
 .gps-status:active{transform:scale(.95)}
 .gps-status.off{color:var(--text3);border-color:var(--border);background:transparent;opacity:.9}
 .gps-status.ok{color:var(--green);border-color:var(--green)}
 .gps-status.warn{color:var(--amber);border-color:var(--amber)}
 /* GPS区間プログレスバー（走行モード 現在地→次の目的地） */
 .ride-seg{margin:2px 2px 12px;padding:0 2px}
-.ride-seg-top{display:flex;align-items:flex-end;margin-bottom:4px}
-.ride-seg-remain{font-family:'SF Mono','Menlo','Courier New',monospace;font-size:30px;font-weight:700;color:var(--green);line-height:1}
+.ride-seg-top{display:flex;align-items:flex-end;justify-content:center;margin-bottom:4px}
+.ride-seg-remain{font-family:'SF Mono','Menlo','Courier New',monospace;font-size:30px;font-weight:700;color:var(--green);line-height:1;animation:ride-dist-blink 1s ease-in-out infinite}
+@keyframes ride-dist-blink{0%,100%{opacity:1}50%{opacity:.2}}
+@media (prefers-reduced-motion:reduce){.ride-seg-remain{animation:none}}
 .ride-seg-remain small{font-size:14px;color:var(--text3);margin-left:4px;font-weight:700;font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif}
 .ride-seg.stale{opacity:.5} /* トンネル等で位置が古いとき薄く */
 /* ══ 次の目的地：1行コンパクト表示（案A） ══ */
