@@ -79,11 +79,12 @@ export function _gpsPrefetchCoords(){
   }
 }
 
-/* ══ 現在地→次の地点 の残り直線距離を #ride-seg に反映 ══
+/* ══ 今いる場所→目的地（次の地点）の直線距離を #ride-seg に反映 ══
    「現在地」を表示中(S.rideViewIdx===rci)のときだけ表示する。
-   ・残り距離 = GPS現在地→次地点（実測）。GPSが無ければ 現在地点→次地点 の直線にフォールバック。
-   ・次地点の座標が無ければ非表示（誤情報を出さない）。
-   進捗バー(🏍️)は廃止。区間長・始点に依存せず、常に「今いる場所→次地点」の距離だけを出す。
+   ・距離 = GPS現在地→次地点（実測）。GPSオン＋測位ありのときだけ表示する。
+   ・GPSオフ／測位前／目的地の座標なし／最終地点 のときは非表示（中途半端な数字を残さない）。
+   ・GPSをオフにすると toggleGps から本関数が呼ばれて即 非表示＝距離クリアになる。
+   進捗バー(🏍️)は廃止。GPSオン中は watchPosition の位置更新ごとに測り直す（動けば自動更新）。
    renderRide で骨組みを毎回作り直すため、この関数は中身の更新だけを担う（軽い）。*/
 export function _gpsUpdateNextDist(){
   const seg=document.getElementById('ride-seg');
@@ -96,14 +97,12 @@ export function _gpsUpdateNextDist(){
   const ns=flat[rci+1];
   if(!ns){hide();return;}                                     // 次の地点がない（最終地点）
   const nc=_gpsStopCoords(ns);
-  const cc=_gpsStopCoords(flat[rci]);
-  const live=!!(_gpsEnabled&&_gpsLastPos);                    // GPS実測が使えるか
+  const live=!!(_gpsEnabled&&_gpsLastPos);                    // GPSオン＋測位ありのときだけ計測
 
-  // 残り距離: GPS実測（現在地→次地点）を優先。無ければ区間直線（現在地点→次地点）にフォールバックし常時表示。
-  let remain=null;
-  if(live&&nc) remain=_gpsDistance(_gpsLastPos.lat,_gpsLastPos.lon,nc.lat,nc.lon);
-  else if(cc&&nc) remain=_gpsDistance(cc.lat,cc.lon,nc.lat,nc.lon);
-  if(remain===null){hide();return;}                           // 両地点とも座標が無い→出せない
+  // 距離 = GPS実測（今いる場所→目的地）のみ。GPSオフ・測位前・目的地座標なしは非表示。
+  // （オフ時に消えるのは toggleGps→_gpsUpdateNextDist 経由で即反映＝距離クリア仕様）
+  if(!live||!nc){hide();return;}
+  const remain=_gpsDistance(_gpsLastPos.lat,_gpsLastPos.lon,nc.lat,nc.lon);
 
   // 残り距離テキスト（数値部と単位を分けて流し込む）
   const kmEl=document.getElementById('ride-seg-km');
