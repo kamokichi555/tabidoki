@@ -79,12 +79,11 @@ export function _gpsPrefetchCoords(){
   }
 }
 
-/* ══ 現在地→次の地点 の進捗を区間プログレスバー(#ride-seg)に反映 ══
+/* ══ 現在地→次の地点 の残り直線距離を #ride-seg に反映 ══
    「現在地」を表示中(S.rideViewIdx===rci)のときだけ表示する。
-   ・残り直線距離 = GPS現在地→次地点（実測）
-   ・進捗 = 1 − 残り距離 ÷ 区間長（現在地点⇔次地点 の直線距離）を分母にした割合
-   GPS位置・次地点座標のどちらかが欠ければバーごと非表示（誤情報を出さない）。
-   現在地点の座標が無く区間長が出せない場合は、距離だけ出してバー(🏍️)は隠す。
+   ・残り距離 = GPS現在地→次地点（実測）。GPSが無ければ 現在地点→次地点 の直線にフォールバック。
+   ・次地点の座標が無ければ非表示（誤情報を出さない）。
+   進捗バー(🏍️)は廃止。区間長・始点に依存せず、常に「今いる場所→次地点」の距離だけを出す。
    renderRide で骨組みを毎回作り直すため、この関数は中身の更新だけを担う（軽い）。*/
 export function _gpsUpdateNextDist(){
   const seg=document.getElementById('ride-seg');
@@ -116,25 +115,8 @@ export function _gpsUpdateNextDist(){
   if(kmEl) kmEl.textContent=numTxt;
   if(unitEl) unitEl.textContent=unitTxt;
 
-  // 進捗（区間の直線距離を分母に）。GPS実測があり区間長が出せるときだけバー(🏍️)を出し、静的時は距離のみ。
-  const fill=document.getElementById('ride-seg-fill');
-  const bike=document.getElementById('ride-seg-bike');
-  let p=null;
-  if(live&&cc&&nc){
-    const seglen=_gpsDistance(cc.lat,cc.lon,nc.lat,nc.lon);
-    if(seglen>50) p=Math.max(0,Math.min(1,1-remain/seglen)); // 50m以下の極短区間は進捗を出さない
-  }
-  if(p===null){
-    seg.classList.add('no-prog');                            // バー(track/🏍️)を隠し距離だけ表示
-    if(fill) fill.style.width='0';                            // 内部値もリセット（前回の進捗が残らないように）
-    if(bike) bike.style.left='0';
-  }else{
-    seg.classList.remove('no-prog');
-    const pct=(p*100)+'%';
-    if(fill) fill.style.width=pct;
-    if(bike) bike.style.left=pct;
-  }
-  seg.classList.toggle('stale',live&&_gpsStale);             // トンネル等で位置が古いときは薄く（実測時のみ）
+  // 進捗バーは廃止。距離の数字だけを表示する（始点をどう決めるかの問題を回避）。
+  seg.classList.toggle('stale',live&&_gpsStale);             // 位置が古い（トンネル等）ときは数字を薄く（実測時のみ）
   seg.style.display='';
 }
 
@@ -281,7 +263,7 @@ export function toggleGps(){
   }
   _gpsUpdateBtn();
   _gpsUpdateStatus();
-  _gpsUpdateNextDist(); // オン/オフ直後に区間バーを描き直す（前回の進捗が残るのを防ぐ）
+  _gpsUpdateNextDist(); // オン/オフ直後に区間バーを描き直す（オフにしたとき古いバーを残さない）
 }
 
 /* ══ 走行モード開始/終了から呼ばれる ══ */
