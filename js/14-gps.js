@@ -299,10 +299,10 @@ export function _gpsUpdateStatus(){
   if(!el) return;
   if(!S.isRide||!_gpsEnabled){el.style.display='none';return;}
   el.style.display='';
-  if(!_gpsLastPos){el.textContent='📡 GPS取得中';el.className='gps-status';return;}
-  if(_gpsStale){el.textContent='📡 GPS再取得中';el.className='gps-status warn';return;} // 一定時間 新位置なし（トンネル等）。直近の現在地は保持
-  if(_gpsLastPos.acc>GPS_ACC_MAX){el.textContent='⚠️ GPS精度低';el.className='gps-status warn';return;}
-  el.textContent='📍 GPS追跡中';el.className='gps-status ok';
+  if(!_gpsLastPos){el.textContent='📡 取得中';el.className='gps-status';el.title='GPS取得中';return;}
+  if(_gpsStale){el.textContent='📡 再取得';el.className='gps-status warn';el.title='GPS再取得中（位置が一定時間更新されていません）';return;} // 一定時間 新位置なし（トンネル等）。直近の現在地は保持
+  if(_gpsLastPos.acc>GPS_ACC_MAX){el.textContent='⚠️ 精度低';el.className='gps-status warn';el.title='GPS精度が低い状態です';return;}
+  el.textContent='📍 追跡中';el.className='gps-status ok';el.title='GPS追跡中';
 }
 
 /* ══ 初期化（localStorageから設定復元） ══ */
