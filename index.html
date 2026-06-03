@@ -51,6 +51,7 @@
       <button id="menu-toggle-btn" onclick="toggleMenu()" title="メニュー" aria-label="メニュー">
         <span></span><span></span><span></span>
       </button>
+      <button id="toilet-btn" onclick="openToiletMap()" title="近くのトイレを検索" aria-label="近くのトイレを検索">🚻</button>
       <div id="gps-status" class="gps-status" style="display:none" aria-live="polite" title="GPS状態"></div>
     </div>
     <div class="header-clock">
@@ -124,9 +125,9 @@
         <span class="mi-icon">📡</span>
         <span class="mi-text"><span class="mi-label">GPS自動追跡</span><span class="mi-sub">現在地で自動切替</span></span>
       </button>
-      <button class="menu-item" onclick="closeMenu();openToiletMap()">
-        <span class="mi-icon">🚻</span>
-        <span class="mi-text"><span class="mi-label">近くのトイレを検索</span><span class="mi-sub">Googleマップで開く</span></span>
+      <button class="menu-item" onclick="closeMenu();window.open('tabidoki_manual.html','_blank','noopener')">
+        <span class="mi-icon">📖</span>
+        <span class="mi-text"><span class="mi-label">使い方・マニュアル</span><span class="mi-sub">操作の説明を開く</span></span>
       </button>
       <button class="menu-item" onclick="closeMenu();loadSampleData()">
         <span class="mi-icon">🗺️</span>
