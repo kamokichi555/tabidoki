@@ -126,6 +126,8 @@ export function _gpsUpdateNextDist(){
   }
   if(p===null){
     seg.classList.add('no-prog');                            // バー(track/🏍️)を隠し距離だけ表示
+    if(fill) fill.style.width='0';                            // 内部値もリセット（前回の進捗が残らないように）
+    if(bike) bike.style.left='0';
   }else{
     seg.classList.remove('no-prog');
     const pct=(p*100)+'%';
@@ -279,6 +281,7 @@ export function toggleGps(){
   }
   _gpsUpdateBtn();
   _gpsUpdateStatus();
+  _gpsUpdateNextDist(); // オン/オフ直後に区間バーを描き直す（前回の進捗が残るのを防ぐ）
 }
 
 /* ══ 走行モード開始/終了から呼ばれる ══ */
