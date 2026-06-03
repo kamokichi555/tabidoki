@@ -11,7 +11,7 @@
 import { EC, EC_MSG } from './00-constants.js';
 import { S, _dom, data } from './01-state.js';
 import { actDiffHtml, buildMapHref, esc, escJsAttr, fmtHM, hasGeo, isTimeOrderOk, mdw, moveDur, moveDurLevel, moveDurRide, nowMin, stayDur, toMin, wrapDiff } from './02-utils.js';
-import { _isoToday, enqueueStop, ensureDayWeather, rideWxCompact, stopWxInner } from './04-weather.js';
+import { _isoToday, enqueueStop, ensureDayWeather, rideWxCompact, rideWxStrip, stopWxInner } from './04-weather.js';
 import { getStatus } from './05-stop.js';
 import { _getCdi, _updateRecordBtn, currentDayFlat, stops, switchDay } from './06-day.js';
 import { _gpsNotifySwipe, _gpsUpdateNextDist } from './14-gps.js';
@@ -226,11 +226,13 @@ export function renderRide(){
         <div class="ride-seg-ends"><span class="now">${esc(vs.name)}</span><span>${esc(ns.name)}</span></div>
       </div>`;
     }
-    h+=`<div class="ride-card">
-      <div class="ride-tag">↓ 次の目的地${cd?`<span style="margin-left:8px;color:var(--green);font-size:15px">${cd}</span>`:''}</div>
-      <div class="ride-name" style="color:var(--text2)">${esc(ns.name)}</div>
-      <div class="ride-times-row">${_chips(ns,'next-chip-val')}</div>
-      ${rideWxCompact(ns.id,!!(ns.addr||hasGeo(ns)))}
+    h+=`<div class="ride-next-strip" onclick="rideNavigate(1)">
+      <div class="rns-top"><span class="rns-k">↓ 次</span><span class="rns-nm">${esc(ns.name)}</span>${cd?`<span class="rns-eta">${cd}</span>`:''}</div>
+      <div class="rns-bot">
+        ${ns.arr?`<span class="rns-time"><span class="rns-lbl">着</span><b>${ns.arr}</b></span>`:''}
+        ${ns.dep?`<span class="rns-dep">発${ns.dep}</span>`:''}
+        ${rideWxStrip(ns.id,!!(ns.addr||hasGeo(ns)))}
+      </div>
     </div>`;
   }else{
     h+=`<div style="color:var(--green);font-size:20px;font-weight:700;margin-top:12px;text-align:center">🏁 全行程完了</div>`;

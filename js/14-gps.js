@@ -90,15 +90,21 @@ export function _gpsUpdateNextDist(){
   const seg=document.getElementById('ride-seg');
   if(!seg) return; // 現在地を表示していない／次地点が無い等で骨組みが無い
   const hide=()=>{seg.style.display='none';};
-  if(!S.isRide||!_gpsEnabled||!_gpsLastPos){hide();return;}
+  if(!S.isRide){hide();return;}
   const flat=currentDayFlat();
   const rci=flat.findIndex(s=>s.id===S.manualCurrentId);
   if(rci===-1||S.rideViewIdx!==rci){hide();return;}           // 現在地を見ているときだけ
   const ns=flat[rci+1];
   if(!ns){hide();return;}                                     // 次の地点がない（最終地点）
   const nc=_gpsStopCoords(ns);
-  if(!nc){hide();return;}                                     // 次地点の座標が未取得→出せない
-  const remain=_gpsDistance(_gpsLastPos.lat,_gpsLastPos.lon,nc.lat,nc.lon);
+  const cc=_gpsStopCoords(flat[rci]);
+  const live=!!(_gpsEnabled&&_gpsLastPos);                    // GPS実測が使えるか
+
+  // 残り距離: GPS実測（現在地→次地点）を優先。無ければ区間直線（現在地点→次地点）にフォールバックし常時表示。
+  let remain=null;
+  if(live&&nc) remain=_gpsDistance(_gpsLastPos.lat,_gpsLastPos.lon,nc.lat,nc.lon);
+  else if(cc&&nc) remain=_gpsDistance(cc.lat,cc.lon,nc.lat,nc.lon);
+  if(remain===null){hide();return;}                           // 両地点とも座標が無い→出せない
 
   // 残り距離テキスト（数値部と単位を分けて流し込む）
   const kmEl=document.getElementById('ride-seg-km');
@@ -110,12 +116,11 @@ export function _gpsUpdateNextDist(){
   if(kmEl) kmEl.textContent=numTxt;
   if(unitEl) unitEl.textContent=unitTxt;
 
-  // 進捗（区間の直線距離を分母に）。現在地点に座標が無ければバーは出さず距離だけ。
-  const cc=_gpsStopCoords(flat[rci]);
+  // 進捗（区間の直線距離を分母に）。GPS実測があり区間長が出せるときだけバー(🏍️)を出し、静的時は距離のみ。
   const fill=document.getElementById('ride-seg-fill');
   const bike=document.getElementById('ride-seg-bike');
   let p=null;
-  if(cc){
+  if(live&&cc&&nc){
     const seglen=_gpsDistance(cc.lat,cc.lon,nc.lat,nc.lon);
     if(seglen>50) p=Math.max(0,Math.min(1,1-remain/seglen)); // 50m以下の極短区間は進捗を出さない
   }
@@ -127,7 +132,7 @@ export function _gpsUpdateNextDist(){
     if(fill) fill.style.width=pct;
     if(bike) bike.style.left=pct;
   }
-  seg.classList.toggle('stale',_gpsStale);                   // トンネル等で位置が古いときは薄く
+  seg.classList.toggle('stale',live&&_gpsStale);             // トンネル等で位置が古いときは薄く（実測時のみ）
   seg.style.display='';
 }
 

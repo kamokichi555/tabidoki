@@ -176,6 +176,20 @@ export function rideWxCompact(stopId,hasAddr){
   </div>`;
 }
 
+/* ── 走行画面・次地点ストリップ用：天気を1行（アイコン＋気温＋降水%）で返す ── */
+export function rideWxStrip(stopId,hasAddr){
+  if(!hasAddr) return '';
+  const r=wxStopRes[stopId];
+  if(!r||r==='loading') return '<span class="ride-wx-strip"><span class="rws-ic">🌐</span></span>';
+  if(r.isPast) return '';
+  if(r.outOfRange) return '<span class="ride-wx-strip"><span class="rws-ic">📅</span></span>';
+  if(r.error) return `<span class="ride-wx-strip" onclick="event.stopPropagation();retryStopWeather('${stopId}')" style="cursor:pointer"><span class="rws-ic">⚠️</span></span>`;
+  const w=WMO[r.wcode]??{e:'🌡️',t:''};
+  const temp=r.temp!=null?Math.round(r.temp):(r.tmax!=null?Math.round(r.tmax):null);
+  const p=r.precip??null;
+  return `<span class="ride-wx-strip"><span class="rws-ic">${w.e}</span>${temp!==null?`<span class="rws-t">${temp}°</span>`:''}${p!==null?`<span class="rws-p ${pClass(p)}">💧${p}%</span>`:''}</span>`;
+}
+
 /* ── 取得完了後 DOM部分更新 ── */
 export function onStopWxReady(stopId){
   wxQueueIds.delete(stopId);
