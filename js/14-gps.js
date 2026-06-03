@@ -78,13 +78,6 @@ export function _gpsPrefetchCoords(){
   }
 }
 
-/* ══ 残り距離フォーマット ══ */
-export function _gpsFmtDist(m){
-  if(m<1000) return Math.round(m/10)*10+' m';      // 1km未満は10m刻み
-  if(m<10000) return (m/1000).toFixed(1)+' km';     // 10km未満は0.1km刻み
-  return Math.round(m/1000)+' km';                  // それ以上は1km刻み
-}
-
 /* ══ 現在地→次の地点 の進捗を区間プログレスバー(#ride-seg)に反映 ══
    「現在地」を表示中(S.rideViewIdx===rci)のときだけ表示する。
    ・残り直線距離 = GPS現在地→次地点（実測）
