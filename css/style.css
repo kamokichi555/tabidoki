@@ -122,6 +122,12 @@ button.small{padding:6px 10px;font-size:16px}
 .ride-seg-ends .now{color:var(--amber)}
 .ride-seg.no-prog .ride-seg-track,.ride-seg.no-prog .ride-seg-bike{display:none} /* 区間長が不明なときは距離のみ */
 .ride-seg.stale{opacity:.5} /* トンネル等で位置が古いとき薄く */
+/* 住所/座標 入力欄の補助UI（📍現在地ボタン＋判定ヒント） */
+.geo-field-row{display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap}
+.geo-capture-btn{flex:0 0 auto;background:var(--amber-bg);border:1.5px solid var(--amber);color:var(--amber);font-weight:700;font-size:15px;padding:8px 14px;border-radius:8px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.geo-capture-btn:disabled{opacity:.6}
+.geo-hint{flex:1 1 140px;font-size:13px;line-height:1.5;color:var(--text3)}
+.geo-hint.ok{color:var(--green);font-weight:700}
 #record-save-btn.has-record{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
 #normal-view{overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;padding:16px;height:calc(var(--nv-h, 100dvh) - var(--hh, 62px));touch-action:pan-y}
 
