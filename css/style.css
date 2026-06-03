@@ -48,20 +48,20 @@ body.day-mode .fuel-check-box{background:#fff;border-color:rgba(0,0,0,.3)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);padding-bottom:env(safe-area-inset-bottom);font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;font-size:20px;line-height:1.75;max-width:480px;margin:0 auto;min-height:100vh;min-height:var(--app-h,100dvh);overflow-x:hidden}
 header{position:sticky;top:0;background:var(--bg);z-index:100000;border-bottom:2px solid var(--border);padding-top:env(safe-area-inset-top)}
-.header-clock{flex:1 1 auto;min-width:0;padding:0 4px;display:flex;align-items:center;justify-content:center;animation:header-appear .4s ease 5.3s both;line-height:1.05}
-.header-main{padding:4px 8px;display:flex;align-items:center;justify-content:space-between;gap:6px;animation:header-appear .4s ease 5.3s both}
+.header-clock{justify-self:center;min-width:0;padding:0 4px;display:flex;align-items:center;justify-content:center;animation:header-appear .4s ease 5.3s both;line-height:1.05}
+.header-main{padding:4px 8px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;animation:header-appear .4s ease 5.3s both}
 @keyframes header-appear{from{opacity:0}to{opacity:1}}
 
 .header-actions{display:flex;gap:4px;width:100%;justify-content:space-around}
 .header-actions button{padding:4px 2px;font-size:20px;line-height:1;min-width:0;border-radius:8px;flex:1;justify-content:center;border-color:transparent;background:transparent}
 /* ══ ヘッダー: ハンバーガー + クイックボタン ══ */
 .header-main{justify-content:flex-start!important}
-#menu-toggle-btn{flex:0 0 auto;width:44px;height:44px;background:transparent!important;border:1.5px solid var(--border2)!important;border-radius:10px!important;padding:0!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+#menu-toggle-btn{justify-self:start;flex:0 0 auto;width:44px;height:44px;background:transparent!important;border:1.5px solid var(--border2)!important;border-radius:10px!important;padding:0!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
 #menu-toggle-btn span{display:block;width:20px;height:2px;background:var(--text);border-radius:2px;transition:transform .25s,opacity .25s}
 #menu-toggle-btn.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
 #menu-toggle-btn.open span:nth-child(2){opacity:0}
 #menu-toggle-btn.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
-.header-quick{display:flex;gap:6px;margin-left:auto}
+.header-quick{display:flex;gap:6px;justify-self:end}
 .header-quick button{padding:6px 10px;font-size:20px;line-height:1;border-radius:10px}
 #ride-btn{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
 #ride-btn.on{background:var(--amber);color:#000;border-color:var(--amber)}
