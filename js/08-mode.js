@@ -335,6 +335,30 @@ export function toggleMenu(){
   d.classList.contains('open') ? closeMenu() : openMenu();
 }
 let _menuOnKey=null;
+let _menuSwipeReady=false;
+/* ドロワーを左スワイプで閉じる（指で滑らせて引っ込む挙動）。一度だけ設定する。 */
+function _setupMenuSwipe(){
+  if(_menuSwipeReady) return;
+  const d=document.getElementById('menu-drawer');
+  if(!d) return;
+  _menuSwipeReady=true;
+  let sx=0,sy=0,dragging=false,horiz=false;
+  d.addEventListener('touchstart',e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY;dragging=true;horiz=false;},{passive:true});
+  d.addEventListener('touchmove',e=>{
+    if(!dragging) return;
+    const t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
+    if(!horiz){ if(Math.abs(dx)<6&&Math.abs(dy)<6) return; horiz=Math.abs(dx)>Math.abs(dy); }
+    if(horiz&&dx<0){ d.style.transition='none'; d.style.transform='translateX('+Math.max(dx,-360)+'px)'; } // 左方向だけ指に追従
+  },{passive:true});
+  const end=e=>{
+    if(!dragging) return; dragging=false;
+    const dx=(e.changedTouches&&e.changedTouches[0]?e.changedTouches[0].clientX:sx)-sx;
+    d.style.transition=''; d.style.transform=''; // CSSの遷移へ戻す
+    if(horiz&&dx<-60) closeMenu(); // 一定以上 左へ滑らせたら閉じる
+  };
+  d.addEventListener('touchend',end,{passive:true});
+  d.addEventListener('touchcancel',end,{passive:true});
+}
 export function openMenu(){
   const d=document.getElementById('menu-drawer');
   const ov=document.getElementById('menu-overlay');
@@ -343,6 +367,7 @@ export function openMenu(){
   if(ov) ov.classList.add('open');
   if(b) b.classList.add('open');
   document.body.classList.add('menu-open');
+  _setupMenuSwipe();
   if(!_menuOnKey){
     _menuOnKey=e=>{if(e.key==='Escape')closeMenu();};
     document.addEventListener('keydown',_menuOnKey);
