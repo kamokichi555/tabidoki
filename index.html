@@ -46,15 +46,15 @@
 </div>
 
 <header>
-  <div class="header-clock">
-    <div class="led-wrap">
-      <div id="now-display"></div>
-    </div>
-  </div>
   <div class="header-main">
     <button id="menu-toggle-btn" onclick="toggleMenu()" title="メニュー" aria-label="メニュー">
       <span></span><span></span><span></span>
     </button>
+    <div class="header-clock">
+      <div class="led-wrap">
+        <div id="now-display"></div>
+      </div>
+    </div>
     <div class="header-quick">
       <button id="ride-btn" onclick="toggleRide()" title="走行モード">🏍️</button>
       <button id="cancel-ride-btn" onclick="cancelToRide()" style="display:none" title="走行モードを終了">✖</button>
