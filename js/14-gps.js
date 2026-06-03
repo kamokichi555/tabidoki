@@ -28,6 +28,7 @@ export let _gpsLastPos=null;           // 直近のGPS座標 {lat,lon,acc,ts}
 export let _gpsStale=false;            // 一定時間 新しい位置が来ていない（トンネル等）
 let _gpsStaleTimer=null;               // 鮮度タイマー
 let _gpsLastProcessTs=0;               // 重い処理を最後に実行した時刻（間引き用）
+let _gpsLastFixTs=0;                   // 直近の測位が届いた時刻（配信間隔ログ用。間引きとは無関係）
 
 /* ══ 調整パラメータ ══ */
 export const GPS_MIN_PROCESS_MS=3000;  // 位置処理（距離計算・再描画）の最短間隔（ms）。watchPositionの高頻度発火を間引く
@@ -182,6 +183,10 @@ export function _gpsOnPosition(pos){
   if(!S.isRide||!_gpsEnabled) return;
   const lat=pos.coords.latitude,lon=pos.coords.longitude,acc=pos.coords.accuracy;
   _gpsLastPos={lat,lon,acc,ts:Date.now()};
+  // 【計測用】測位が届くたびに、前回からの経過ms(dt)と精度(acc)を記録する。
+  // watchPositionの実配信間隔を可視化するためのログ。間引き(_gpsLastProcessTs)には影響しない。
+  _dbgLog('gps_fix',{dt:_gpsLastFixTs?(_gpsLastPos.ts-_gpsLastFixTs):0,acc:Math.round(acc)});
+  _gpsLastFixTs=_gpsLastPos.ts;
   // 新しい位置が来たので「再取得中」を解除し、鮮度タイマーを張り直す
   _gpsStale=false;
   if(_gpsStaleTimer) clearTimeout(_gpsStaleTimer);
@@ -249,6 +254,7 @@ export function _gpsStart(){
   // maximumAge:0 でキャッシュを使わず常に最新を要求。高頻度発火は _gpsOnPosition 側で間引く。
   const opts={enableHighAccuracy:true,maximumAge:0,timeout:20000};
   _gpsLastProcessTs=0; // 開始直後の最初の位置は即処理させる
+  _gpsLastFixTs=0;     // 配信間隔の基準もリセット（前セッションの巨大なdtを出さない）
   _gpsWatchId=navigator.geolocation.watchPosition(_gpsOnPosition,_gpsOnError,opts);
   _gpsUpdateStatus();
 }
@@ -257,7 +263,7 @@ export function _gpsStop(){
   if(_gpsStaleTimer){clearTimeout(_gpsStaleTimer);_gpsStaleTimer=null;}
   if(_gpsManualOverrideTimer){clearTimeout(_gpsManualOverrideTimer);_gpsManualOverrideTimer=null;}
   if(_gpsViewLockTimer){clearTimeout(_gpsViewLockTimer);_gpsViewLockTimer=null;}
-  _gpsManualOverride=false;_gpsViewLock=false;_gpsLastPos=null;_gpsStale=false;_gpsLastProcessTs=0;
+  _gpsManualOverride=false;_gpsViewLock=false;_gpsLastPos=null;_gpsStale=false;_gpsLastProcessTs=0;_gpsLastFixTs=0;
   _gpsUpdateStatus();
 }
 
