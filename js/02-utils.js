@@ -26,6 +26,27 @@ export function buildGeoTargets(addr){
   return [geoQuery,...(cityOnly&&cityOnly!==geoQuery?[cityOnly]:[])];
 }
 export function hasCachedCoords(addr){return buildGeoTargets(addr).some(q=>!!_geoCacheGet(q));}
+/* ── 「緯度, 経度」文字列を座標に解析（住所欄が座標形式かを判定）──
+   Googleマップ等からのコピペを想定。全角数字・記号や括弧・空白も受ける。
+   座標として妥当（lat -90..90 / lon -180..180、両方に小数点あり）なときだけ {lat,lon}。
+   日本語住所は「数字.小数,数字.小数」だけにならないため住所と誤認しない。 */
+export function parseCoord(str){
+  if(typeof str!=='string') return null;
+  const s=str
+    .replace(/[０-９．，－＋]/g,m=>String.fromCharCode(m.charCodeAt(0)-0xFEE0)) // 全角→半角
+    .replace(/[()（）\s]/g,'');                                                 // 括弧・空白除去
+  const m=s.match(/^([+-]?\d{1,3}\.\d+)[,，]([+-]?\d{1,3}\.\d+)$/);
+  if(!m) return null;
+  const lat=parseFloat(m[1]),lon=parseFloat(m[2]);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)) return null;
+  if(lat<-90||lat>90||lon<-180||lon>180) return null;
+  return {lat,lon};
+}
+/* ── 地点が有効な実座標(geo)を持つか ── */
+export function hasGeo(s){
+  return !!(s&&s.geo&&Number.isFinite(s.geo.lat)&&Number.isFinite(s.geo.lon)
+    &&s.geo.lat>=-90&&s.geo.lat<=90&&s.geo.lon>=-180&&s.geo.lon<=180);
+}
 /* ── precip分類 ── */
 export function pClass(p){return typeof p==='number'?(p>=70?'high':p>=40?'mid':'low'):'low';}
 export function toMin(t){if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+m;}
@@ -109,6 +130,9 @@ export function _sanitizeImportedData(p){
       s.actArr=isValidTime(s.actArr)?s.actArr:'';
       s.actDep=isValidTime(s.actDep)?s.actDep:'';
       s.log=sanitize((typeof s.log==='string'?s.log:'').replace(/[\r\n]+/g,' '),LIMIT.log);
+      // mk18新規: 実座標(geo)。妥当ならそのまま、無ければ住所が座標形式のとき導出。
+      if(hasGeo(s)){ s.geo={lat:s.geo.lat,lon:s.geo.lon}; }
+      else{ const g=parseCoord(s.addr); s.geo=g||null; }
     }
   }
   return truncated;

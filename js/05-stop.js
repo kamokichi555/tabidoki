@@ -10,7 +10,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { EC, LIMIT } from './00-constants.js';
 import { S, _canEditData, _dom, data } from './01-state.js';
-import { fromMin, isTimeOrderOk, isValidTime, sanitize, toMin } from './02-utils.js';
+import { fromMin, isTimeOrderOk, isValidTime, parseCoord, sanitize, toMin } from './02-utils.js';
 import { save } from './03-storage.js';
 import { wxQueueIds, wxStopRes } from './04-weather.js';
 import { _cachedCdiForId, _invalidateCdi, currentDayIdxOf, syncBorderAddr } from './06-day.js';
@@ -40,6 +40,7 @@ export function saveStop(){
   const name=sanitize(_dom('inp-name').value,LIMIT.name);
   if(!name){showValError('地点名を入力してください');return;}
   const addr=sanitize(_dom('inp-addr').value,LIMIT.addr);
+  const geo=parseCoord(addr); // 座標形式なら {lat,lon}、住所なら null（天気・GPSともgeoを最優先）
   const newArr=_dom('inp-arr').value,newDep=_dom('inp-dep').value;
   if(!isTimeOrderOk(newArr,newDep)){showValError('到着時刻は出発時刻より前に設定してください');return;}
   const note=sanitize((_dom('inp-note').value||'').replace(/\r\n?/g,'\n'),LIMIT.note);
@@ -56,7 +57,7 @@ export function saveStop(){
       const idx=ds.findIndex(s=>s.id===S.editingId);
       if(idx===-1){showAppError(EC.STOP,new Error('編集中の地点が見つかりません'));setFormAdd();return;}
       const oldDep=ds[idx].dep;
-      ds[idx]={...ds[idx],name,addr,arr:newArr,dep:newDep,note,log,actArr,actDep,fuel};
+      ds[idx]={...ds[idx],name,addr,arr:newArr,dep:newDep,note,log,actArr,actDep,fuel,geo};
       // 住所または日付が変わった可能性があるためキャッシュクリア
       delete wxStopRes[S.editingId];wxQueueIds.delete(S.editingId);
       if(newDep&&oldDep!==newDep)cascadeFrom(S.currentDay,idx,oldDep);
@@ -65,7 +66,7 @@ export function saveStop(){
     }else{
       if(ds.length>=LIMIT.stopsPerDay){showValError(`地点は1日${LIMIT.stopsPerDay}件までです`);return;}
       const newId=Date.now().toString(36)+Math.random().toString(36).slice(2);
-      ds.push({id:newId,name,addr,arr:newArr,dep:newDep,note,log,actArr,actDep,fuel});
+      ds.push({id:newId,name,addr,arr:newArr,dep:newDep,note,log,actArr,actDep,fuel,geo});
       // B案: 追加した地点は末尾に置き、並び順はユーザーのドラッグに委ねる（自動で並べ替えない）
       // フォームを完全リセット（編集分岐と同じ挙動）。給油チェック・詳細パネル・時刻エラー表示・
       // 滞在時間プレビューも初期化し、次の追加に給油ON等が継承されないようにする。
@@ -91,6 +92,43 @@ export function saveStop(){
       },100);
     });
   }catch(e){showAppError(EC.STOP,e);}
+}
+/* ══ 📍現在地ボタン: 端末のGPS座標を住所欄へ入れる ══
+   手入力の代わりに今いる場所の座標を欄に流し込む。保存時に parseCoord で geo に確定する。
+   （計画机上では Googleマップ等から座標をコピペして欄に貼ってもよい＝同じ経路で確定される）*/
+export function captureCurrentLocation(){
+  const inp=document.getElementById('inp-addr');
+  const btn=document.getElementById('geo-capture-btn');
+  if(!('geolocation' in navigator)){showInfoToast('⚠️ この端末は位置情報に非対応です',4000);return;}
+  if(btn){btn.disabled=true;btn.textContent='取得中…';}
+  const reset=()=>{ if(btn){btn.disabled=false;btn.textContent='📍 現在地';} };
+  navigator.geolocation.getCurrentPosition(pos=>{
+    reset();
+    const {latitude,longitude,accuracy}=pos.coords;
+    if(inp) inp.value=`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+    _updateGeoHint();
+    _dbgLog('geo_capture',{acc:Math.round(accuracy||0)});
+    showInfoToast(`📍 現在地を入力しました（精度±${Math.round(accuracy||0)}m）。保存で確定します`,3500);
+  },err=>{
+    reset();
+    _dbgLog('geo_capture_err',{code:err.code,msg:String(err.message||'').slice(0,80)});
+    showInfoToast(err.code===1?'⚠️ 位置情報の許可が必要です':'⚠️ 現在地を取得できませんでした',4000);
+  },{enableHighAccuracy:true,maximumAge:0,timeout:15000});
+}
+/* ══ 住所欄が「住所」か「座標」かを判定してヒント表示 ══ */
+export function _updateGeoHint(){
+  const inp=document.getElementById('inp-addr');
+  const hint=document.getElementById('geo-hint');
+  if(!inp||!hint) return;
+  const v=(inp.value||'').trim();
+  if(!v){hint.textContent='';hint.className='geo-hint';return;}
+  if(parseCoord(v)){
+    hint.textContent='📍 座標として認識（天気・GPS自動切替ともこの座標を使用）';
+    hint.className='geo-hint ok';
+  }else{
+    hint.textContent='🏠 住所として認識（天気はこの住所／GPSは町中心の概算）';
+    hint.className='geo-hint';
+  }
 }
 export function delStop(id){
   _dbgLog('delStop',()=>({id,snap:_dbgSnapshot()}));

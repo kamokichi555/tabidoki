@@ -11,7 +11,7 @@
 
 /* --- 自動生成: モジュール依存のインポート --- */
 import { S, data } from './01-state.js';
-import { buildGeoTargets } from './02-utils.js';
+import { buildGeoTargets, hasGeo } from './02-utils.js';
 import { _geoCacheGet, _isoToday, enqueueStop } from './04-weather.js';
 import { setCurrentStop } from './05-stop.js';
 import { currentDayFlat } from './06-day.js';
@@ -48,6 +48,7 @@ export function _gpsDistance(lat1,lon1,lat2,lon2){
 
 /* ══ 地点の座標をキャッシュから取得（なければnull） ══ */
 export function _gpsStopCoords(stop){
+  if(hasGeo(stop)) return {lat:stop.geo.lat,lon:stop.geo.lon}; // 実座標を最優先（住所のジオコーディングより正確）
   const addr=(stop.addr||'').trim();
   if(!addr) return null;
   for(const q of buildGeoTargets(addr)){
@@ -155,6 +156,27 @@ export function _gpsNotifySwipe(){
   },GPS_VIEW_LOCK_MS);
 }
 
+/* ══ 到着とみなす半径(m) ══
+   実座標(geo)を持つ地点はGPS精度＝精密なので固定(GPS_ARRIVE_M)。
+   住所のみの地点は町中心に丸められ粗いため、隣接地点までの距離の半分まで広げて
+   取りこぼしを防ぎつつ（上限1km）、隣との食い合いを避ける（下限250m）。*/
+export function _gpsArriveRadius(flat,idx){
+  const stop=flat[idx];
+  if(hasGeo(stop)) return GPS_ARRIVE_M;            // 実座標は精密 → 固定300m
+  const c=_gpsStopCoords(stop);
+  if(!c) return GPS_ARRIVE_M;
+  let nb=Infinity;
+  for(const j of [idx-1,idx+1]){
+    if(j<0||j>=flat.length) continue;
+    const cj=_gpsStopCoords(flat[j]);
+    if(!cj) continue;
+    const d=_gpsDistance(c.lat,c.lon,cj.lat,cj.lon);
+    if(d<nb) nb=d;
+  }
+  if(!Number.isFinite(nb)) return 800;             // 隣に座標がない → 無難な800m
+  return Math.max(250,Math.min(1000,nb/2));
+}
+
 /* ══ GPS位置更新ハンドラ ══ */
 export function _gpsOnPosition(pos){
   if(!S.isRide||!_gpsEnabled) return;
@@ -177,20 +199,21 @@ export function _gpsOnPosition(pos){
   _gpsLastProcessTs=now;
   const flat=currentDayFlat();
   if(!flat.length) return;
-  // 最も近い地点を探す（座標が取れる地点のみ）
+  const rci=flat.findIndex(s=>s.id===S.manualCurrentId);
+  // 現在地より前（通過済み）は候補から除外する。
+  // 往復(自宅→…→自宅 等)で出発地点が同座標のとき、出発の自宅を先に拾って
+  // 戻りの自宅へ切り替わらない問題を防ぐ。現在地未設定(-1)なら全件から探す。
+  const startI=rci===-1?0:rci;
   let nearestIdx=-1,nearestDist=Infinity;
-  for(let i=0;i<flat.length;i++){
+  for(let i=startI;i<flat.length;i++){
     const c=_gpsStopCoords(flat[i]);
     if(!c) continue;
     const d=_gpsDistance(lat,lon,c.lat,c.lon);
     if(d<nearestDist){nearestDist=d;nearestIdx=i;}
   }
-  if(nearestIdx===-1) return; // 座標を持つ地点がない
-  if(nearestDist>GPS_ARRIVE_M) return; // どの地点にも近づいていない
-  const rci=flat.findIndex(s=>s.id===S.manualCurrentId);
-  // 「前」の地点には戻らない（既に通過した地点へ自動で戻さない）
-  if(rci!==-1&&nearestIdx<rci) return;
-  if(nearestIdx===rci) return; // 既に現在地
+  if(nearestIdx===-1) return;        // 座標を持つ地点がない
+  if(nearestIdx===rci) return;       // まだ現在地が最寄り＝次へ移動していない
+  if(nearestDist>_gpsArriveRadius(flat,nearestIdx)) return; // 到着半径の外
   // 現在地を自動更新（表示ロック中はページを動かさず現在地ピンのみ更新）
   const target=flat[nearestIdx];
   setCurrentStop(target.id,true,_gpsViewLock); // 内部で1回だけrenderRideされる

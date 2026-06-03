@@ -15,6 +15,7 @@ import { ensureDayWeather } from './04-weather.js';
 import { _flushRouteSave, _syncTitleInput, _updateStickyTops, currentDayFlat, currentDayIdxOf, renderTabs, stops } from './06-day.js';
 import { _lastClockTs, _resetClockTs, render, renderRide, showAppError, updateClock } from './07-render.js';
 import { _closeAllOverlays, _setDetailsOpen, _setFuelCheck } from './11-overlays.js';
+import { _updateGeoHint } from './05-stop.js';
 import { _dbgLog, _dbgSnapshot } from './12-debug.js';
 import { _gpsOnRideEnd, _gpsOnRideStart } from './14-gps.js';
 
@@ -174,6 +175,7 @@ export function setFormAdd(){
   _dom('form-title').textContent='地点を追加';
   _dom('save-btn').textContent='＋ 追加';
   ['inp-name','inp-addr','inp-note','inp-log'].forEach(id=>_dom(id).value='');
+  _updateGeoHint();
   autoGrowNote(_dom('inp-note'));
   syncLogPreview();
   ['inp-arr','inp-dep','inp-act-arr','inp-act-dep'].forEach(id=>{
@@ -194,6 +196,7 @@ export function openEditStop(id){
     _dom('inp-name').value=s.name;_dom('inp-addr').value=s.addr||'';_dom('inp-arr').value=s.arr||'';_dom('inp-dep').value=s.dep||'';_dom('inp-note').value=s.note||'';_dom('inp-log').value=s.log||'';
     autoGrowNote(_dom('inp-note'));
     syncLogPreview();
+    _updateGeoHint();
     const _actArr=_dom('inp-act-arr'),_actDep=_dom('inp-act-dep');
     if(_actArr)_actArr.value=s.actArr||'';if(_actDep)_actDep.value=s.actDep||'';
     _setFuelCheck(!!s.fuel);

@@ -10,7 +10,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { EC, EC_MSG } from './00-constants.js';
 import { S, _dom, data } from './01-state.js';
-import { actDiffHtml, esc, escJsAttr, fmtHM, isTimeOrderOk, mdw, moveDur, moveDurLevel, moveDurRide, nowMin, stayDur, toMin, wrapDiff } from './02-utils.js';
+import { actDiffHtml, esc, escJsAttr, fmtHM, hasGeo, isTimeOrderOk, mdw, moveDur, moveDurLevel, moveDurRide, nowMin, stayDur, toMin, wrapDiff } from './02-utils.js';
 import { _isoToday, enqueueStop, ensureDayWeather, rideWxCompact, stopWxInner } from './04-weather.js';
 import { getStatus } from './05-stop.js';
 import { _getCdi, _updateRecordBtn, currentDayFlat, stops, switchDay } from './06-day.js';
@@ -167,7 +167,7 @@ export function renderRide(){
   _dom('sw-arr-l').classList.toggle('dim',S.rideViewIdx===0);
   _dom('sw-arr-r').classList.toggle('dim',S.rideViewIdx===flat.length-1);
   /* ── ライドカード共通パーツ ── */
-  const _mapLink=s=>{const q=[s.name,s.addr].filter(Boolean).join(' ');return q?`<a class="ride-route-btn" href="https://maps.google.com/?q=${encodeURIComponent(q)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 マップで確認</a>`:'';};
+  const _mapLink=s=>{const href=hasGeo(s)?`https://maps.google.com/?q=${s.geo.lat},${s.geo.lon}`:(()=>{const q=[s.name,s.addr].filter(Boolean).join(' ');return q?`https://maps.google.com/?q=${encodeURIComponent(q)}`:'';})();return href?`<a class="ride-route-btn" href="${href}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 マップで確認</a>`:'';};
   const _fuelBadge=(s,extra='')=>s.fuel?`<div class="stop-fuel-badge" style="width:100%;justify-content:center${extra}">⛽ 給油ポイント</div>`:'';
   const _noteCompact=s=>s.note?`<div class="ride-note-compact" title="${esc(s.note)}" role="button" tabindex="0" onclick="event.stopPropagation();openRideNote('${escJsAttr(s.id)}')"><span class="ride-note-txt">${esc(s.note)}</span><span class="ride-note-more">タップで全文 ›</span></div>`:'';
   const _logHtml=s=>s.log?`<div class="ride-log">📝 ${esc(s.log)}</div>`:'';
@@ -196,7 +196,7 @@ export function renderRide(){
       <div class="ride-tag curr-tag">▶ 現在地</div>
       <div class="ride-name">${esc(vs.name)}</div>
       <div class="ride-times-row">${_chips(vs)}${depCd}</div>
-      ${rideWxCompact(vs.id,!!(vs.addr))}
+      ${rideWxCompact(vs.id,!!(vs.addr||hasGeo(vs)))}
       ${_fuelBadge(vs,';font-size:16px;padding:8px')}${_noteCompact(vs)}
       ${S.rideActionVisible?`${_logHtml(vs)}${vsRouteBtn}${_mapLink(vs)}`:''}
     </div>`;
@@ -206,7 +206,7 @@ export function renderRide(){
       <div class="ride-tag">${tag}</div>
       <div class="ride-name" style="color:var(--text2)">${esc(vs.name)}</div>
       <div class="ride-times-row">${_chips(vs,'next-chip-val')}</div>
-      ${rideWxCompact(vs.id,!!(vs.addr))}
+      ${rideWxCompact(vs.id,!!(vs.addr||hasGeo(vs)))}
       ${_fuelBadge(vs,';font-size:16px;padding:8px')}${_noteCompact(vs)}
       ${S.rideActionVisible?`${_logHtml(vs)}${vsRouteBtn}${_mapLink(vs)}<button class="ride-set-curr-btn" onclick="event.stopPropagation();setCurrentStop('${vs.id}')">📍 ここを現在地にする</button>`:''}
     </div>`;
@@ -230,7 +230,7 @@ export function renderRide(){
       <div class="ride-tag">↓ 次の目的地${cd?`<span style="margin-left:8px;color:var(--green);font-size:15px">${cd}</span>`:''}</div>
       <div class="ride-name" style="color:var(--text2)">${esc(ns.name)}</div>
       <div class="ride-times-row">${_chips(ns,'next-chip-val')}</div>
-      ${rideWxCompact(ns.id,!!(ns.addr))}
+      ${rideWxCompact(ns.id,!!(ns.addr||hasGeo(ns)))}
     </div>`;
   }else{
     h+=`<div style="color:var(--green);font-size:20px;font-weight:700;margin-top:12px;text-align:center">🏁 全行程完了</div>`;
@@ -412,7 +412,7 @@ export function render(){
       ${s.dep?`<div class="time-chip"><span class="time-label">発</span><span class="time-value">${s.dep}</span>${_sdur?`<span style="font-size:16px;color:var(--text3);font-weight:600;margin-left:4px;align-self:center">${_sdur}</span>`:''}</div>`:''}
       ${!s.arr&&!s.dep?'<span style="color:var(--text3);font-size:16px">時刻未設定</span>':''}
     </div>
-    <div id="wx-${s.id}">${stopWxInner(s.id,!!(s.addr))}</div>
+    <div id="wx-${s.id}">${stopWxInner(s.id,!!(s.addr||hasGeo(s)))}</div>
     ${s.fuel?'<div class="stop-fuel-badge">⛽ 給油ポイント</div>':''}
     ${(s.actArr||s.actDep)?`<div class="stop-act-row">${s.actArr?`<div class="stop-act-chip"><span class="stop-act-label">実着</span><span class="stop-act-value">${s.actArr}</span>${actDiffHtml(s.arr,s.actArr)}</div>`:''}${s.actDep?`<div class="stop-act-chip"><span class="stop-act-label">実発</span><span class="stop-act-value">${s.actDep}</span>${actDiffHtml(s.dep,s.actDep)}</div>`:''}</div>`:''}
     ${s.note?(S.isEdit
@@ -423,7 +423,7 @@ export function render(){
     ${!isLast&&_mdur?`<div class="move-dur-label${_mlv>=0?' lv'+_mlv:''}">→ 次まで ${_mdur}</div>`:''}
     ${S.isEdit&&S.editingId===null&&S.activeEditStopId===s.id?`<div class="stop-edit-row">      <button class="small amber-outline" onclick="event.stopPropagation();setCurrentStop('${s.id}')">📍 現在</button>
       <button class="small amber-outline" onclick="event.stopPropagation();openEditStop('${s.id}')">✏️ 編集</button>
-      ${(()=>{const q=[s.name,s.addr].filter(Boolean).join(' ');return q?`<a class="map-link-btn" href="https://maps.google.com/?q=${encodeURIComponent(q)}" target="_blank" rel="noopener">🗺 マップ</a>`:'';})()}
+      ${(()=>{const href=hasGeo(s)?`https://maps.google.com/?q=${s.geo.lat},${s.geo.lon}`:(()=>{const q=[s.name,s.addr].filter(Boolean).join(' ');return q?`https://maps.google.com/?q=${encodeURIComponent(q)}`:'';})();return href?`<a class="map-link-btn" href="${href}" target="_blank" rel="noopener">🗺 マップ</a>`:'';})()}
       <button class="small danger" onclick="event.stopPropagation();delStop('${s.id}')">削除</button>
     </div>`:''}
   </div>

@@ -17,6 +17,7 @@ interface Stop {
   actArr: string;  // 実績到着 "HH:MM"
   actDep: string;  // 実績出発 "HH:MM"
   log: string;     // 走行ログ/メモ
+  geo?: { lat: number; lon: number } | null; // 実座標（住所欄が座標形式/📍で記録）。天気・GPSとも最優先。
 }
 
 /** 1日（デイ）。 */

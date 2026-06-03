@@ -11,6 +11,25 @@
 
   var HASH_KEY = 'tabidoki_lock_hash';
   var SALT_KEY = 'tabidoki_lock_salt';
+  var REMEMBER_KEY = 'tabidoki_lock_seen';    // 最後に認証した時刻(ms)。一定期間は再入力を省く
+  var REMEMBER_MS = 30 * 24 * 60 * 60 * 1000; // 記憶期間: 30日
+
+  function isRemembered() {
+    try {
+      var t = parseInt(localStorage.getItem(REMEMBER_KEY) || '', 10);
+      if (!t || isNaN(t)) return false;
+      return (Date.now() - t) < REMEMBER_MS;
+    } catch (e) { return false; }
+  }
+  function markRemembered() {
+    try { localStorage.setItem(REMEMBER_KEY, String(Date.now())); } catch (e) {}
+  }
+  function clearRemembered() {
+    try { localStorage.removeItem(REMEMBER_KEY); } catch (e) {}
+  }
+  // 貸すとき等に即ロック: 記憶を消して再読み込み → 次回起動でパスワードを要求する。
+  // アプリ側のメニュー等から window.tdkLockNow() を呼べば手動ロックできる。
+  try { window.tdkLockNow = function () { clearRemembered(); location.reload(); }; } catch (e) {}
 
   // ── パスワードのハッシュ化 ─────────────────────────────
   // 可能なら Web Crypto(SHA-256)。使えない環境では簡易ハッシュにフォールバック。
@@ -204,6 +223,7 @@
     }
 
     function finishUnlock() {
+      markRemembered();   // 認証成功を記録 → 以後は記憶期間内なら素通り
       bootApp();
       removeLock();
     }
@@ -225,10 +245,16 @@
     if (isSetup) renderSetup(); else renderUnlock();
   }
 
-  // 起動
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', buildLock);
-  } else {
+  // 起動: パスワード設定済み かつ 記憶が有効なら、ロック画面を出さず即起動する。
+  // それ以外（初回設定 / 記憶切れ / localStorage不可）はロック画面を表示する。
+  function start() {
+    var stored = getStored();
+    if (stored.hash && isRemembered()) { bootApp(); return; }
     buildLock();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
   }
 })();

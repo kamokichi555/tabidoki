@@ -9,7 +9,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { S, data } from './01-state.js';
 import { SK, WMO } from './00-constants.js';
-import { buildGeoTargets, hasCachedCoords, pClass } from './02-utils.js';
+import { buildGeoTargets, hasCachedCoords, hasGeo, pClass } from './02-utils.js';
 import { currentDayFlat } from './06-day.js';
 import { renderRide, showInfoToast, updateClock } from './07-render.js';
 import { _dbgLog } from './12-debug.js';
@@ -100,7 +100,7 @@ export function retryStopWeather(stopId){
     if(s){stop=s;date=data.days[di].date||_isoToday(di);break;}
   }
   if(!stop){return;}
-  if(!(stop.addr||'').trim()){showInfoToast('⚠️ 住所がないため取得できません',2000);return;}
+  if(!(stop.addr||'').trim()&&!hasGeo(stop)){showInfoToast('⚠️ 住所または座標がないため取得できません',2000);return;}
   delete wxStopRes[stopId];
   wxQueueIds.delete(stopId);
   enqueueStop(stop,date);
@@ -190,7 +190,7 @@ export function onStopWxReady(stopId){
   const el=document.getElementById('wx-'+stopId);
   if(el){
     const s=_stopById(stopId);
-    el.innerHTML=stopWxInner(stopId,!!(s&&s.addr));
+    el.innerHTML=stopWxInner(stopId,!!(s&&(s.addr||hasGeo(s))));
   }
 }
 /* ── 取得開始時に即座にDOM更新（loading表示） ── */
@@ -199,7 +199,7 @@ export function _showLoadingDom(stopId){
   if(!el) return;
   // addrがある地点のみloading表示（住所なしは取得しても表示しない）
   const s=_stopById(stopId);
-  if(s&&s.addr) el.innerHTML='<div class="stop-wx-loading">🌐 取得中…</div>';
+  if(s&&(s.addr||hasGeo(s))) el.innerHTML='<div class="stop-wx-loading">🌐 取得中…</div>';
 }
 
 /* ── wttr.in コード → WMO近似変換 ── */
@@ -453,23 +453,28 @@ export async function doFetchStop(stop,date){
   if(!_stopStillValid(stop)) return;
   const addr=(stop.addr||"").trim();
   const name=(stop.name||"").trim();
-  if(!addr&&!name){if(_stopStillValid(stop))wxStopRes[stop.id]={error:true,date,time:Date.now()};return;}
+  const geoPt=hasGeo(stop)?{lat:stop.geo.lat,lon:stop.geo.lon}:null; // 実座標を最優先
+  if(!geoPt&&!addr&&!name){if(_stopStillValid(stop))wxStopRes[stop.id]={error:true,date,time:Date.now()};return;}
   // 今日の日付（diff計算の基準）
   const todayStr=_isoToday();
   const diff=Math.round((new Date(date+"T12:00:00")-new Date(todayStr+"T12:00:00"))/86400000);
   if(diff<0){if(_stopStillValid(stop))wxStopRes[stop.id]={isPast:true,date,time:Date.now()};return;}     // 過去日付は取得しない
   if(diff>15){if(_stopStillValid(stop))wxStopRes[stop.id]={outOfRange:true,date,time:Date.now()};return;} // 16日先以降は予報期間外
-  // addrあり→住所クリーニング(GSI優先)、なし→名前クリーニング(Nominatim優先)
-  const geoTargets=addr?buildGeoTargets(addr):buildNameTargets(name);
-  const useAddrMode=!!addr;
+  // 座標解決: 実座標があれば即採用（ジオコーディング不要）。無ければ住所→名前でジオコーディング。
   let lat=null,lon=null;
-  for(const q of geoTargets){
-    const cached=_geoCacheGet(q);
-    if(cached){lat=cached.lat;lon=cached.lon;break;}
-    const coords=await _geocodeParallel(q,useAddrMode);
-    if(coords){lat=coords.lat;lon=coords.lon;_geoCacheSet(q,lat,lon);break;}
+  if(geoPt){
+    lat=geoPt.lat;lon=geoPt.lon;
+  }else{
+    const geoTargets=addr?buildGeoTargets(addr):buildNameTargets(name);
+    const useAddrMode=!!addr;
+    for(const q of geoTargets){
+      const cached=_geoCacheGet(q);
+      if(cached){lat=cached.lat;lon=cached.lon;break;}
+      const coords=await _geocodeParallel(q,useAddrMode);
+      if(coords){lat=coords.lat;lon=coords.lon;_geoCacheSet(q,lat,lon);break;}
+    }
   }
-  if(!lat){if(_stopStillValid(stop)){wxStopRes[stop.id]={error:true,date,time:Date.now()};_dbgLog('wx_geocode_failed',{id:stop.id,q:(geoTargets[0]||'').slice(0,40)});}return;}
+  if(lat===null){if(_stopStillValid(stop)){wxStopRes[stop.id]={error:true,date,time:Date.now()};_dbgLog('wx_geocode_failed',{id:stop.id,q:(addr||name||'').slice(0,40)});}return;}
   await _fetchForecast(stop,lat,lon,date);
   // 予報取得が失敗（全プロバイダ不通）した場合は追跡用に記録
   if(wxStopRes[stop.id]&&wxStopRes[stop.id].error) _dbgLog('wx_forecast_failed',{id:stop.id});
@@ -517,8 +522,8 @@ export async function runWxQueue(){
 
 export const wxQueueIds=new Set(); // O(1)重複チェック用
 export function enqueueStop(stop,date,priority){
-  // 住所がある地点のみ天気取得（住所なしは表示しないため取得もしない）
-  if(!(stop.addr||'').trim()) return;
+  // 住所または実座標がある地点のみ天気取得（どちらも無ければ表示しないため取得もしない）
+  if(!(stop.addr||'').trim()&&!hasGeo(stop)) return;
   const r=wxStopRes[stop.id];
   const STALE=2*60*60*1000;
   const ERROR_COOLDOWN=60*1000; // エラー後の自動再試行クールダウン（毎renderでの再取得連打を防ぐ）
@@ -536,8 +541,8 @@ export function enqueueStop(stop,date,priority){
   wxStopRes[stop.id]='loading';
   _showLoadingDom(stop.id);
   wxQueueIds.add(stop.id);
-  // 座標キャッシュ確認（addr必須化済みのためaddr基準のみ。name分岐は到達不能のため削除）
-  const hasCached=hasCachedCoords(stop.addr);
+  // 座標キャッシュ確認。実座標(geo)を持つ地点はジオコーディング不要なので即fast。
+  const hasCached=hasGeo(stop)||hasCachedCoords(stop.addr);
   // priority=true（走行画面の現在地/次地点）はキュー先頭へ挿入して最優先処理する
   if(hasCached){priority?wxQueueFast.unshift({stop,date}):wxQueueFast.push({stop,date});}
   else{priority?wxQueue.unshift({stop,date}):wxQueue.push({stop,date});}
