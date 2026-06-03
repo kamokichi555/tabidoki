@@ -283,15 +283,22 @@ export function _gpsUpdateStatus(){
   const el=document.getElementById('gps-status');
   if(!el) return;
   el.style.display='';
+  // アイコン(上)＋文字(下)の縦並びで表示する。icon/label を別spanに分けてCSSで縦積み。
+  // 文字列はすべて固定リテラルなのでinnerHTMLでも安全（外部入力なし）。
+  const set=(icon,label,cls,title)=>{
+    el.className='gps-status'+(cls?' '+cls:'');
+    el.title=title;
+    el.innerHTML='<span class="gps-ico">'+icon+'</span><span class="gps-txt">'+label+'</span>';
+  };
   // オフ時も常時表示（タップでオンにできる）
-  if(!_gpsEnabled){el.textContent='📡 GPS OFF';el.className='gps-status off';el.title='GPS自動追跡：オフ（タップでオン）';return;}
+  if(!_gpsEnabled){set('📡','GPS OFF','off','GPS自動追跡：オフ（タップでオン）');return;}
   // オン・走行前：待機中（走行モードに入ると追跡開始）
-  if(!S.isRide){el.textContent='📍 GPS ON';el.className='gps-status ok';el.title='GPS自動追跡：オン（走行中に追跡。タップでオフ）';return;}
+  if(!S.isRide){set('📍','GPS ON','ok','GPS自動追跡：オン（走行中に追跡。タップでオフ）');return;}
   // オン・走行中：実測状態
-  if(!_gpsLastPos){el.textContent='📡 取得中';el.className='gps-status';el.title='GPS取得中（タップでオフ）';return;}
-  if(_gpsStale){el.textContent='📡 再取得';el.className='gps-status warn';el.title='GPS再取得中（位置が一定時間更新されていません／タップでオフ）';return;} // 一定時間 新位置なし（トンネル等）。直近の現在地は保持
-  if(_gpsLastPos.acc>GPS_ACC_MAX){el.textContent='⚠️ 精度低';el.className='gps-status warn';el.title='GPS精度が低い状態です（タップでオフ）';return;}
-  el.textContent='📍 追跡中';el.className='gps-status ok';el.title='GPS追跡中（タップでオフ）';
+  if(!_gpsLastPos){set('📡','取得中','','GPS取得中（タップでオフ）');return;}
+  if(_gpsStale){set('📡','再取得','warn','GPS再取得中（位置が一定時間更新されていません／タップでオフ）');return;} // 一定時間 新位置なし（トンネル等）。直近の現在地は保持
+  if(_gpsLastPos.acc>GPS_ACC_MAX){set('⚠️','精度低','warn','GPS精度が低い状態です（タップでオフ）');return;}
+  set('📍','追跡中','ok','GPS追跡中（タップでオフ）');
 }
 
 /* ══ 初期化（localStorageから設定復元） ══ */
