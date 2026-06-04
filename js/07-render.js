@@ -89,7 +89,10 @@ export function _seg7svg(ts){
     }
   }
   const svgW=cx-7;
-  return `<svg viewBox="0 0 ${svgW} ${H}" style="height:${S.isRide?'clamp(36px,14vw,72px)':'clamp(28px,7vw,42px)'};width:auto;display:block;overflow:visible"><defs>${GLOW}</defs>${body}</svg>`;
+  // 高さ: 走行モードはインラインで指定（CSSの body:not(.ride-mode) が当たらないため）。
+  // 通常モードはインラインを出さず CSS(52行) の clamp(26px,6.2vw,38px)!important に委ねる。
+  // （旧: 通常モードにも 28〜42px をインライン指定していたが CSS の !important に負けて無効＝死にコードだった）
+  return `<svg viewBox="0 0 ${svgW} ${H}" style="${S.isRide?'height:clamp(36px,14vw,72px);':''}width:auto;display:block;overflow:visible"><defs>${GLOW}</defs>${body}</svg>`;
 }
 
 export let _lastClockTs=''; // updateClock用キャッシュ：前回と同じ分ならSVG再生成をスキップ
