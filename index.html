@@ -18,6 +18,9 @@
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="css/style.css">
+<!-- 地図ピッカー用 Leaflet（地図で地点を選ぶ機能） -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Yuji+Boku&family=Kaisei+HarunoUmi:wght@700&family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
@@ -185,6 +188,7 @@
           <input id="inp-addr" type="text" maxlength="100" placeholder="住所 または 座標（緯度, 経度）・任意" oninput="_updateGeoHint()">
           <div class="geo-field-row">
             <button type="button" class="geo-capture-btn" id="geo-capture-btn" onclick="captureCurrentLocation()">📍 現在地</button>
+            <button type="button" class="geo-map-btn" id="geo-map-btn" onclick="openLocationPicker()">🗺 地図で選ぶ</button>
             <span class="geo-hint" id="geo-hint"></span>
           </div>
           <div class="fuel-check-row" onclick="toggleFuelCheck()">
