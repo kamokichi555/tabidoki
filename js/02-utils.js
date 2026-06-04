@@ -42,6 +42,28 @@ export function parseCoord(str){
   if(lat<-90||lat>90||lon<-180||lon>180) return null;
   return {lat,lon};
 }
+/* ── 住所欄テキストから座標を抽出 ──
+   ①「緯度, 経度」形式（parseCoord）②GoogleマップのURL各種から緯度経度を拾う。
+   Googleで場所を探して URL を貼り付ければ、その座標を自動で取り込めるようにするための関数。
+   ※ スマホGoogleマップアプリの共有短縮URL(maps.app.goo.gl/…)は座標を含まないため抽出不可。
+      その場合は「地点を長押し→座標をコピー」して貼るか、ブラウザ版のフルURL(@lat,lon)を貼る。*/
+export function extractMapCoord(str){
+  if(typeof str!=='string') return null;
+  const direct=parseCoord(str);                 // すでに「緯度, 経度」形式
+  if(direct) return direct;
+  let s=str; try{ s=decodeURIComponent(str); }catch(e){} // %2C 等をデコード
+  const pick=m=>{
+    if(!m) return null;
+    const lat=parseFloat(m[1]),lon=parseFloat(m[2]);
+    if(!Number.isFinite(lat)||!Number.isFinite(lon)) return null;
+    if(lat<-90||lat>90||lon<-180||lon>180) return null;
+    return {lat,lon};
+  };
+  return pick(s.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/))            // 場所の正確な座標
+      || pick(s.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/))               // 地図中心 @lat,lon
+      || pick(s.match(/[?&](?:q|query|ll|sll|daddr|destination|center)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/)) // q=/ll= 等
+      || null;
+}
 /* ── 地点が有効な実座標(geo)を持つか ── */
 export function hasGeo(s){
   return !!(s&&s.geo&&Number.isFinite(s.geo.lat)&&Number.isFinite(s.geo.lon)

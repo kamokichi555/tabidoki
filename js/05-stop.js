@@ -10,7 +10,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { EC, LIMIT } from './00-constants.js';
 import { S, _canEditData, _dom, data } from './01-state.js';
-import { fromMin, isTimeOrderOk, isValidTime, parseCoord, sanitize, toMin } from './02-utils.js';
+import { fromMin, isTimeOrderOk, isValidTime, parseCoord, extractMapCoord, sanitize, toMin } from './02-utils.js';
 import { save } from './03-storage.js';
 import { wxQueueIds, wxStopRes } from './04-weather.js';
 import { _cachedCdiForId, _invalidateCdi, currentDayIdxOf, syncBorderAddr } from './06-day.js';
@@ -39,8 +39,9 @@ export function saveStop(){
   if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（汚染防止）
   const name=sanitize(_dom('inp-name').value,LIMIT.name);
   if(!name){showValError('地点名を入力してください');return;}
-  const addr=sanitize(_dom('inp-addr').value,LIMIT.addr);
-  const geo=parseCoord(addr); // 座標形式なら {lat,lon}、住所なら null（天気・GPSともgeoを最優先）
+  let addr=sanitize(_dom('inp-addr').value,LIMIT.addr);
+  const geo=extractMapCoord(addr); // 座標形式/GoogleマップURLなら {lat,lon}、住所なら null
+  if(geo) addr=`${geo.lat.toFixed(6)}, ${geo.lon.toFixed(6)}`; // URL等を貼った場合は座標文字列に正規化して保存
   const newArr=_dom('inp-arr').value,newDep=_dom('inp-dep').value;
   if(!isTimeOrderOk(newArr,newDep)){showValError('到着時刻は出発時刻より前に設定してください');return;}
   const note=sanitize((_dom('inp-note').value||'').replace(/\r\n?/g,'\n'),LIMIT.note);
@@ -120,15 +121,61 @@ export function _updateGeoHint(){
   const inp=document.getElementById('inp-addr');
   const hint=document.getElementById('geo-hint');
   if(!inp||!hint) return;
-  const v=(inp.value||'').trim();
+  let v=(inp.value||'').trim();
   if(!v){hint.textContent='';hint.className='geo-hint';return;}
+  // GoogleマップURL等を貼ったら座標を抽出して「緯度, 経度」に正規化
+  if(!parseCoord(v)){
+    const c=extractMapCoord(v);
+    if(c){ v=`${c.lat.toFixed(6)}, ${c.lon.toFixed(6)}`; inp.value=v; }
+  }
   if(parseCoord(v)){
     hint.textContent='📍 座標として認識（天気・GPS自動切替ともこの座標を使用）';
     hint.className='geo-hint ok';
   }else{
-    hint.textContent='🏠 住所として認識（天気はこの住所／GPSは町中心の概算）';
+    hint.textContent='🏠 住所として認識。「🗺 Googleで開く」で探して座標/URLを貼ると正確です';
     hint.className='geo-hint';
   }
+}
+
+/* ══ 住所欄への貼り付けハンドラ（GoogleマップURL対策） ══
+   #inp-addr は maxlength=100 のため、長いGoogleマップURLを貼ると座標部分が切り捨てられ
+   抽出に失敗する。そこで貼り付け時にクリップボード全文（maxlength非適用）から座標を取り出し、
+   取れたら短い「緯度, 経度」に置き換えてから欄へ入れる（＝長いURLでも確実に取り込める）。
+   座標が取れない（住所・短縮URL等）の場合はデフォルトの貼り付けに任せる。*/
+export function _onAddrPaste(e){
+  try{
+    const dt=e.clipboardData||window.clipboardData;
+    const txt=dt?dt.getData('text'):'';
+    if(!txt) return;
+    const c=extractMapCoord(txt);
+    if(c){
+      e.preventDefault();
+      const inp=document.getElementById('inp-addr');
+      if(inp) inp.value=`${c.lat.toFixed(6)}, ${c.lon.toFixed(6)}`;
+      _updateGeoHint();
+      _dbgLog('addr_paste_coord',{});
+    }
+  }catch(_){ /* 失敗時は通常の貼り付けに委ねる */ }
+}
+
+/* ══ 🗺 Googleで開くボタン: 地点名＋住所でGoogleマップ検索を開く ══
+   施設名検索はGoogleが最も強いので、場所探しはGoogleに任せる。
+   出てきた地点を長押し→座標コピー、またはブラウザ版のURLをコピーして住所欄に貼ると、
+   _updateGeoHint / saveStop の extractMapCoord が座標を取り込んで geo に確定する。*/
+export function openInGoogleMaps(){
+  const name=(document.getElementById('inp-name')?.value||'').trim();
+  const addr=(document.getElementById('inp-addr')?.value||'').trim();
+  const c=extractMapCoord(addr); // 座標・座標入りURLならその一点を開く
+  let url;
+  if(c){
+    url=`https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lon}`;
+  }else{
+    const q=[name,addr].filter(Boolean).join(' ');
+    if(!q){ showInfoToast('地点名か住所を入力してください',3000); return; }
+    url=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+  }
+  window.open(url,'_blank','noopener');
+  _dbgLog('open_gmaps',{hasCoord:!!c});
 }
 export function delStop(id){
   _dbgLog('delStop',()=>({id,snap:_dbgSnapshot()}));
