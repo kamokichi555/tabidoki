@@ -12,11 +12,24 @@ import { EC, APP_VERSION } from './00-constants.js';
 import { showAppError, showInfoToast } from './07-render.js';
 /* ══ デバッグログ機構 ══ */
 export const DBG_KEY='dbg_log_v1';
+export const DBG_IMP_KEY='dbg_imp_v1';      // 重要イベント専用の永続化キー（gps_fix等に押し出されない退避先）
 export const DBG_ENABLED_KEY='dbg_enabled_v1';
 export const DBG_MAX=500;
+export const DBG_IMP_MAX=1000;              // 重要イベントの保持上限（全行程ぶん残す。満杯でも約90KB＝localStorage上限の2%弱）
+/* 1日がかりの走行では gps_fix(15秒毎=240件/時) が500件リングを2時間強で一巡し、
+   序盤の gps_auto_switch 等が押し出されて消える。そこで「全行程残したい重要イベント」だけを
+   別バッファ(_dbgImpBuf)へも退避する。gps_fix と click は対象外＝従来どおり500件リングのみ。 */
+export const DBG_IMP_EVENTS=new Set([
+  'gps_auto_switch','gps_error','gps_prefetch_failed','setCurrentStop',
+  'toggleRide:in','toggleRide:out','ride_autoresume',
+  'wakelock_failed','wakelock_released',
+  'window_error','promise_rejection','app_error',
+  'ls_quota_exceeded','ls_save_failed','ls_unavailable','autorestore_failed',
+]);
 export let _dbgEnabled=false;
 export let _dbgErrCount=0;
 export let _dbgBuf=[];
+export let _dbgImpBuf=[];                    // 重要イベント退避バッファ（全行程ぶん。gps_fixで埋まらない）
 export let _dbgPersistTimer=null;
 export let _dbgDirty=false;
 
@@ -27,6 +40,7 @@ export function _dbgPersistSchedule(){
     _dbgPersistTimer=null;
     if(_dbgDirty){
       try{localStorage.setItem(DBG_KEY,JSON.stringify({buf:_dbgBuf,err:_dbgErrCount}));}catch(e){}
+      try{localStorage.setItem(DBG_IMP_KEY,JSON.stringify({buf:_dbgImpBuf}));}catch(e){}
       _dbgDirty=false;
     }
   },3000);
@@ -60,6 +74,11 @@ export function _dbgLog(event,data){
     if(resolved!==undefined&&resolved!==null) entry.d=resolved;
     _dbgBuf.push(entry);
     if(_dbgBuf.length>DBG_MAX) _dbgBuf=_dbgBuf.slice(-DBG_MAX);
+    // 重要イベントは別バッファにも退避（gps_fix/clickに押し出されず全行程残る）
+    if(DBG_IMP_EVENTS.has(event)){
+      _dbgImpBuf.push(entry);
+      if(_dbgImpBuf.length>DBG_IMP_MAX) _dbgImpBuf=_dbgImpBuf.slice(-DBG_IMP_MAX);
+    }
     _dbgPersistSchedule();
     _dbgRefreshSettings();
   }catch(e){}
@@ -72,12 +91,18 @@ export function _dbgFmtAll(){
     ua:navigator.userAgent,
     vw:window.innerWidth,vh:window.innerHeight,
     vvw:window.visualViewport?.width,vvh:window.visualViewport?.height,
-    err:_dbgErrCount,entries:_dbgBuf.length,
+    err:_dbgErrCount,entries:_dbgBuf.length,impEntries:_dbgImpBuf.length,
     snap:_dbgSnapshot(),
   };
-  const head='# 旅刻'+APP_VERSION+' デバッグログ\n## 環境\n'+JSON.stringify(env,null,2)+'\n\n## イベント (古い→新しい)\n';
-  const lines=_dbgBuf.map(en=>`[${en.t}] ${en.e}${en.d?' '+JSON.stringify(en.d):''}`).join('\n');
-  return head+lines+'\n';
+  const fmt=en=>`[${en.t}] ${en.e}${en.d?' '+JSON.stringify(en.d):''}`;
+  const head='# 旅刻'+APP_VERSION+' デバッグログ\n## 環境\n'+JSON.stringify(env,null,2)+'\n';
+  // 重要イベント（全行程ぶん・gps_fix等に押し出されない）。1日走行でも序盤の到着が残る。
+  const impHead='\n## 重要イベント (全行程・古い→新しい)\n';
+  const impLines=_dbgImpBuf.length?_dbgImpBuf.map(fmt).join('\n'):'(なし)';
+  // 直近の全イベント（gps_fix/click含む。500件で一巡するため直近約2時間ぶん）
+  const allHead='\n\n## イベント (直近500件・古い→新しい)\n';
+  const lines=_dbgBuf.map(fmt).join('\n');
+  return head+impHead+impLines+allHead+lines+'\n';
 }
 
 export function _dbgCopy(){
@@ -112,8 +137,9 @@ export function _dbgDownload(){
 
 export function _dbgClear(){
   if(!confirm('デバッグログをすべて削除しますか？')) return;
-  _dbgBuf=[];_dbgErrCount=0;_dbgDirty=true;
+  _dbgBuf=[];_dbgImpBuf=[];_dbgErrCount=0;_dbgDirty=true;
   try{localStorage.removeItem(DBG_KEY);}catch(e){}
+  try{localStorage.removeItem(DBG_IMP_KEY);}catch(e){}
   _dbgUpdateBadge();
   _dbgRefreshSettings();
   try{showInfoToast('🗑️ ログを消去しました',1500);}catch(e){}
@@ -149,7 +175,7 @@ export function _dbgUpdateBadge(){
 
 export function _dbgRefreshSettings(){
   const c=document.getElementById('dbg-count');
-  if(c) c.textContent=`${_dbgBuf.length}件 / エラー${_dbgErrCount}件`;
+  if(c) c.textContent=`${_dbgBuf.length}件 / 重要${_dbgImpBuf.length}件 / エラー${_dbgErrCount}件`;
 }
 
 export function _dbgInit(){
@@ -158,6 +184,10 @@ export function _dbgInit(){
     const raw=localStorage.getItem(DBG_KEY);
     if(raw){const obj=JSON.parse(raw);_dbgBuf=Array.isArray(obj?.buf)?obj.buf:[];_dbgErrCount=obj?.err|0;}
   }catch(e){_dbgBuf=[];_dbgErrCount=0;}
+  try{
+    const rawImp=localStorage.getItem(DBG_IMP_KEY);
+    if(rawImp){const o=JSON.parse(rawImp);_dbgImpBuf=Array.isArray(o?.buf)?o.buf:[];}
+  }catch(e){_dbgImpBuf=[];}
   // クリックを全部拾う
   document.addEventListener('click',e=>{
     if(!_dbgEnabled) return;
@@ -194,7 +224,10 @@ export function _dbgInit(){
   // （window.showAppError フックはモジュール束縛経由の呼び出しを捕捉できず機能しなかったため廃止）
   // ページ離脱前に永続化（beforeunload=デスクトップ、pagehide=iOS Safari対応）
   function _dbgFlush(){
-    if(_dbgDirty){try{localStorage.setItem(DBG_KEY,JSON.stringify({buf:_dbgBuf,err:_dbgErrCount}));}catch(e){}}
+    if(_dbgDirty){
+      try{localStorage.setItem(DBG_KEY,JSON.stringify({buf:_dbgBuf,err:_dbgErrCount}));}catch(e){}
+      try{localStorage.setItem(DBG_IMP_KEY,JSON.stringify({buf:_dbgImpBuf}));}catch(e){}
+    }
   }
   window.addEventListener('beforeunload',_dbgFlush);
   window.addEventListener('pagehide',_dbgFlush);
