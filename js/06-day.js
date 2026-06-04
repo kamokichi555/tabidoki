@@ -10,7 +10,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { EC, LIMIT } from './00-constants.js';
 import { S, _canEditData, _dom, data } from './01-state.js';
-import { debounce, isSafeUrl, mdw, parseISODate, sanitize } from './02-utils.js';
+import { debounce, hasGeo, isSafeUrl, mdw, parseISODate, sanitize } from './02-utils.js';
 import { save } from './03-storage.js';
 import { wxQueueIds, wxStopRes } from './04-weather.js';
 import { render, showAppError, showInfoToast, showUrlError } from './07-render.js';
@@ -262,13 +262,17 @@ export function syncBorderAddr(){
   for(let i=0;i<data.days.length-1;i++){
     const cur=data.days[i].stops,nxt=data.days[i+1].stops;
     if(!cur.length||!nxt.length)continue;
-    // 前タブで住所を持つ地点名 → 住所 のマップを作成
-    const addrMap={};
-    cur.forEach(s=>{if(s.name&&s.addr)addrMap[s.name.trim()]=s.addr;});
-    // 次タブの地点で、名前一致かつ住所が未設定のものにコピー
+    // 前タブで住所を持つ地点名 → {addr, geo} のマップを作成
+    const map={};
+    cur.forEach(s=>{if(s.name&&s.addr)map[s.name.trim()]={addr:s.addr,geo:s.geo||null};});
+    // 次タブの地点で、名前一致かつ住所が未設定のものに住所＋実座標(geo)をコピー。
+    // geoを落とすと、座標文字列の住所(「35.x, 139.y」)を住所としてジオコーディングしに行き失敗する。
+    // addDayの最終地点引き継ぎと同じ方針でgeoも複製する（既にgeoを持つ地点は尊重して上書きしない）。
     nxt.forEach(s=>{
-      if(s.name&&!s.addr&&addrMap[s.name.trim()]){
-        s.addr=addrMap[s.name.trim()];
+      const src=s.name?map[s.name.trim()]:null;
+      if(src&&!s.addr){
+        s.addr=src.addr;
+        if(src.geo&&!hasGeo(s)) s.geo={lat:src.geo.lat,lon:src.geo.lon};
         delete wxStopRes[s.id];wxQueueIds.delete(s.id);
       }
     });

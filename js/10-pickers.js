@@ -783,10 +783,3 @@ export function openKaikatsu(){
   window.open('https://maps.google.com/?q=快活CLUB','_blank','noopener');
 }
 
-
-/* ══ 近くのトイレ検索（Googleマップ直接遷移） ══ */
-export function openToiletMap(){
-  _dbgLog('openToiletMap',{});
-  window.open('https://maps.google.com/?q=トイレ','_blank','noopener');
-}
-

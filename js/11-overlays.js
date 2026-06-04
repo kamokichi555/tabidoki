@@ -162,6 +162,8 @@ export function openSplashSettings(){
           <div>🌤 天気：<a href="https://open-meteo.com/" target="_blank" rel="noopener" style="color:var(--amber)">Open-Meteo</a>（CC BY 4.0）/ <a href="https://wttr.in/" target="_blank" rel="noopener" style="color:var(--amber)">wttr.in</a></div>
           <div>📍 住所検索：<a href="https://www.gsi.go.jp/" target="_blank" rel="noopener" style="color:var(--amber)">国土地理院</a> / <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:var(--amber)">© OpenStreetMap contributors</a></div>
           <div>🛣 施設情報：<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:var(--amber)">OpenStreetMap</a>（ODbL）</div>
+          <div>📊 アクセス解析：Cloudflare Web Analytics（Cookieを使わない匿名のアクセス統計）</div>
+          <div style="margin-top:8px;line-height:1.6">🔒 住所・座標（自宅含む）は天気・住所検索・施設情報の各サービスへ問い合わせのため送信されます。</div>
         </div>
       </div>
     </div>
