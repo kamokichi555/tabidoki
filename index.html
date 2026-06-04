@@ -188,6 +188,17 @@
             <button type="button" class="geo-map-btn" id="geo-map-btn" onclick="openInGoogleMaps()">🗺 Googleで開く</button>
             <span class="geo-hint" id="geo-hint"></span>
           </div>
+          <div class="geo-warn" id="geo-warn">
+            <div class="geo-warn-title"><span class="geo-warn-ico">⚠️</span> この共有リンクには座標が入っていません</div>
+            <div class="geo-warn-body">Googleマップの「共有」リンク（maps.app.goo.gl/…）は場所の座標を持たないため取り込めません。次のどちらかで貼り直してください。
+              <ol>
+                <li>地図上の目的地のピンを長押し → 表示された座標をコピーして貼る</li>
+                <li>PCならブラウザのアドレスバーのURL（@緯度,経度 を含む）をコピーして貼る</li>
+              </ol>
+            </div>
+          </div>
+          <div class="geo-okchip" id="geo-okchip"><span>✓ 座標として確定</span><span class="geo-okcoord" id="geo-okcoord"></span><span class="geo-okchip-sub">— 保存でこの地点に記録</span></div>
+          <div class="geo-guide"><b>正確な場所の入れ方:</b> <span class="geo-step">1</span>「🗺 Googleで開く」で探す <span class="geo-step">2</span>ピンを長押しで座標コピー <span class="geo-step">3</span>この欄に貼り付け</div>
           <div class="fuel-check-row" onclick="toggleFuelCheck()">
             <div class="fuel-check-box" id="fuel-check-box"></div>
             <span class="fuel-check-label">⛽ 給油ポイント</span>
