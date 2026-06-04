@@ -47,3 +47,10 @@ export const LSK={
   highwayCache:'highway_online_v1',
   michiCache:'michi_online_v2',
 };
+/* ── 天気: ジオコーディング(GSI)の直列リクエスト間隔(ms) ──
+   住所→座標をGSIで解決する際、連続アクセスを避けるため1件ごとに空ける待ち時間。
+   GSIは明確な制限値を非公表だが連続アクセスは避ける方針。二次情報の「同一IP 10秒10回」を
+   満たす固定間隔は1001ms以上（1000msは境界で11回になりうる）。余裕を見て1100ms。
+   ※実座標/キャッシュ済みの地点が通るfastキューには適用されない。旧Nominatim(1req/s)は撤去済み。
+   公開規模やGSI状況に応じて調整するのはこの1箇所のみ。 */
+export const WX_GEOCODE_INTERVAL_MS=1100;

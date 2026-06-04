@@ -8,7 +8,7 @@
 
 /* --- 自動生成: モジュール依存のインポート --- */
 import { S, data } from './01-state.js';
-import { LSK, SK, WMO } from './00-constants.js';
+import { LSK, SK, WMO, WX_GEOCODE_INTERVAL_MS } from './00-constants.js';
 import { buildGeoTargets, hasCachedCoords, hasGeo, pClass } from './02-utils.js';
 import { currentDayFlat } from './06-day.js';
 import { renderRide, showInfoToast, updateClock } from './07-render.js';
@@ -501,14 +501,15 @@ export async function runWxQueue(){
         ));
         if(myGen!==wxGen) return; // await後も世代を確認
       }
-      // slowキュー：ジオコーディング必要→1件直列（Nominatim 1リクエスト/秒制限を守る）
+      // slowキュー：ジオコーディング(GSI)必要→1件直列＋間隔。
+      //   間隔値と根拠は 00-constants.js の WX_GEOCODE_INTERVAL_MS を参照（調整はそこで一元管理）。
       if(wxQueue.length){
         const item=wxQueue.shift();
         try{await doFetchStop(item.stop,item.date);}
         catch(e){wxStopRes[item.stop.id]={error:true,date:item.date,time:Date.now()};}
         if(myGen!==wxGen) return; // await後も世代を確認（古い結果のDOM反映を防ぐ）
         onStopWxReady(item.stop.id);
-        if(wxQueue.length||wxQueueFast.length) await new Promise(r=>setTimeout(r,600));
+        if(wxQueue.length||wxQueueFast.length) await new Promise(r=>setTimeout(r,WX_GEOCODE_INTERVAL_MS));
       }
     }
   }finally{
