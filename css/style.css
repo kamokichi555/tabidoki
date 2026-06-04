@@ -145,6 +145,27 @@ body.day-mode .ride-next-strip{background:#fff;border-color:rgba(0,0,0,.22)}
 .geo-capture-btn:disabled{opacity:.6}
 .geo-hint{flex:1 1 140px;font-size:13px;line-height:1.5;color:var(--text3)}
 .geo-hint.ok{color:var(--green);font-weight:700}
+.geo-hint.warn{color:var(--red);font-weight:700}
+/* ① 共有URLが座標を含まないときの明示カラム */
+.geo-warn{display:none;border:1.5px solid var(--red);background:rgba(224,116,55,.10);border-radius:9px;padding:11px 12px}
+.geo-warn.show{display:block;animation:geowarnin .3s cubic-bezier(.2,.8,.25,1)}
+@keyframes geowarnin{0%{opacity:0;transform:translateY(-6px)}100%{opacity:1;transform:none}}
+.geo-warn-title{font-size:14px;font-weight:700;color:var(--red);display:flex;align-items:center;gap:6px}
+.geo-warn-ico{display:inline-block;animation:geopulse 1.4s ease-in-out infinite}
+@keyframes geopulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+.geo-warn-body{font-size:13px;line-height:1.7;color:var(--text2);margin-top:6px}
+.geo-warn-body ol{margin:6px 0 0;padding-left:1.3em}
+.geo-warn-body li{margin:2px 0}
+/* ② 座標が確定したときの確認チップ */
+.geo-okchip{display:none;align-items:center;flex-wrap:wrap;gap:6px;background:rgba(166,192,110,.15);border:1.5px solid var(--green);border-radius:9px;padding:9px 12px;color:var(--green);font-weight:700;font-size:14px}
+.geo-okchip.show{display:flex;animation:geopop .32s cubic-bezier(.2,1.4,.4,1)}
+@keyframes geopop{0%{opacity:0;transform:scale(.85)}100%{opacity:1;transform:none}}
+.geo-okcoord{font-family:'SF Mono','Menlo','Courier New',monospace;font-weight:700}
+.geo-okchip-sub{font-weight:400;opacity:.85}
+/* ③ 探し方の手順ガイド（常時・控えめ） */
+.geo-guide{font-size:12.5px;line-height:1.9;color:var(--text3);background:var(--bg2);border:1px dashed var(--border2);border-radius:8px;padding:9px 11px}
+.geo-guide b{color:var(--text2)}
+.geo-step{display:inline-block;background:var(--green);color:#fff;border-radius:50%;width:17px;height:17px;text-align:center;line-height:17px;font-size:11px;font-weight:700;margin:0 2px}
 #record-save-btn.has-record{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
 #normal-view{overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;padding:16px;height:calc(var(--nv-h, 100dvh) - var(--hh, 62px));touch-action:pan-y}
 
