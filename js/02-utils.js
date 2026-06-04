@@ -64,6 +64,14 @@ export function extractMapCoord(str){
       || pick(s.match(/[?&](?:q|query|ll|sll|daddr|destination|center)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/)) // q=/ll= 等
       || null;
 }
+/* ── Googleマップの「共有」短縮URLか判定 ──
+   maps.app.goo.gl/… や goo.gl/maps/… は座標を含まないため extractMapCoord で座標を取れない。
+   これらを「住所」と取り違えず、ユーザーへ座標の貼り直しを案内するための判定。
+   ※ フルURL等の座標が取れるものは、呼び出し側で先に座標として確定される前提（ここには来ない）。*/
+export function isShareMapUrl(str){
+  if(typeof str!=='string') return false;
+  return /(?:maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(str);
+}
 /* ── 地点が有効な実座標(geo)を持つか ── */
 export function hasGeo(s){
   return !!(s&&s.geo&&Number.isFinite(s.geo.lat)&&Number.isFinite(s.geo.lon)

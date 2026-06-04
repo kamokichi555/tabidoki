@@ -10,7 +10,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { EC, LIMIT } from './00-constants.js';
 import { S, _canEditData, _dom, data } from './01-state.js';
-import { fromMin, isTimeOrderOk, isValidTime, parseCoord, extractMapCoord, sanitize, toMin } from './02-utils.js';
+import { fromMin, isTimeOrderOk, isValidTime, parseCoord, extractMapCoord, isShareMapUrl, sanitize, toMin } from './02-utils.js';
 import { save } from './03-storage.js';
 import { wxQueueIds, wxStopRes } from './04-weather.js';
 import { _cachedCdiForId, _invalidateCdi, currentDayIdxOf, syncBorderAddr } from './06-day.js';
@@ -121,19 +121,37 @@ export function _updateGeoHint(){
   const inp=document.getElementById('inp-addr');
   const hint=document.getElementById('geo-hint');
   if(!inp||!hint) return;
+  // ①共有URL警告／②座標確定チップ用の要素（無くても本処理は成立するよう存在チェックする）
+  const warn=document.getElementById('geo-warn');
+  const okchip=document.getElementById('geo-okchip');
+  const okcoord=document.getElementById('geo-okcoord');
+  const hideWarn=()=>{ if(warn) warn.classList.remove('show'); };
+  const hideOk  =()=>{ if(okchip) okchip.classList.remove('show'); };
   let v=(inp.value||'').trim();
-  if(!v){hint.textContent='';hint.className='geo-hint';return;}
+  if(!v){hint.textContent='';hint.className='geo-hint';hideWarn();hideOk();return;}
   // GoogleマップURL等を貼ったら座標を抽出して「緯度, 経度」に正規化
   if(!parseCoord(v)){
     const c=extractMapCoord(v);
     if(c){ v=`${c.lat.toFixed(6)}, ${c.lon.toFixed(6)}`; inp.value=v; }
   }
-  if(parseCoord(v)){
+  const pc=parseCoord(v);
+  if(pc){
     hint.textContent='📍 座標として認識（天気・GPS自動切替ともこの座標を使用）';
     hint.className='geo-hint ok';
+    hideWarn();
+    // ②座標確定チップ：表示は6桁に正規化（欄の値は入力中の書き換えを避けるため触らない。最終正規化は保存時のsaveStop）
+    if(okchip){ if(okcoord) okcoord.textContent=`${pc.lat.toFixed(6)}, ${pc.lon.toFixed(6)}`; okchip.classList.add('show'); }
+  }else if(isShareMapUrl(v)){
+    // ①共有短縮URLは座標を含まない → 失敗を明示して貼り直しを案内
+    hint.textContent='⚠️ この共有リンクは座標を含みません（下の案内を参照）';
+    hint.className='geo-hint warn';
+    hideOk();
+    if(warn) warn.classList.add('show');
   }else{
     hint.textContent='🏠 住所として認識。「🗺 Googleで開く」で探して座標/URLを貼ると正確です';
     hint.className='geo-hint';
+    hideWarn();
+    hideOk();
   }
 }
 
