@@ -12,7 +12,7 @@ import { _migrateData, _resolveCurrentStopId, _sanitizeImportedData } from './02
 import { restoreFromStorage, save } from './03-storage.js';
 import { ensureAllWeather } from './04-weather.js';
 import { _flushRouteSave, _flushTitle, _syncTitleInput, _updateStickyTops, currentDayFlat, renderTabs, syncBorderAddr } from './06-day.js';
-import { _depCountdownHtml, initNormalSwipe, initRideSwipe, render, showInfoToast, updateClock } from './07-render.js';
+import { _depCountdownHtml, _seg7svg, initNormalSwipe, initRideSwipe, render, showInfoToast, updateClock } from './07-render.js';
 import { _initTheme, _initFontSize, _updateNoteCount, syncNotePreview, toggleEdit, toggleRide } from './08-mode.js';
 import { _renderSplash } from './11-overlays.js';
 import { _dbgLog } from './12-debug.js';
@@ -141,28 +141,15 @@ export function _scheduleKbScroll(){
   const el=document.activeElement;
   if(el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA')) _scheduleKbScroll();
 });
-// focusin: 時計を非表示にしてヘッダー高さを削減（メイン画面のみ）→ normal-view 表示領域を確保
+// focusin: キーボード表示時に、フォーカス中の入力欄を可視位置へ送る。
+// （旧実装にあった「時計を非表示にしてヘッダー高さを削減」は廃止した。時計とヘッダー右ボタンの
+//   高さがほぼ等しく行高はボタン側で決まるため高さ削減効果がほぼ無く、入力のたびに時計が消える
+//   挙動だけが残っていた。表示領域の確保は _scrollFocusedInputIntoView が担う。）
 document.addEventListener('focusin',e=>{
   const el=e.target;
   if(el.tagName!=='INPUT'&&el.tagName!=='TEXTAREA') return;
-  if(!el.closest('[id$="-overlay"]')){
-    const clk=document.querySelector('.header-clock');
-    if(clk) clk.style.display='none';
-    requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));
-  }
   // キーボードが既に開いた状態で別の入力欄へ移ったとき（resizeが発火しない）にも追従させる
   _scheduleKbScroll();
-},true);
-// focusout: フォーカスが外れたら時計を復元
-document.addEventListener('focusout',()=>{
-  setTimeout(()=>{
-    const a=document.activeElement;
-    if(!a||a.tagName!=='INPUT'&&a.tagName!=='TEXTAREA'){
-      const clk=document.querySelector('.header-clock');
-      if(clk) clk.style.display='';
-      requestAnimationFrame(()=>requestAnimationFrame(_updateStickyTops));
-    }
-  },200);
 },true);
 // 時刻は15秒ごと更新（renderRide全再描画しない）
 setInterval(()=>{
@@ -269,3 +256,37 @@ document.addEventListener('visibilitychange',()=>{ if(document.hidden) _persistP
 //   関数でない環境（iOS Safari等）で同期TypeErrorが投げられ、起動時にエラートースト
 //   が出るのを防ぐ。戻り値がPromiseでない場合に備え catch も optional-chain。
 try{ screen.orientation?.lock?.('portrait')?.catch?.(()=>{}); }catch(e){}
+
+// ── 走行用時計のラスタ・プリウォーム ───────────────────────────────
+// 初回だけ「走行画面に入ると時計表示がワンテンポ遅れる」現象への対処。
+// 原因はJS処理（toggleRideは実測27ms）ではなく、走行用の大サイズ(clamp 36〜72px)＋
+// ダークモードのグロー(feGaussianBlur)時計SVGを、その大きさ・フィルタ込みで初めて
+// ラスタライズするブラウザ側コスト。toggleRideのJSログには現れず、初回ペイントだけ遅れる。
+// → 起動後の空き時間に、同じ大サイズ＋グローのSVGを一度オフスクリーンで実際に描画させ、
+//   ラスタキャッシュを温めておく。2回目以降が速いのと同じ状態を初回前に作る。
+// 表示はさせない（画面外＋aria-hidden）。S.isRideの一時切替は同期ブロック内で必ず元へ戻す。
+function _prewarmRideClock(){
+  if(!document.body) return;
+  const prevRide=S.isRide;
+  let svg='';
+  try{
+    S.isRide=true;                // _seg7svgを走行用の大サイズ分岐で生成させる
+    svg=_seg7svg('88:88');        // 全セグ点灯＝グロー適用面積を最大化して確実に温める
+  }catch(e){ svg=''; }
+  finally{ S.isRide=prevRide; }   // 例外の有無に関わらず必ず復元（走行状態の汚染を防ぐ）
+  if(!svg) return;
+  try{
+    const box=document.createElement('div');
+    box.setAttribute('aria-hidden','true');
+    // 画面外へ。display:noneだとラスタされないため、可視扱いのまま視界外へ追い出す。
+    Object.assign(box.style,{position:'fixed',left:'-99999px',top:'0',pointerEvents:'none',zIndex:'-1'});
+    box.innerHTML=svg;
+    document.body.appendChild(box);
+    void box.offsetHeight;          // 同期レイアウトを強制
+    // 2フレーム回してペイント＝ラスタライズを発生させてから撤去
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ try{box.remove();}catch(e){} }));
+  }catch(e){}
+}
+// スプラッシュ表示中の空き時間に実行（起動直後の重い処理とは競合させない）
+if('requestIdleCallback' in window){ requestIdleCallback(_prewarmRideClock,{timeout:2000}); }
+else{ setTimeout(_prewarmRideClock,800); }
