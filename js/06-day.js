@@ -227,8 +227,8 @@ export function deleteCurrentDay(){
       if(!confirm("登録されている地点をすべて削除しますか?"))return;
       if(day.stops.some(s=>s.id===S.manualCurrentId)){S.manualCurrentId=null;_cachedCdiForId=null;}
       day.stops.forEach(s=>{delete wxStopRes[s.id];wxQueueIds.delete(s.id);});
-      day.stops=[];day.date="";day.routeUrl="";
-      setFormAdd();save();syncBorderAddr();renderTabs();render();
+      day.stops=[];day.date="";day.routeUrl="";data.title="";// 全リセット=ツーリング名も空に
+      setFormAdd();_syncTitleInput();save();syncBorderAddr();renderTabs();render();
       showInfoToast('🗑️ 地点をすべて削除しました',2000);
       return;
     }
