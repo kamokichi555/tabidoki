@@ -176,6 +176,33 @@ export function _onAddrPaste(e){
   }catch(_){ /* 失敗時は通常の貼り付けに委ねる */ }
 }
 
+/* ══ 📋 クリップボードから住所欄へ貼り付け ══
+   Google等でコピーした座標/URL/住所を1タップで欄に入れる（欄の長押し操作が不要に）。
+   長いGoogleマップURLでもクリップボード全文（maxlength非適用）から座標を抽出し、
+   取れたら短い「緯度, 経度」に正規化してから入れる。非対応・不許可の端末では手動貼り付けを案内。*/
+export async function pasteFromClipboard(){
+  const inp=document.getElementById('inp-addr');
+  if(!inp) return;
+  if(!(navigator.clipboard && navigator.clipboard.readText)){
+    showInfoToast('⚠️ この端末はボタン貼り付けに非対応です。欄を長押しして貼り付けてください',4000);
+    return;
+  }
+  let txt='';
+  try{
+    txt=((await navigator.clipboard.readText())||'').trim();
+  }catch(err){
+    _dbgLog('addr_clip_err',{msg:String(err&&err.message||'').slice(0,80)});
+    showInfoToast('⚠️ クリップボードを読み取れませんでした。許可するか、欄を長押しして貼り付けてください',4500);
+    return;
+  }
+  if(!txt){ showInfoToast('クリップボードが空です',3000); return; }
+  const c=extractMapCoord(txt);
+  inp.value = c ? `${c.lat.toFixed(6)}, ${c.lon.toFixed(6)}` : sanitize(txt, LIMIT.addr);
+  _updateGeoHint();
+  inp.focus();
+  _dbgLog('addr_clip_paste',{coord:!!c});
+}
+
 /* ══ 🗺 Googleで開くボタン: 地点名＋住所でGoogleマップ検索を開く ══
    施設名検索はGoogleが最も強いので、場所探しはGoogleに任せる。
    出てきた地点を長押し→座標コピー、またはブラウザ版のURLをコピーして住所欄に貼ると、
