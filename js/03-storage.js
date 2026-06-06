@@ -445,7 +445,8 @@ export function onFileSelected(ev){
   reader.onload=e=>{
     try{
       const p=JSON.parse(/** @type {string} */(e.target?.result)); // readAsTextのため常にstring
-      p.title=file.name.replace(/\.json$/i,''); // ファイル名をタイトルとして強制セット
+      // タイトルはJSON内の値を優先し、無い場合のみファイル名をフォールバックに使う
+      // （_applyImportedData が title=p.title||titleFallback で解決する）。
       _applyImportedData(p,file.name.replace(/\.json$/i,''),true); // loadJSON側で確認済みのためskip
     }catch(err){
       hideInfoToast();
