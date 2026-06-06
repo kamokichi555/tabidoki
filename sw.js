@@ -6,7 +6,7 @@
    ・外部API(天気/ジオ/施設)には介入しない
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
-const CACHE_NAME = 'tabidoki-mk18-v15'; // ← リリースごとにバンプして旧キャッシュを破棄（ESM化以降はこれが唯一のキャッシュ無効化手段）
+const CACHE_NAME = 'tabidoki-mk18-v16'; // ← リリースごとにバンプして旧キャッシュを破棄（ESM化以降はこれが唯一のキャッシュ無効化手段）
 const CACHE_FILES = [
   './',
   './index.html',
@@ -14,7 +14,8 @@ const CACHE_FILES = [
   './css/style.css',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/icon-maskable.png',
+  './icons/icon-192-maskable.png',
+  './icons/icon-512-maskable.png',
   './icons/splash-title.png',
   './js/00-constants.js',
   './js/01-state.js',
