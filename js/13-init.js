@@ -9,7 +9,7 @@
 import { DEFAULT, SK, LSK } from './00-constants.js';
 import { S, _canEditData, data, setData, _dom } from './01-state.js';
 import { _migrateData, _resolveCurrentStopId, _sanitizeImportedData } from './02-utils.js';
-import { restoreFromStorage, save } from './03-storage.js';
+import { restoreFromStorage, save, _pushBackup } from './03-storage.js';
 import { ensureAllWeather } from './04-weather.js';
 import { _flushRouteSave, _flushTitle, _syncTitleInput, _updateStickyTops, currentDayFlat, renderTabs, syncBorderAddr } from './06-day.js';
 import { _depCountdownHtml, _seg7svg, initNormalSwipe, initRideSwipe, render, showInfoToast, updateClock } from './07-render.js';
@@ -49,6 +49,9 @@ if(!data) setData(JSON.parse(JSON.stringify(DEFAULT)));
 {
   S.manualCurrentId=_resolveCurrentStopId(data); // currentStopId 解決＋実在チェック（02-utils、_applyImportedDataと共用）
 }
+// 起動時に現状(=今日いじり始める前の状態)を1世代退避。
+// 復元確認が保留中(_pendingRestore)はdataが空のため_pushBackup側で自動スキップされる。
+_pushBackup();
 // スプラッシュ表示中に天気取得を先行開始（DOM構築より先に通信を走らせる）
 setTimeout(()=>ensureAllWeather(),0);
 /* ══ 初期化 ══ */

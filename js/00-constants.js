@@ -37,8 +37,7 @@ export const EC_MSG={'E-SV01':'ファイルの保存に失敗しました','E-LD
 export const LIMIT={name:50,addr:100,note:1000,log:200,title:60,url:500,stopsPerDay:20,splashStar:20,splashTitle:40};
 /* ── localStorageキー集約（生文字列の散在によるタイポ事故を防ぐ） ──
    既に定数化済みのもの（SK / GEO_SK / FCST_SK / SPLASH_SK / DBG_KEY）は各所で共有済みのためここには含めない。
-   未定数化で複数ファイルに散っていたキーのみをここへ集約する。
-   ※ lock.js は classic script（モジュール非対応）のため import できず、対象外（lock.js内のキーはそのまま）。 */
+   未定数化で複数ファイルに散っていたキーのみをここへ集約する。 */
 export const LSK={
   theme:'touring_theme',
   fontscale:'touring_fontscale',
@@ -46,7 +45,15 @@ export const LSK={
   ride:'touring_ride',
   highwayCache:'highway_online_v1',
   michiCache:'michi_online_v2',
+  backup:'touring_backup',
 };
+/* ── 簡易自動バックアップ（自分用の保険） ──
+   編集のたびに直近世代をlocalStorageの別キー(LSK.backup)へ退避し、誤読み込み・破損から戻せるようにする。
+   BACKUP_MAX        : 保持する世代数（新しい順。これを超える古い世代は捨てる）。
+   BACKUP_INTERVAL_MS: 編集中(save時)に世代を取り直す最短間隔。save()はキー入力ごとに走るため時間で間引く。
+   ※起動時・上書き直前は間隔に関係なく取る（_pushBackup を直接呼ぶ）。 */
+export const BACKUP_MAX=3;
+export const BACKUP_INTERVAL_MS=5*60*1000;
 /* ── 天気: ジオコーディング(GSI)の直列リクエスト間隔(ms) ──
    住所→座標をGSIで解決する際、連続アクセスを避けるため1件ごとに空ける待ち時間。
    GSIは明確な制限値を非公表だが連続アクセスは避ける方針。二次情報の「同一IP 10秒10回」を

@@ -8,9 +8,9 @@
 // @ts-check
 
 /* --- 自動生成: モジュール依存のインポート --- */
-import { APP_VERSION, DEFAULT, EC, LIMIT, SK } from './00-constants.js';
+import { APP_VERSION, BACKUP_INTERVAL_MS, BACKUP_MAX, DEFAULT, EC, LIMIT, LSK, SK } from './00-constants.js';
 import { S, _canEditData, _dom, data, setData } from './01-state.js';
-import { IS_IOS, WEEK, _migrateData, _resolveCurrentStopId, _sanitizeImportedData, actDiff, fmtHM, mdw, parseISODate, stayDur, ymdw } from './02-utils.js';
+import { IS_IOS, WEEK, _migrateData, _resolveCurrentStopId, _sanitizeImportedData, actDiff, esc, fmtHM, mdw, parseISODate, stayDur, ymdw } from './02-utils.js';
 import { _bumpWxGen, _lsSetItem, wxGen, wxQueue, wxQueueFast, wxQueueIds, wxStopRes } from './04-weather.js';
 import { _cachedCdiForId, _flushTitle, _invalidateCdi, _scrollNormalViewToFirstStop, _syncTitleInput, renderTabs } from './06-day.js';
 import { _lastClockTs, _resetClockTs, hideInfoToast, render, showAppError, showInfoToast, updateClock } from './07-render.js';
@@ -38,7 +38,60 @@ export function save(){
     data.currentStopId=S.manualCurrentId;
     data.version=DEFAULT.version;
     _lsSetItem(SK,JSON.stringify(data));
+    _maybeBackup(); // 編集中の世代退避（5分間隔で間引き。本保存の後＝確定済み内容を退避）
   }catch(e){showAppError(EC.SAVE,e);}
+}
+
+/* ══ 簡易自動バックアップ ══
+   編集のたび(save)・上書き直前・起動時に、現在のdataをLSK.backupへ世代退避する。
+   失敗してもアプリ本体は止めない（try/catchで黙殺）。詳細は 00-constants.js の BACKUP_* を参照。 */
+let _lastBackupTs=0;
+/* 保存済み世代を新しい順の配列で返す（壊れていれば空配列）。各要素: {ts,title,stops,json} */
+export function _readBackups(){
+  try{const r=localStorage.getItem(LSK.backup);if(r){const a=JSON.parse(r);if(Array.isArray(a))return a;}}catch(e){}
+  return [];
+}
+/* 現在のdataを1世代退避する。空データ(地点0)と「直前世代と同一内容」は取らない。 */
+export function _pushBackup(){
+  try{
+    if(_totalStops()===0) return;                 // 空データは退避しない
+    const json=JSON.stringify(data);
+    const list=_readBackups();
+    if(list[0]&&list[0].json===json) return;      // 直前世代と同一 → 重複排除
+    list.unshift({ts:Date.now(),title:data.title||'（タイトルなし）',stops:_totalStops(),json});
+    if(list.length>BACKUP_MAX) list.length=BACKUP_MAX; // 新しい3件だけ残す
+    _lsSetItem(LSK.backup,JSON.stringify(list));   // 容量超過時は天気/施設キャッシュを先に捨てて再試行（_lsSetItem）
+    _lastBackupTs=Date.now();
+  }catch(e){/* バックアップ失敗は本体動作を止めない */}
+}
+/* save()から呼ぶ間引き版（編集中の連続saveで毎回取らない）。 */
+export function _maybeBackup(){
+  if(Date.now()-_lastBackupTs<BACKUP_INTERVAL_MS) return;
+  _pushBackup();
+}
+/* 「バックアップから復元」モーダル。世代一覧から選ぶと既存の上書き確認付きで読み込む。 */
+export function openRestoreBackupModal(){
+  const list=_readBackups();
+  if(!list.length){showInfoToast('⚠️ バックアップがまだありません',3000);return;}
+  const fmt=ts=>{const d=new Date(ts);return `${d.getMonth()+1}/${d.getDate()}(${WEEK[d.getDay()]}) ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
+  _openChoiceModal({
+    id:'restore-backup-overlay',
+    closeId:'restore-backup-close',
+    title:'🕐 バックアップから復元',
+    hint:'⚠️ 復元すると現在の行程は上書きされます',
+    items:list.map((b,i)=>({
+      id:'restore-backup-'+i,icon:'🕐',
+      label:esc(b.title||'（タイトルなし）'),       // タイトルは取り込み時にサニタイズ済みだが念のためエスケープ
+      sub:`${fmt(b.ts)} ・${b.stops}地点`,arrow:'↺',
+      onClick:()=>_restoreBackup(i),
+    })),
+  });
+}
+function _restoreBackup(i){
+  const b=_readBackups()[i];
+  if(!b){showInfoToast('⚠️ バックアップが見つかりませんでした',3000);return;}
+  try{ _applyImportedData(JSON.parse(b.json),b.title); } // skipConfirmなし＝既存の上書き確認・サニタイズ・移行を再利用
+  catch(e){ showAppError(EC.LOAD,e); }
 }
 
 export function shareItinerary(){
@@ -366,6 +419,7 @@ export function _applyImportedData(p,titleFallback,skipConfirm,silent){
   const _truncated=_sanitizeImportedData(p);
   const title=p.title||titleFallback||'（タイトルなし）';
   if(!skipConfirm&&!confirm(`「${title}」を読み込みます。\n現在の行程は上書きされます。よろしいですか？`)){hideInfoToast();return;}
+  _pushBackup(); // 上書き直前に「消える側（現在のdata）」を退避（誤読み込みから戻せるように）
   setData(p);
   // ユーザーが明示的にデータを読み込んだ時点で、起動時の復元確認は不要になる。
   // 保留を解除して以後のsave()を有効化し、未確定状態を残さない。
