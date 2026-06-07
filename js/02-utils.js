@@ -72,6 +72,28 @@ export function isShareMapUrl(str){
   if(typeof str!=='string') return false;
   return /(?:maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(str);
 }
+/* ── 度分秒（DMS）形式かを判定 ──
+   parseCoord は十進法のみ対応のため、DMS（35°26'37"N など）は座標として取り込めない。
+   これらを「住所」と取り違えず、ユーザーへ十進法への変換を案内するための判定。
+   対応例: 35°26'37"N, 35°26′37″N, N35°26'37", 35 26 37 N, 35d26m37sN 等
+   全角記号・全角数字も許容（parseCoord と同様に半角化してから判定）。*/
+export function isDmsCoord(str){
+  if(typeof str!=='string') return false;
+  const s=str
+    .replace(/[０-９．，－＋]/g,m=>String.fromCharCode(m.charCodeAt(0)-0xFEE0)) // 全角→半角
+    .replace(/[（）()]/g,' ').trim();
+  // 度記号(°/d)・分記号('/′/m)・方位(N/S/E/W) のいずれかを含み、かつ数字を伴うこと
+  // 十進法（小数点付き数字のみ）を誤検出しないよう、度分秒/方位記号の存在を必須とする
+  const hasDir=/[NSEWnsew]/.test(s);
+  const hasDeg=/\d\s*[°dD]/.test(s);
+  const hasMin=/\d\s*['′mM]/.test(s);
+  // 「度＋方位」「度＋分」「分＋秒」など、十進法では出ない記号の組み合わせを座標候補とみなす
+  const dmsLike=(hasDeg&&(hasDir||hasMin))||(hasMin&&hasDir);
+  if(!dmsLike) return false;
+  // 緯度経度らしい数字が2組以上あること（単一の「35°」だけの住所表記等を除外）
+  const nums=s.match(/\d{1,3}(?:\.\d+)?/g);
+  return !!(nums&&nums.length>=2);
+}
 /* ── 地点が有効な実座標(geo)を持つか ── */
 export function hasGeo(s){
   return !!(s&&s.geo&&Number.isFinite(s.geo.lat)&&Number.isFinite(s.geo.lon)

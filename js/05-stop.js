@@ -10,7 +10,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { EC, LIMIT } from './00-constants.js';
 import { S, _canEditData, _dom, data } from './01-state.js';
-import { fromMin, isTimeOrderOk, isValidTime, parseCoord, extractMapCoord, isShareMapUrl, sanitize, toMin } from './02-utils.js';
+import { fromMin, isTimeOrderOk, isValidTime, parseCoord, extractMapCoord, isShareMapUrl, isDmsCoord, sanitize, toMin } from './02-utils.js';
 import { save } from './03-storage.js';
 import { wxQueueIds, wxStopRes } from './04-weather.js';
 import { _cachedCdiForId, _invalidateCdi, currentDayIdxOf, syncBorderAddr } from './06-day.js';
@@ -41,6 +41,8 @@ export function saveStop(){
   if(!name){showValError('地点名を入力してください');return;}
   let addr=sanitize(_dom('inp-addr').value,LIMIT.addr);
   const geo=extractMapCoord(addr); // 座標形式/GoogleマップURLなら {lat,lon}、住所なら null
+  // DMS（度分秒）形式は十進法に未対応 → 保存をブロックして変換を促す（誤って住所扱いで保存→天気失敗を防ぐ）
+  if(!geo&&isDmsCoord(addr)){showValError('度分秒(DMS)形式は未対応です。十進法（例: 35.681236, 139.767125）で入力してください');return;}
   if(geo) addr=`${geo.lat.toFixed(6)}, ${geo.lon.toFixed(6)}`; // URL等を貼った場合は座標文字列に正規化して保存
   const newArr=_dom('inp-arr').value,newDep=_dom('inp-dep').value;
   if(!isTimeOrderOk(newArr,newDep)){showValError('到着時刻は出発時刻より前に設定してください');return;}
@@ -147,6 +149,12 @@ export function _updateGeoHint(){
     hint.className='geo-hint warn';
     hideOk();
     if(warn) warn.classList.add('show');
+  }else if(isDmsCoord(v)){
+    // 度分秒(DMS)形式は parseCoord（十進法のみ）で取り込めない → 十進法への変換を案内
+    hint.textContent='⚠️ 度分秒(DMS)形式は未対応です。十進法（例: 35.681236, 139.767125）で入力してください';
+    hint.className='geo-hint warn';
+    hideOk();
+    hideWarn();
   }else{
     hint.textContent='🏠 住所として認識。「🗺 Googleで開く」で探して座標/URLを貼ると正確です';
     hint.className='geo-hint';

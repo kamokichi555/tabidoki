@@ -1,19 +1,19 @@
 /* ══════════════════════════════════════════════════════
    旅刻 mk18 — 14-gps.js
    GPS自動追跡（走行モードで現在地に近い地点へ自動切替）
-   依存: 00-constants.js, 02-utils.js（buildGeoTargets/_geoCacheGet）,
-        04-weather.js（_geocodeParallel/_geoCacheSet）,
-        05-stop.js（setCurrentStop）, 06-day.js（currentDayFlat/_getCdi）
+   依存: 00-constants.js（WX_GEOCODE_INTERVAL_MS）, 02-utils.js（buildGeoTargets/hasGeo）,
+        04-weather.js（_geoCacheGet/_geoCacheSet/_geocodeParallel/buildNameTargets）,
+        05-stop.js（setCurrentStop）, 06-day.js（currentDayFlat/currentDayIdxOf）
    実行時依存: data, S.isRide, S.manualCurrentId, S.rideViewIdx, S.currentDay,
               renderRide, showInfoToast, _dbgLog
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
 
 /* --- 自動生成: モジュール依存のインポート --- */
-import { LSK } from './00-constants.js';
+import { LSK, WX_GEOCODE_INTERVAL_MS } from './00-constants.js';
 import { S, data } from './01-state.js';
 import { buildGeoTargets, hasGeo } from './02-utils.js';
-import { _geoCacheGet, _isoToday, enqueueStop } from './04-weather.js';
+import { _geoCacheGet, _geoCacheSet, _geocodeParallel, buildNameTargets } from './04-weather.js';
 import { setCurrentStop } from './05-stop.js';
 import { currentDayFlat } from './06-day.js';
 import { showInfoToast } from './07-render.js';
@@ -49,35 +49,86 @@ export function _gpsDistance(lat1,lon1,lat2,lon2){
   return 2*R*Math.asin(Math.min(1,Math.sqrt(a)));
 }
 
-/* ══ 地点の座標をキャッシュから取得（なければnull） ══ */
+/* ══ 地点の座標をキャッシュから取得（なければnull） ══
+   ★ホットパス（_gpsOnPosition の全地点ループから毎回呼ばれる）のため、
+     必ず同期・キャッシュ読みのみに保つ。ここでネットワーク取得してはならない。
+   座標解決ルールは天気(doFetchStop)と一致させる:
+     ① 実座標geo → ② 住所(buildGeoTargets) → ③ 住所なしは名前(buildNameTargets)。
+   ③により「名前のみ地点」も、_gpsPrefetchCoords がキャッシュを埋めていれば自動切替対象になる。*/
+/* ── 地点 → ジオクエリ候補（空白を除外して返す） ──
+   座標解決ルールを天気(doFetchStop)と一致させる: 住所あり→buildGeoTargets / なし→buildNameTargets。
+   buildNameTargets は空名でも [''] を返すため、ここで空文字を除去し、
+   「住所も名前も無い地点」では空配列を返す（＝天気の !addr&&!name 早期returnと同じく解決対象外にする）。
+   これにより完全空の地点で空クエリのGSI問い合わせが走るのを防ぐ。*/
+function _gpsResolveTargets(stop){
+  const addr=(stop.addr||'').trim();
+  const targets=addr?buildGeoTargets(addr):buildNameTargets((stop.name||'').trim());
+  return targets.filter(q=>q&&q.trim().length>=2);
+}
+
 export function _gpsStopCoords(stop){
   if(hasGeo(stop)) return {lat:stop.geo.lat,lon:stop.geo.lon}; // 実座標を最優先（住所のジオコーディングより正確）
-  const addr=(stop.addr||'').trim();
-  if(!addr) return null;
-  for(const q of buildGeoTargets(addr)){
+  for(const q of _gpsResolveTargets(stop)){
     const c=_geoCacheGet(q);
     if(c) return {lat:c.lat,lon:c.lon};
   }
   return null;
 }
 
-/* ══ 現在日の全地点座標を事前取得 ══
-   独自にジオコーディングせず、天気側のレート制限付きキュー(enqueueStop)に委譲する。
-   enqueueStop は wxQueueIds で重複を弾くため、ensureDayWeather と二重に投げても安全。
-   座標は共有 geoCache に入るので、GPSはそれを参照するだけでよい（Nominatim二重叩き回避）。*/
+/* ══ 現在日の全地点座標を事前取得（GPS自動切替用にgeoCacheを充填） ══
+   ★方針（天気サブシステムには手を入れない）:
+     ・天気(doFetchStop)は日付ゲート(過去/16日超)でジオコーディング前にreturnするため、
+       enqueueStop 委譲では「過去日・期間外の地点」の座標がキャッシュされず、GPSが不発になる。
+     ・また住所なし(名前のみ)地点も従来は弾いていた。
+     → そこでGPS用プリフェッチは自前で _geocodeParallel を回し、日付に関わらず座標だけを取得する。
+       書き込み先は共有 geoCache なので天気とも共有でき、二重取得は cache 確認で回避する。
+   ★GSI配慮: 天気キューと同じ WX_GEOCODE_INTERVAL_MS でネットワーク呼び出しのみ直列に間引く。
+     キャッシュ命中時は待たない。GPSオフ/走行終了で即離脱して無駄な問い合わせをしない。
+   ★現在地・次地点を先に解決して走り出し直後のラグを縮める（座標なし地点が多い行程対策）。*/
+let _gpsPrefetchRunning=false;
 export function _gpsPrefetchCoords(){
-  try{
-    const day=data.days[S.currentDay];
-    if(!day) return;
-    const date=day.date||(typeof _isoToday==='function'?_isoToday(S.currentDay):'');
-    (day.stops||[]).forEach(s=>{
-      if(!(s.addr||'').trim()) return;       // 住所なしは座標取得できない
-      if(_gpsStopCoords(s)) return;          // 既にキャッシュ済み
-      if(typeof enqueueStop==='function') enqueueStop(s,date); // 共有キューへ（重複は内部で排除）
-    });
-  }catch(e){
-    _dbgLog('gps_prefetch_failed',{err:String(e&&e.message||e).slice(0,200)});
-  }
+  if(_gpsPrefetchRunning) return; // 多重起動防止（toggleGps/ride開始の二重呼びを排他）
+  const day=data.days[S.currentDay];
+  if(!day||!(day.stops||[]).length) return;
+  const dayIdx=S.currentDay;
+  // 解決すべき地点を列挙（geo保有・キャッシュ済みは除外）。各地点のジオクエリ候補も用意。
+  const work=[];
+  (day.stops||[]).forEach((s,i)=>{
+    if(_gpsStopCoords(s)) return;             // 既に座標あり（geo or キャッシュ）
+    const targets=_gpsResolveTargets(s);      // 空白除外済み。住所も名前も無ければ空配列
+    if(!targets.length) return;               // 解決不能（座標源なし）→ 無駄なGSI問い合わせをしない
+    work.push({i,id:s.id,targets});
+  });
+  if(!work.length) return;
+  // 現在表示中(rideViewIdx)に近い順へ並べ替え（走り出し直後に必要な地点を先に取得）
+  const center=Number.isInteger(S.rideViewIdx)?S.rideViewIdx:0;
+  work.sort((a,b)=>Math.abs(a.i-center)-Math.abs(b.i-center));
+  _gpsPrefetchRunning=true;
+  (async()=>{
+    try{
+      let didNet=false;
+      for(const item of work){
+        if(!_gpsEnabled||!S.isRide) break;    // オフ/走行終了で離脱（GSIを無駄打ちしない）
+        if(S.currentDay!==dayIdx) break;      // 日が変わった → このプリフェッチは破棄（再呼びに委ねる）
+        // 直前までに他経路(天気)がキャッシュを埋めた可能性があるので都度確認
+        if(item.targets.some(q=>_geoCacheGet(q))) continue;
+        for(const q of item.targets){
+          if(_geoCacheGet(q)) break;          // キャッシュ命中 → ネットワーク不要
+          // ネットワーク呼び出しの前だけ間引く（連続のGSIアクセスを天気と同間隔に保つ）
+          if(didNet) await new Promise(r=>setTimeout(r,WX_GEOCODE_INTERVAL_MS));
+          didNet=true;
+          let coords=null;
+          try{ coords=await _geocodeParallel(q); }catch(e){ coords=null; }
+          if(!_gpsEnabled||!S.isRide||S.currentDay!==dayIdx) break; // await明けに状態再確認
+          if(coords){ _geoCacheSet(q,coords.lat,coords.lon); break; } // 1地点1座標で確定
+        }
+      }
+    }catch(e){
+      _dbgLog('gps_prefetch_failed',{err:String(e&&e.message||e).slice(0,200)});
+    }finally{
+      _gpsPrefetchRunning=false;
+    }
+  })();
 }
 
 /* ══ 今いる場所→目的地（次の地点）の直線距離を #ride-seg に反映 ══
