@@ -465,19 +465,22 @@ export async function doFetchStop(stop,date){
   if(diff<0){if(_stopStillValid(stop))wxStopRes[stop.id]={isPast:true,date,time:Date.now()};return;}     // 過去日付は取得しない
   if(diff>15){if(_stopStillValid(stop))wxStopRes[stop.id]={outOfRange:true,date,time:Date.now()};return;} // 16日先以降は予報期間外
   // 座標解決: 実座標があれば即採用（ジオコーディング不要）。無ければ住所→名前でジオコーディング。
-  let lat=null,lon=null;
+  let lat=null,lon=null,_geoSrc=null,_geoQ=null;
   if(geoPt){
-    lat=geoPt.lat;lon=geoPt.lon;
+    lat=geoPt.lat;lon=geoPt.lon;_geoSrc='geo';
   }else{
     const geoTargets=addr?buildGeoTargets(addr):buildNameTargets(name);
     for(const q of geoTargets){
       const cached=_geoCacheGet(q);
-      if(cached){lat=cached.lat;lon=cached.lon;break;}
+      if(cached){lat=cached.lat;lon=cached.lon;_geoSrc='cache';_geoQ=q;break;}
       const coords=await _geocodeParallel(q);
-      if(coords){lat=coords.lat;lon=coords.lon;_geoCacheSet(q,lat,lon);break;}
+      if(coords){lat=coords.lat;lon=coords.lon;_geoCacheSet(q,lat,lon);_geoSrc='net';_geoQ=q;break;}
     }
   }
   if(lat===null){if(_stopStillValid(stop)){wxStopRes[stop.id]={error:true,date,time:Date.now()};_dbgLog('wx_geocode_failed',{id:stop.id,q:(addr||name||'').slice(0,40)});}return;}
+  // 切り分け用：住所/名前がどの座標に解決したか・由来(geo実座標/cacheヒット/net=GSI取得)を記録。
+  // 「無意味な住所→全然違う土地の天気」が出たとき、出所座標をログから即特定できるようにする。
+  _dbgLog('wx_geocoded',{id:stop.id,src:_geoSrc,by:addr?'addr':'name',q:(_geoQ||addr||name||'').slice(0,40),lat:+lat.toFixed(5),lon:+lon.toFixed(5),date});
   await _fetchForecast(stop,lat,lon,date);
   // 予報取得が失敗（全プロバイダ不通）した場合は追跡用に記録
   if(wxStopRes[stop.id]&&wxStopRes[stop.id].error) _dbgLog('wx_forecast_failed',{id:stop.id});

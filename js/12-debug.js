@@ -25,6 +25,7 @@ export const DBG_IMP_EVENTS=new Set([
   'wakelock_failed','wakelock_released',
   'window_error','promise_rejection','app_error',
   'ls_quota_exceeded','ls_save_failed','ls_unavailable','autorestore_failed',
+  'wx_geocoded',
 ]);
 export let _dbgEnabled=false;
 export let _dbgErrCount=0;
