@@ -385,7 +385,9 @@ export async function _geocodeGSI(q){
         // GeoJSON形式: coordinates[0]=lon, coordinates[1]=lat
         const lon=parseFloat(j[0].geometry.coordinates[0]);
         const lat=parseFloat(j[0].geometry.coordinates[1]);
-        if(!isNaN(lat)&&!isNaN(lon)) return {lat,lon};
+        // title=GSIがマッチしたと主張する地名（化け座標の判定材料）, count=候補件数
+        const title=(j[0].properties&&j[0].properties.title)||null;
+        if(!isNaN(lat)&&!isNaN(lon)) return {lat,lon,title,count:j.length};
       }
     }
   }catch(e){clearTimeout(t);}
@@ -465,7 +467,7 @@ export async function doFetchStop(stop,date){
   if(diff<0){if(_stopStillValid(stop))wxStopRes[stop.id]={isPast:true,date,time:Date.now()};return;}     // 過去日付は取得しない
   if(diff>15){if(_stopStillValid(stop))wxStopRes[stop.id]={outOfRange:true,date,time:Date.now()};return;} // 16日先以降は予報期間外
   // 座標解決: 実座標があれば即採用（ジオコーディング不要）。無ければ住所→名前でジオコーディング。
-  let lat=null,lon=null,_geoSrc=null,_geoQ=null;
+  let lat=null,lon=null,_geoSrc=null,_geoQ=null,_geoTitle=null,_geoCount=null;
   if(geoPt){
     lat=geoPt.lat;lon=geoPt.lon;_geoSrc='geo';
   }else{
@@ -474,13 +476,14 @@ export async function doFetchStop(stop,date){
       const cached=_geoCacheGet(q);
       if(cached){lat=cached.lat;lon=cached.lon;_geoSrc='cache';_geoQ=q;break;}
       const coords=await _geocodeParallel(q);
-      if(coords){lat=coords.lat;lon=coords.lon;_geoCacheSet(q,lat,lon);_geoSrc='net';_geoQ=q;break;}
+      if(coords){lat=coords.lat;lon=coords.lon;_geoCacheSet(q,lat,lon);_geoSrc='net';_geoQ=q;_geoTitle=coords.title||null;_geoCount=coords.count??null;break;}
     }
   }
   if(lat===null){if(_stopStillValid(stop)){wxStopRes[stop.id]={error:true,date,time:Date.now()};_dbgLog('wx_geocode_failed',{id:stop.id,q:(addr||name||'').slice(0,40)});}return;}
   // 切り分け用：住所/名前がどの座標に解決したか・由来(geo実座標/cacheヒット/net=GSI取得)を記録。
-  // 「無意味な住所→全然違う土地の天気」が出たとき、出所座標をログから即特定できるようにする。
-  _dbgLog('wx_geocoded',{id:stop.id,src:_geoSrc,by:addr?'addr':'name',q:(_geoQ||addr||name||'').slice(0,40),lat:+lat.toFixed(5),lon:+lon.toFixed(5),date});
+  // title=GSIがマッチしたと主張する地名 / count=候補件数。入力qとtitleが全く掠らなければ「化け座標」の疑い。
+  // ※title/countはnet取得時のみ（cacheには座標しか保存しないため null になる）。
+  _dbgLog('wx_geocoded',{id:stop.id,src:_geoSrc,by:addr?'addr':'name',q:(_geoQ||addr||name||'').slice(0,40),title:_geoTitle,count:_geoCount,lat:+lat.toFixed(5),lon:+lon.toFixed(5),date});
   await _fetchForecast(stop,lat,lon,date);
   // 予報取得が失敗（全プロバイダ不通）した場合は追跡用に記録
   if(wxStopRes[stop.id]&&wxStopRes[stop.id].error) _dbgLog('wx_forecast_failed',{id:stop.id});
