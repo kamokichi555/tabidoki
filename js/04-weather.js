@@ -117,7 +117,7 @@ export function stopWxInner(stopId,hasAddr){
   if(r==='loading') return '<div class="stop-wx-loading">🌐 取得中…</div>';
   if(r.isPast) return '';
   if(r.outOfRange) return '<div class="stop-wx-loading" title="予報は16日先まで取得できます">📅 予報期間外</div>';
-  if(r.error) return `<div class="stop-wx-loading" onclick="retryStopWeather('${stopId}')" style="cursor:pointer" title="タップして再取得">⚠️ 再取得</div>`;
+  if(r.error) return `<div class="stop-wx-loading" onclick="retryStopWeather('${stopId}')" style="cursor:pointer" title="タップして再取得">↻ 再取得</div>`;
   const w=WMO[r.wcode]??{e:'🌡️',t:'不明'};
   const p=r.precip??null;
   const pStr=p!==null?`${p}%`:'--';
@@ -151,7 +151,7 @@ export function rideWxCompact(stopId,hasAddr){
   if(!r||r==='loading') return _state('🌐','取得中…');
   if(r.isPast) return '';
   if(r.outOfRange) return _state('📅','予報期間外');
-  if(r.error) return `<div class="ride-wx-compact" onclick="retryStopWeather('${stopId}')" style="cursor:pointer"><div class="cw-row1"><span class="cw-icon">⚠️</span><span class="cw-cond" style="opacity:.5">再取得</span></div></div>`;
+  if(r.error) return `<div class="ride-wx-compact" onclick="retryStopWeather('${stopId}')" style="cursor:pointer"><div class="cw-row1"><span class="cw-icon">↻</span><span class="cw-cond" style="opacity:.5">再取得</span></div></div>`;
   const w=WMO[r.wcode]??{e:'🌡️',t:''};
   const p=r.precip??null;
   const pStr=p!==null?`${p}%`:'';
@@ -183,7 +183,7 @@ export function rideWxStrip(stopId,hasAddr){
   if(!r||r==='loading') return '<span class="ride-wx-strip"><span class="rws-ic">🌐</span></span>';
   if(r.isPast) return '';
   if(r.outOfRange) return '<span class="ride-wx-strip"><span class="rws-ic">📅</span></span>';
-  if(r.error) return `<span class="ride-wx-strip" onclick="event.stopPropagation();retryStopWeather('${stopId}')" style="cursor:pointer"><span class="rws-ic">⚠️</span></span>`;
+  if(r.error) return `<span class="ride-wx-strip" onclick="event.stopPropagation();retryStopWeather('${stopId}')" style="cursor:pointer"><span class="rws-ic">↻</span></span>`;
   const w=WMO[r.wcode]??{e:'🌡️',t:''};
   const temp=r.temp!=null?Math.round(r.temp):(r.tmax!=null?Math.round(r.tmax):null);
   const p=r.precip??null;
