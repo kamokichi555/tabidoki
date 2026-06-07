@@ -28,6 +28,8 @@ export let _gpsViewLockTimer=null;
 export let _gpsLastPos=null;           // 直近のGPS座標 {lat,lon,acc,ts}
 export let _gpsStale=false;            // 一定時間 新しい位置が来ていない（トンネル等）
 let _gpsStaleTimer=null;               // 鮮度タイマー
+let _gpsNoFix=false;                   // 走行開始後、一定時間 一度も測位できていない（本体GPSオフ疑い）
+let _gpsNoFixTimer=null;               // 初回測位待ちタイマー
 let _gpsLastProcessTs=0;               // 重い処理を最後に実行した時刻（間引き用）
 let _gpsLastFixTs=0;                   // 直近の測位が届いた時刻（配信間隔ログ用。間引きとは無関係）
 let _gpsLastDbgFixTs=0;                // gps_fix をデバッグ記録した最後の時刻（記録の間引き用）
@@ -35,6 +37,7 @@ let _gpsLastDbgFixTs=0;                // gps_fix をデバッグ記録した最
 /* ══ 調整パラメータ ══ */
 export const GPS_MIN_PROCESS_MS=3000;  // 位置処理（距離計算・再描画）の最短間隔（ms）。watchPositionの高頻度発火を間引く
 export const GPS_STALE_MS=15000;       // この時間 新しい位置が来なければ「再取得中」表示にする（ms）
+export const GPS_NOFIX_MS=30000;       // 走行開始後この時間 一度も測位できなければ「GPS確認」を促す（本体GPSオフ疑い／ms）
 export const GPS_ARRIVE_M=300;         // 到着とみなす距離（m）
 export const GPS_ACC_MAX=100;          // この精度(m)より悪いGPSは自動切替に使わない
 export const GPS_MANUAL_LOCK_MS=60000; // 手動現在地設定後の抑制時間（ms）
@@ -217,6 +220,9 @@ export function _gpsOnPosition(pos){
   if(!S.isRide||!_gpsEnabled) return;
   const lat=pos.coords.latitude,lon=pos.coords.longitude,acc=pos.coords.accuracy;
   _gpsLastPos={lat,lon,acc,ts:Date.now()};
+  // 測位が届いた → 「本体GPSオフ疑い」の待ちは解除（初回のみタイマーが生きている。以降はnull）
+  if(_gpsNoFixTimer){clearTimeout(_gpsNoFixTimer);_gpsNoFixTimer=null;}
+  _gpsNoFix=false;
   // 【計測用】測位が届くたびに前回からの経過ms(dt)と精度(acc)を記録。ただし毎秒記録すると
   // 500件バッファがgps_fixで埋まり、auto_switch等の重要イベントが押し出されて消えるため、
   // 記録は約15秒に1回に間引く（dt/accの傾向把握には十分。間引き判定 _gpsLastProcessTs とは別物）。
@@ -300,14 +306,29 @@ export function _gpsStart(){
   _gpsLastFixTs=0;     // 配信間隔の基準もリセット（前セッションの巨大なdtを出さない）
   _gpsLastDbgFixTs=0;  // 開始直後の最初の gps_fix は必ず記録する（間引き基準リセット）
   _gpsWatchId=navigator.geolocation.watchPosition(_gpsOnPosition,_gpsOnError,opts);
+  // 走行開始後 GPS_NOFIX_MS 経っても一度も測位が来なければ「GPS確認」を促す。
+  // ★トンネル等の一時失敗と誤認しないため、判定は「初回測位前(_gpsLastPos===null)」に限定する。
+  //   一度でも測位できた後の失敗は鮮度タイマー(_gpsStale→📡再取得)に委ね、ここでは扱わない。
+  if(_gpsNoFixTimer){clearTimeout(_gpsNoFixTimer);_gpsNoFixTimer=null;}
+  _gpsNoFix=false;
+  _gpsNoFixTimer=setTimeout(()=>{
+    _gpsNoFixTimer=null;
+    if(!_gpsEnabled||!S.isRide) return; // 状況が変わっていれば何もしない
+    if(_gpsLastPos) return;             // 既に測位できていれば不要（防御的）
+    _gpsNoFix=true;
+    _gpsUpdateStatus();
+    showInfoToast('⚠️ 位置情報が取得できません。端末のGPS（位置情報サービス）がオンかご確認ください',5000);
+    _dbgLog('gps_nofix',{ms:GPS_NOFIX_MS});
+  },GPS_NOFIX_MS);
   _gpsUpdateStatus();
 }
 export function _gpsStop(){
   if(_gpsWatchId!==null){navigator.geolocation.clearWatch(_gpsWatchId);_gpsWatchId=null;}
   if(_gpsStaleTimer){clearTimeout(_gpsStaleTimer);_gpsStaleTimer=null;}
+  if(_gpsNoFixTimer){clearTimeout(_gpsNoFixTimer);_gpsNoFixTimer=null;}
   if(_gpsManualOverrideTimer){clearTimeout(_gpsManualOverrideTimer);_gpsManualOverrideTimer=null;}
   if(_gpsViewLockTimer){clearTimeout(_gpsViewLockTimer);_gpsViewLockTimer=null;}
-  _gpsManualOverride=false;_gpsViewLock=false;_gpsLastPos=null;_gpsStale=false;_gpsLastProcessTs=0;_gpsLastFixTs=0;_gpsLastDbgFixTs=0;
+  _gpsManualOverride=false;_gpsViewLock=false;_gpsLastPos=null;_gpsStale=false;_gpsNoFix=false;_gpsLastProcessTs=0;_gpsLastFixTs=0;_gpsLastDbgFixTs=0;
   _gpsUpdateStatus();
 }
 
@@ -356,7 +377,11 @@ export function _gpsUpdateStatus(){
   // オン・走行前：待機中（走行モードに入ると追跡開始）
   if(!S.isRide){set('📍','GPS ON','ok','GPS自動追跡：オン（走行中に追跡。タップでオフ）');return;}
   // オン・走行中：実測状態
-  if(!_gpsLastPos){set('📡','取得中','','GPS取得中（タップでオフ）');return;}
+  if(!_gpsLastPos){
+    // 一度も測位できないまま GPS_NOFIX_MS 経過＝本体GPSオフ疑い（タイマーがフラグを立てる）
+    if(_gpsNoFix){set('📡','GPS確認','warn','位置情報が取得できません。端末のGPS（位置情報サービス）がオンかご確認ください（タップでオフ）');return;}
+    set('📡','取得中','','GPS取得中（タップでオフ）');return;
+  }
   if(_gpsStale){set('📡','再取得','warn','GPS再取得中（位置が一定時間更新されていません／タップでオフ）');return;} // 一定時間 新位置なし（トンネル等）。直近の現在地は保持
   if(_gpsLastPos.acc>GPS_ACC_MAX){set('⚠️','精度低','warn','GPS精度が低い状態です（タップでオフ）');return;}
   set('📍','追跡中','ok','GPS追跡中（タップでオフ）');

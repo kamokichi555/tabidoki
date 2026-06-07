@@ -115,7 +115,13 @@ export function captureCurrentLocation(){
   },err=>{
     reset();
     _dbgLog('geo_capture_err',{code:err.code,msg:String(err.message||'').slice(0,80)});
-    showInfoToast(err.code===1?'⚠️ 位置情報の許可が必要です':'⚠️ 現在地を取得できませんでした',4000);
+    // code 1(許可拒否)は「ブラウザの許可」の話なので本体GPSと混ぜない。
+    // code 2/3(取得不能/タイムアウト)は本体の位置情報サービスがオフの可能性があるため確認を促す
+    // （「オフです」と断定せず「オンかご確認ください」に留める：トンネル等の一時失敗とも区別不能なため）。
+    const msg=err.code===1
+      ? '⚠️ 位置情報の許可が必要です'
+      : '⚠️ 現在地を取得できませんでした。端末の位置情報（GPS）がオンかご確認ください';
+    showInfoToast(msg,4500);
   },{enableHighAccuracy:true,maximumAge:0,timeout:15000});
 }
 /* ══ 住所欄が「住所」か「座標」かを判定してヒント表示 ══ */
