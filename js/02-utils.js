@@ -26,6 +26,26 @@ export function buildGeoTargets(addr){
   return [geoQuery,...(cityOnly&&cityOnly!==geoQuery?[cityOnly]:[])];
 }
 export function hasCachedCoords(addr){return buildGeoTargets(addr).some(q=>!!_geoCacheGet(q));}
+/* ── GSIジオコーディングの一致レベル判定 ──
+   入力q（住所文字列）と、GSIが「ここにマッチした」と返した地名title の一致度を3段階で返す。
+   返り値:
+     'exact'    … 正規化後に完全一致（例:「東京都」→「東京都」）。解釈ズレ無し→確認不要。
+     'partial'  … q⊂title / title⊂q、または文字重なり50%以上（例:「西区」→「北海道札幌市西区」,
+                  「つくば市」→「茨城県つくば市」）。掠るが勝手に補完された可能性→軽い確認。
+     'mismatch' … 包含もなく重なり50%未満（例:「あいう」→「相内川」,「道の駅もてぎ」→「山梨県身延町道」）→強い確認。
+     'unknown'  … title不明/空。判定不能→確認不要（弾かない・安全側）。
+   比較前にNFKC正規化（全角半角・大小文字統一）＋空白/長音/ハイフン除去で表記揺れを吸収。 */
+export function geoMatchLevel(q,title){
+  if(!title) return 'unknown';
+  const norm=s=>String(s).normalize('NFKC').toLowerCase().replace(/[\s\u3000ー－\-]/g,'');
+  const nq=norm(q),nt=norm(title);
+  if(!nq) return 'unknown';
+  if(nq===nt) return 'exact';
+  if(nt.includes(nq)||nq.includes(nt)) return 'partial';
+  const tset=new Set(nt.split(''));
+  let hit=0;for(const c of nq) if(tset.has(c)) hit++;
+  return (hit/nq.length)<0.5 ? 'mismatch' : 'partial';
+}
 /* ── 「緯度, 経度」文字列を座標に解析（住所欄が座標形式かを判定）──
    Googleマップ等からのコピペを想定。全角数字・記号や括弧・空白も受ける。
    座標として妥当（lat -90..90 / lon -180..180、両方に小数点あり）なときだけ {lat,lon}。

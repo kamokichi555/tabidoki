@@ -12,7 +12,7 @@ import { EC, LIMIT } from './00-constants.js';
 import { S, _canEditData, _dom, data } from './01-state.js';
 import { fromMin, isTimeOrderOk, isValidTime, parseCoord, extractMapCoord, isShareMapUrl, isDmsCoord, sanitize, toMin } from './02-utils.js';
 import { save } from './03-storage.js';
-import { wxQueueIds, wxStopRes } from './04-weather.js';
+import { wxQueueIds, wxStopRes, enqueueStop, _isoToday } from './04-weather.js';
 import { _cachedCdiForId, _invalidateCdi, currentDayIdxOf, syncBorderAddr } from './06-day.js';
 import { render, renderRide, showAppError, showInfoToast, showValError } from './07-render.js';
 import { setFormAdd } from './08-mode.js';
@@ -33,6 +33,22 @@ export function getStatus(s,idx,ds,cdi){
   const ci=ds.findIndex(x=>x.id===S.manualCurrentId);
   if(ci!==-1) return idx<ci?'past':'upcoming';
   return idx===0?'current':'upcoming';
+}
+// 化け座標の確認UIで「はい、この場所で表示」を押したとき：その地点を承認(geoOk=true)して保存し天気を再取得。
+export function confirmGeo(stopId){
+  let stop=null,date='';
+  for(let di=0;di<data.days.length;di++){
+    const s=data.days[di].stops.find(s=>s.id===stopId);
+    if(s){stop=s;date=data.days[di].date||_isoToday(di);break;}
+  }
+  if(!stop) return;
+  stop.geoOk=true;
+  save();
+  delete wxStopRes[stopId];wxQueueIds.delete(stopId);
+  enqueueStop(stop,date);
+  const el=document.getElementById('wx-'+stopId);
+  if(el) el.innerHTML='<div class="stop-wx-loading">🌐 取得中…</div>';
+  showInfoToast('🌐 この場所で天気を取得します',2000);
 }
 export function saveStop(){
   _dbgLog('saveStop:in', _dbgSnapshot);
@@ -60,7 +76,10 @@ export function saveStop(){
       const idx=ds.findIndex(s=>s.id===S.editingId);
       if(idx===-1){showAppError(EC.STOP,new Error('編集中の地点が見つかりません'));setFormAdd();return;}
       const oldDep=ds[idx].dep;
-      ds[idx]={...ds[idx],name,addr,arr:newArr,dep:newDep,note,log,actArr,actDep,fuel,geo};
+      // 住所が変わったら化け承認(geoOk)を破棄して再判定させる。座標(geo)入力は判定対象外だが、揃えてリセット。
+      const addrChanged=(ds[idx].addr||'')!==(addr||'');
+      const geoOk=addrChanged?false:ds[idx].geoOk;
+      ds[idx]={...ds[idx],name,addr,arr:newArr,dep:newDep,note,log,actArr,actDep,fuel,geo,geoOk};
       // 住所または日付が変わった可能性があるためキャッシュクリア
       delete wxStopRes[S.editingId];wxQueueIds.delete(S.editingId);
       if(newDep&&oldDep!==newDep)cascadeFrom(S.currentDay,idx,oldDep);

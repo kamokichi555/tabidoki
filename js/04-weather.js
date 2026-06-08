@@ -9,7 +9,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { S, data } from './01-state.js';
 import { LSK, SK, WMO, WX_GEOCODE_INTERVAL_MS } from './00-constants.js';
-import { buildGeoTargets, hasCachedCoords, hasGeo, pClass } from './02-utils.js';
+import { buildGeoTargets, hasCachedCoords, hasGeo, pClass, esc, escJsAttr, geoMatchLevel } from './02-utils.js';
 import { currentDayFlat } from './06-day.js';
 import { renderRide, showInfoToast, updateClock } from './07-render.js';
 import { _dbgLog } from './12-debug.js';
@@ -48,7 +48,7 @@ export const GEO_SK='touring_geo';
 export const GEO_MAX=80; // LRU上限
 export const geoCache=(()=>{try{return JSON.parse(localStorage.getItem(GEO_SK))||{};}catch(e){return{};}})();
 export function _geoCacheGet(q){const e=geoCache[q];if(!e)return null;e.ts=Date.now();return e;}
-export function _geoCacheSet(q,lat,lon){geoCache[q]={lat,lon,ts:Date.now()};_saveGeoCache();}
+export function _geoCacheSet(q,lat,lon,title){geoCache[q]={lat,lon,title:title||null,ts:Date.now()};_saveGeoCache();}
 export function _saveGeoCache(){try{
   const keys=Object.keys(geoCache);
   if(keys.length>GEO_MAX){
@@ -116,6 +116,20 @@ export function stopWxInner(stopId,hasAddr){
   if(!r) return '<div class="stop-wx-loading">🌐 取得中…</div>';
   if(r==='loading') return '<div class="stop-wx-loading">🌐 取得中…</div>';
   if(r.isPast) return '';
+  if(r.geoConfirm==='mismatch') return `<div class="stop-wx-confirm strong">
+    <div class="swm-msg">⚠️ 住所が特定できません。GSIは「${esc(r.title||'?')}」にマッチしました。この場所で合っていますか？</div>
+    <div class="swm-btns">
+      <button type="button" class="swm-ok" onclick="confirmGeo('${escJsAttr(stopId)}')">はい、この場所で表示</button>
+      <button type="button" class="swm-fix" onclick="openEditStop('${escJsAttr(stopId)}')">住所を直す</button>
+    </div>
+  </div>`;
+  if(r.geoConfirm==='partial') return `<div class="stop-wx-confirm light">
+    <div class="swm-msg">📍 「${esc(r.title||'?')}」として扱います。よろしいですか？</div>
+    <div class="swm-btns">
+      <button type="button" class="swm-ok" onclick="confirmGeo('${escJsAttr(stopId)}')">OK</button>
+      <button type="button" class="swm-fix" onclick="openEditStop('${escJsAttr(stopId)}')">住所を直す</button>
+    </div>
+  </div>`;
   if(r.outOfRange) return '<div class="stop-wx-loading" title="予報は16日先まで取得できます">📅 予報期間外</div>';
   if(r.error) return `<div class="stop-wx-loading" onclick="retryStopWeather('${stopId}')" style="cursor:pointer" title="タップして再取得">↻ 再取得</div>`;
   const w=WMO[r.wcode]??{e:'🌡️',t:'不明'};
@@ -150,6 +164,7 @@ export function rideWxCompact(stopId,hasAddr){
   const _state=(icon,msg)=>`<div class="ride-wx-compact"><div class="cw-row1"><span class="cw-icon">${icon}</span><span class="cw-cond" style="opacity:.5">${msg}</span></div></div>`;
   if(!r||r==='loading') return _state('🌐','取得中…');
   if(r.isPast) return '';
+  if(r.geoConfirm) return '';
   if(r.outOfRange) return _state('📅','予報期間外');
   if(r.error) return `<div class="ride-wx-compact" onclick="retryStopWeather('${stopId}')" style="cursor:pointer"><div class="cw-row1"><span class="cw-icon">↻</span><span class="cw-cond" style="opacity:.5">再取得</span></div></div>`;
   const w=WMO[r.wcode]??{e:'🌡️',t:''};
@@ -182,6 +197,7 @@ export function rideWxStrip(stopId,hasAddr){
   const r=wxStopRes[stopId];
   if(!r||r==='loading') return '<span class="ride-wx-strip"><span class="rws-ic">🌐</span></span>';
   if(r.isPast) return '';
+  if(r.geoConfirm) return '';
   if(r.outOfRange) return '<span class="ride-wx-strip"><span class="rws-ic">📅</span></span>';
   if(r.error) return `<span class="ride-wx-strip" onclick="event.stopPropagation();retryStopWeather('${stopId}')" style="cursor:pointer"><span class="rws-ic">↻</span></span>`;
   const w=WMO[r.wcode]??{e:'🌡️',t:''};
@@ -474,16 +490,27 @@ export async function doFetchStop(stop,date){
     const geoTargets=addr?buildGeoTargets(addr):buildNameTargets(name);
     for(const q of geoTargets){
       const cached=_geoCacheGet(q);
-      if(cached){lat=cached.lat;lon=cached.lon;_geoSrc='cache';_geoQ=q;break;}
+      if(cached){lat=cached.lat;lon=cached.lon;_geoSrc='cache';_geoQ=q;_geoTitle=cached.title||null;break;}
       const coords=await _geocodeParallel(q);
-      if(coords){lat=coords.lat;lon=coords.lon;_geoCacheSet(q,lat,lon);_geoSrc='net';_geoQ=q;_geoTitle=coords.title||null;_geoCount=coords.count??null;break;}
+      if(coords){lat=coords.lat;lon=coords.lon;_geoCacheSet(q,lat,lon,coords.title);_geoSrc='net';_geoQ=q;_geoTitle=coords.title||null;_geoCount=coords.count??null;break;}
     }
   }
   if(lat===null){if(_stopStillValid(stop)){wxStopRes[stop.id]={error:true,date,time:Date.now()};_dbgLog('wx_geocode_failed',{id:stop.id,q:(addr||name||'').slice(0,40)});}return;}
   // 切り分け用：住所/名前がどの座標に解決したか・由来(geo実座標/cacheヒット/net=GSI取得)を記録。
   // title=GSIがマッチしたと主張する地名 / count=候補件数。入力qとtitleが全く掠らなければ「化け座標」の疑い。
-  // ※title/countはnet取得時のみ（cacheには座標しか保存しないため null になる）。
   _dbgLog('wx_geocoded',{id:stop.id,src:_geoSrc,by:addr?'addr':'name',q:(_geoQ||addr||name||'').slice(0,40),title:_geoTitle,count:_geoCount,lat:+lat.toFixed(5),lon:+lon.toFixed(5),date});
+  // 住所の解釈確認：GSIが返したtitleと入力addrの一致レベルで分岐。
+  // ・exact(完全一致)/unknown(title無) → 確認なしで天気取得。
+  // ・partial(掠るが補完あり。例「西区」→「札幌市西区」) → 軽い確認。
+  // ・mismatch(化け。例「あいう」→「相内川」) → 強い確認。
+  // geoPt(実座標)由来は判定対象外。geoOk===true(承認済み)は全段スルー。
+  if(addr&&_geoSrc!=='geo'&&stop.geoOk!==true){
+    const lv=geoMatchLevel(addr,_geoTitle);
+    if(lv==='partial'||lv==='mismatch'){
+      if(_stopStillValid(stop)){wxStopRes[stop.id]={geoConfirm:lv,title:_geoTitle||'',date,time:Date.now()};_dbgLog('wx_geo_confirm',{id:stop.id,level:lv,q:(addr||'').slice(0,40),title:_geoTitle});}
+      return;
+    }
+  }
   await _fetchForecast(stop,lat,lon,date);
   // 予報取得が失敗（全プロバイダ不通）した場合は追跡用に記録
   if(wxStopRes[stop.id]&&wxStopRes[stop.id].error) _dbgLog('wx_forecast_failed',{id:stop.id});
