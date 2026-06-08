@@ -186,13 +186,13 @@
           <span>詳細（住所・給油・実績）</span>
         </button>
         <div class="details-body" id="details-body" style="display:none">
-          <input id="inp-addr" type="text" maxlength="100" placeholder="住所 / 座標 / GoogleマップURL を貼り付け・任意" oninput="_updateGeoHint()" onpaste="_onAddrPaste(event)">
+          <input id="inp-addr" type="text" maxlength="100" placeholder="座標 / 住所 / URL（任意）" oninput="_updateGeoHint()" onpaste="_onAddrPaste(event)">
           <div class="geo-field-row">
+            <button type="button" class="geo-map-btn" id="geo-map-btn" onclick="openInGoogleMaps()">🗺 Googleで探す</button>
             <button type="button" class="geo-capture-btn" id="geo-capture-btn" onclick="captureCurrentLocation()">📍 現在地</button>
-            <button type="button" class="geo-map-btn" id="geo-map-btn" onclick="openInGoogleMaps()">🗺 Googleで開く</button>
-            <span class="geo-hint" id="geo-hint"></span>
           </div>
-          <button type="button" class="geo-paste-btn" id="geo-paste-btn" onclick="pasteFromClipboard()">📋 クリップボードから貼り付け</button>
+          <span class="geo-hint" id="geo-hint"></span>
+          <button type="button" class="geo-paste-btn" id="geo-paste-btn" onclick="pasteFromClipboard()">📋 座標を貼り付け</button>
           <div class="geo-paste-note">※ Googleで座標をコピーしてからタップ。初回は貼り付けの許可確認が出ることがあります。</div>
           <div class="geo-warn" id="geo-warn">
             <div class="geo-warn-title"><span class="geo-warn-ico">⚠️</span> この共有リンクには座標が入っていません</div>
