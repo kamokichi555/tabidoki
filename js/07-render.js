@@ -176,7 +176,7 @@ export function renderRide(){
   const _logHtml=s=>s.log?`<div class="ride-log">📝 ${esc(s.log)}</div>`:'';
   const _chips=(s,cls='ride-chip-val')=>{const _sd=stayDur(s.arr,s.dep);return`<div class="ride-chips">
         ${s.arr?`<div class="ride-chip"><div class="ride-chip-label">着</div><div class="${cls}">${s.arr}</div></div>`:''}
-        ${s.dep?`<div class="ride-chip"><div class="ride-chip-label">発</div><div class="${cls}">${s.dep}</div>${_sd?`<div style="font-size:15px;color:var(--text3);font-weight:600;align-self:center;margin-left:2px">${_sd}</div>`:''}</div>`:''}</div>`;
+        ${s.dep?`<div class="ride-chip"><div class="ride-chip-label">発</div><div class="${cls}">${s.dep}</div>${_sd?`<div style="font-size:15px;color:var(--text3);font-weight:600;align-self:center;margin-left:2px;white-space:nowrap">${_sd}</div>`:''}</div>`:''}</div>`;
   };
   let h='';
   const vs=flat[S.rideViewIdx];
@@ -424,7 +424,7 @@ export function render(){
     ${s.addr?(parseCoord(s.addr)?`<div class="stop-addr">📍 <span class="stop-addr-coordlabel">座標登録済み</span><span class="stop-addr-coord">${esc(s.addr)}</span></div>`:`<div class="stop-addr">📍 ${esc(s.addr)}</div>`):''}
     <div class="stop-times">
       ${s.arr?`<div class="time-chip"><span class="time-label">着</span><span class="time-value">${s.arr}</span></div>`:''}
-      ${s.dep?`<div class="time-chip"><span class="time-label">発</span><span class="time-value">${s.dep}</span>${_sdur?`<span style="font-size:16px;color:var(--text3);font-weight:600;margin-left:4px;align-self:center">${_sdur}</span>`:''}</div>`:''}
+      ${s.dep?`<div class="time-chip"><span class="time-label">発</span><span class="time-value">${s.dep}</span>${_sdur?`<span style="font-size:16px;color:var(--text3);font-weight:600;margin-left:4px;align-self:center;white-space:nowrap">${_sdur}</span>`:''}</div>`:''}
       ${!s.arr&&!s.dep?'<span style="color:var(--text3);font-size:16px">時刻未設定</span>':''}
     </div>
     <div id="wx-${s.id}">${stopWxInner(s.id,!!(s.addr||hasGeo(s)))}</div>
