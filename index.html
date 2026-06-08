@@ -70,7 +70,7 @@
   <div class="day-manage" id="day-manage" style="display:none">
     <div class="day-manage-btns">
       <button onclick="addDay()">＋ 日程追加</button>
-      <button onclick="deleteCurrentDay()" class="danger">🗑️ 削除</button>
+      <button onclick="deleteCurrentDay()" class="danger day-del" aria-label="この日程を削除" title="この日程を削除">🗑️</button>
     </div>
     <div class="day-inline-row">
       <input id="inp-day-date" type="date" oninput="saveDayDate()" style="flex:0 0 auto;width:140px">
@@ -84,7 +84,7 @@
   <nav id="menu-drawer" aria-label="メニュー">
     <div class="menu-drawer-head">
       <span class="menu-drawer-title">🏍 メニュー</span>
-      <button type="button" class="menu-drawer-close" onclick="closeMenu()" title="閉じる">✕</button>
+      <button type="button" class="x-close" onclick="closeMenu()" title="閉じる">✕</button>
     </div>
     <div class="menu-drawer-body">
       <div class="menu-section-label">データ</div>
@@ -154,7 +154,7 @@
     <div class="edit-panel">
       <div class="edit-panel-head">
         <span id="form-title">地点を追加</span>
-        <button type="button" class="edit-close-btn" onclick="cancelEdit()" title="閉じる">✕</button>
+        <button type="button" class="x-close" onclick="cancelEdit()" title="閉じる">✕</button>
       </div>
       <div class="form-gap">
         <input id="inp-name" type="text" maxlength="50" placeholder="地点名（例：道の駅みつまた）">
@@ -232,7 +232,12 @@
   <div class="timeline" id="timeline"></div>
   <div class="empty-state" id="empty-state" style="display:none">
     <div style="font-size:48px;opacity:.4;margin-bottom:12px">🗺️</div>
-    <div style="font-size:14px">「編集」から地点を追加してください</div>
+    <div class="empty-head">まだ行程がありません</div>
+    <div class="empty-sub">地点を追加して旅程を作りましょう。<br>まずは例を見るのもおすすめです。</div>
+    <div class="empty-acts">
+      <button type="button" class="primary" onclick="onEditBtnClick()">＋ 最初の地点を追加</button>
+      <button type="button" onclick="loadSampleData()">🗺️ サンプルを見る</button>
+    </div>
   </div>
 </div>
 
@@ -252,7 +257,7 @@
 <div id="note-modal" style="display:none">
   <div class="nm-head">
     <span class="nm-title">📝 メモ</span>
-    <button type="button" class="nm-close" onclick="closeNoteModal(false)" title="破棄して閉じる">✕</button>
+    <button type="button" class="x-close" onclick="closeNoteModal(false)" title="破棄して閉じる">✕</button>
     <button type="button" class="nm-done" onclick="closeNoteModal(true)">完了</button>
   </div>
   <textarea id="note-modal-text" maxlength="1000" placeholder="メモ（食事・注意点など）"></textarea>
@@ -262,7 +267,7 @@
 <div id="log-modal" style="display:none">
   <div class="nm-head">
     <span class="nm-title">📝 走行メモ</span>
-    <button type="button" class="nm-close" onclick="closeLogModal(false)" title="破棄して閉じる">✕</button>
+    <button type="button" class="x-close" onclick="closeLogModal(false)" title="破棄して閉じる">✕</button>
     <button type="button" class="nm-done" onclick="closeLogModal(true)">完了</button>
   </div>
   <textarea id="log-modal-text" maxlength="200" placeholder="📝 走行メモ" onkeydown="if(event.key==='Enter'){event.preventDefault();}"></textarea>
