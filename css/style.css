@@ -28,7 +28,7 @@ body.day-mode .edit-panel{background:#ffffff}
 
 body.day-mode .day-tab{color:#777}
 body.day-mode .day-tab.on{color:var(--amber)}
-body.day-mode input[type=text],body.day-mode input[type=time],body.day-mode input[type=date]{background:#EDF0EA;color:#0a0a0a;border-color:rgba(0,0,0,.25)}
+body.day-mode input[type=text],body.day-mode input[type=time],body.day-mode input[type=date],body.day-mode input[type=number]{background:#EDF0EA;color:#0a0a0a;border-color:rgba(0,0,0,.25)}
 body.day-mode .ride-set-curr-btn{background:#e8e8e8;border-color:rgba(0,0,0,.2);color:#333}
 /* 実績時刻・走行ログ */
 .stop-act-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:5px;align-items:baseline}
@@ -236,8 +236,8 @@ body.day-mode .geo-paste-btn{color:#fff}
 .details-toggle.open .details-toggle-arrow{transform:rotate(180deg)}
 .details-body{display:flex;flex-direction:column;gap:12px;padding:12px;background:rgba(255,255,255,.02);border-radius:10px;border:1px solid var(--border)}
 body.day-mode .details-body{background:rgba(0,0,0,.03)}
-input[type=text],input[type=time],input[type=date],textarea{background:var(--bg3);border:1.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:inherit;font-size:17px;padding:13px 14px;width:100%;outline:none;transition:border-color .15s}
-input[type=text]:focus,input[type=time]:focus,input[type=date]:focus,textarea:focus{border-color:var(--amber);border-width:2px}
+input[type=text],input[type=time],input[type=date],input[type=number],textarea{background:var(--bg3);border:1.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:inherit;font-size:17px;padding:13px 14px;width:100%;outline:none;transition:border-color .15s}
+input[type=text]:focus,input[type=time]:focus,input[type=date]:focus,input[type=number]:focus,textarea:focus{border-color:var(--amber);border-width:2px}
 textarea{display:block;min-height:160px;max-height:48dvh;line-height:1.6;resize:vertical;overflow-y:hidden;white-space:pre-wrap;box-sizing:border-box}
 body.day-mode textarea{background:#EDF0EA;color:#0a0a0a;border-color:rgba(0,0,0,.25)}
 /* ══ メモ欄: 読み取り専用プレビュー、タップで全画面モーダル編集 ══ */
@@ -276,7 +276,6 @@ input[type=time]{font-family:'SF Mono','Menlo',monospace;font-weight:700;font-si
 input[type=time]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)}
 body.day-mode input[type=time]::-webkit-calendar-picker-indicator,
 body.day-mode input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0) opacity(.5)}
-input[type=date]{padding:11px 14px;font-size:16px}
 input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)}
 .input-group{display:flex;flex-direction:column;gap:6px}
 .input-label{font-size:15px;color:var(--text2);font-weight:700;letter-spacing:.04em}
@@ -514,7 +513,7 @@ body.mp-open{overflow:hidden}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
 .mp-search{display:flex;gap:8px;padding:11px 13px 8px}
 .mp-search input{flex:1;min-width:0;background:var(--bg2);border:1.5px solid var(--border2);border-radius:9px;
-  padding:11px 12px;font-family:inherit;font-size:16px;font-weight:600;color:var(--text);outline:none}
+  padding:13px 14px;font-family:inherit;font-size:17px;font-weight:600;color:var(--text);outline:none}
 .mp-search input:focus{border-color:var(--green)}
 .mp-search button{flex:0 0 auto;background:var(--green);color:#fff;border:none;border-radius:9px;
   padding:0 15px;font-size:18px;cursor:pointer}
