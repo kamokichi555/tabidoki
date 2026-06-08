@@ -75,8 +75,7 @@ body:not(.ride-mode) #now-display svg{height:clamp(26px,6.2vw,38px)!important}
 #ride-btn.on{background:var(--amber);color:#000;border-color:var(--amber)}
 /* 走行/編集 単一トグル（セグメント型） */
 .mode-toggle{display:flex;align-items:stretch;border:1.5px solid var(--amber);border-radius:11px;overflow:hidden;background:var(--amber-bg)}
-.header-quick .mode-toggle button{min-width:0;min-height:42px;padding:0 11px;font-size:18px;border:none;border-radius:0;background:transparent;color:var(--amber);display:flex;align-items:center;gap:4px;white-space:nowrap;line-height:1}
-.mode-toggle button .mt-lbl{font-size:13px;font-weight:700;letter-spacing:.02em}
+.header-quick .mode-toggle button{min-width:42px;min-height:42px;padding:0;font-size:20px;border:none;border-radius:0;background:transparent;color:var(--amber);display:flex;align-items:center;justify-content:center;line-height:1}
 .mode-toggle button.on{background:var(--amber);color:#000}
 body.day-mode .mode-toggle{background:rgba(138,107,26,.12)}
 body.day-mode .mode-toggle button.on{color:#fff}
