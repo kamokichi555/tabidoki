@@ -9,7 +9,7 @@ body.day-mode{--bg:#E7EBE3;--bg2:#F4F6F2;--bg3:#DCE1D9;--text:#1A1F1C;--text2:#2
    キーボード上部の黒帯（standalone PWA で manifest background_color=#000000 の canvas が露出）を防ぐ。
    ※ CSSカスタムプロパティは上方向に継承しないため html は :has() でテーマ追従させる。
    ※ 下記の背景2色は :root / body.day-mode の --bg と同期させること（どちらか変更時は両方更新）。 */
-html{background:#0F1110;color-scheme:dark}
+html{background:#0F1110;color-scheme:dark;overscroll-behavior-x:none}
 html:has(body.day-mode){background:#E7EBE3;color-scheme:light}
 body.day-mode #ride-btn{background:rgba(138,107,26,.15)}
 body.day-mode #ride-btn.on{background:var(--amber);color:#fff}
@@ -53,7 +53,7 @@ body.day-mode .ride-log{background:rgba(122,110,72,.07);border-left-color:rgba(1
 body.day-mode .fuel-check-row{background:#E7EBE3;border-color:rgba(0,0,0,.2)}
 body.day-mode .fuel-check-box{background:#fff;border-color:rgba(0,0,0,.3)}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);padding-bottom:env(safe-area-inset-bottom);font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;font-size:20px;line-height:1.75;max-width:480px;margin:0 auto;min-height:100vh;min-height:var(--app-h,100dvh);overflow-x:hidden}
+body{background:var(--bg);color:var(--text);padding-bottom:env(safe-area-inset-bottom);font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;font-size:20px;line-height:1.75;max-width:480px;margin:0 auto;min-height:100vh;min-height:var(--app-h,100dvh);overflow-x:hidden;overscroll-behavior-x:none}
 header{position:sticky;top:0;background:var(--bg);z-index:100000;border-bottom:2px solid var(--border);padding-top:env(safe-area-inset-top)}
 .header-clock{justify-self:center;min-width:0;margin:0 6px;padding:0 4px;display:flex;align-items:center;justify-content:center;animation:header-appear .4s ease 5.3s both;line-height:1.05}
 body:not(.ride-mode) #now-display svg{height:clamp(26px,6.2vw,38px)!important}
