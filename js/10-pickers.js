@@ -284,7 +284,7 @@ export function _openPickerModal(cfg){
       <button id="${id}-close-btn" class="x-close">✕</button>
     </div>
     <div style="padding:10px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
-      <input id="${id}-search" type="text" placeholder="${cfg.placeholder}" oninput="${cfg.oninput}" style="width:100%;background:var(--bg3);border:1.5px solid var(--border2);border-radius:10px;color:var(--text);font-size:16px;padding:10px 12px;font-family:inherit">
+      <input id="${id}-search" type="text" placeholder="${cfg.placeholder}" oninput="${cfg.oninput}" style="width:100%;background:var(--bg3);border:1.5px solid var(--border2);border-radius:10px;color:var(--text);font-size:17px;padding:13px 14px;font-family:inherit">
     </div>
     ${cfg.hintHtml||''}
     <div id="${id}-list" style="overflow-y:auto;flex:1;padding:${cfg.listPadding||'8px 0'};-webkit-overflow-scrolling:touch"></div>
