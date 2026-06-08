@@ -298,6 +298,17 @@ body.day-mode .stop-wx-tmin{color:#7A6E48}
 .stop-wx-precip.mid{color:var(--amber);background:rgba(143,165,107,.18)}
 .stop-wx-precip.high{color:var(--red);background:rgba(224,122,63,.18)}
 .stop-wx-loading{font-size:15px;color:var(--text3);margin-top:5px;opacity:.7}
+/* 住所の解釈確認UI（編集画面）。strong=化け疑い（警告色）, light=部分一致（中立色）。 */
+.stop-wx-confirm{margin-top:7px;padding:9px 11px;border-radius:8px}
+.stop-wx-confirm.strong{background:rgba(224,122,63,.08);border:1px solid rgba(224,122,63,.45)}
+.stop-wx-confirm.light{background:rgba(255,255,255,.04);border:1px solid var(--border2)}
+.stop-wx-confirm .swm-msg{font-size:13.5px;line-height:1.5;color:var(--text2)}
+.stop-wx-confirm .swm-btns{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
+.stop-wx-confirm .swm-btns button{flex:1;min-width:110px;font:inherit;font-size:13.5px;padding:8px 10px;border-radius:7px;cursor:pointer}
+.stop-wx-confirm .swm-ok{background:var(--accent,#4a5d33);color:#fff;border:1px solid var(--accent,#4a5d33)}
+.stop-wx-confirm .swm-fix{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+body.day-mode .stop-wx-confirm.strong{background:rgba(224,122,63,.1);border-color:rgba(224,122,63,.5)}
+body.day-mode .stop-wx-confirm.light{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.18)}
 /* 走行モードの天気ブロック */
 .ride-wx-compact{display:flex;flex-direction:column;gap:5px;margin-top:7px;padding:9px 12px;background:rgba(0,0,0,.15);border-radius:10px;border:1px solid var(--border2)}
 body.day-mode .ride-wx-compact{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.15)}
