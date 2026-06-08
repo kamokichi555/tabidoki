@@ -131,6 +131,13 @@ export function stopWxInner(stopId,hasAddr){
     </div>
   </div>`;
   if(r.outOfRange) return '<div class="stop-wx-loading" title="予報は16日先まで取得できます">📅 予報期間外</div>';
+  if(r.geoFail) return `<div class="stop-wx-confirm light">
+    <div class="swm-msg">⚠️ 住所が特定できませんでした</div>
+    <div class="swm-btns">
+      <button type="button" class="swm-ok" onclick="retryStopWeather('${escJsAttr(stopId)}')">再取得</button>
+      <button type="button" class="swm-fix" onclick="openEditStop('${escJsAttr(stopId)}')">住所を直す</button>
+    </div>
+  </div>`;
   if(r.error) return `<div class="stop-wx-loading" onclick="retryStopWeather('${stopId}')" style="cursor:pointer" title="タップして再取得">↻ 再取得</div>`;
   const w=WMO[r.wcode]??{e:'🌡️',t:'不明'};
   const p=r.precip??null;
@@ -495,7 +502,8 @@ export async function doFetchStop(stop,date){
       if(coords){lat=coords.lat;lon=coords.lon;_geoCacheSet(q,lat,lon,coords.title);_geoSrc='net';_geoQ=q;_geoTitle=coords.title||null;_geoCount=coords.count??null;break;}
     }
   }
-  if(lat===null){if(_stopStillValid(stop)){wxStopRes[stop.id]={error:true,date,time:Date.now()};_dbgLog('wx_geocode_failed',{id:stop.id,q:(addr||name||'').slice(0,40)});}return;}
+  // ジオコーディング失敗（GSI候補0件など）。geoFail=trueで予報フェッチ失敗(error単独)と区別し、専用メッセージを出す。
+  if(lat===null){if(_stopStillValid(stop)){wxStopRes[stop.id]={error:true,geoFail:true,date,time:Date.now()};_dbgLog('wx_geocode_failed',{id:stop.id,q:(addr||name||'').slice(0,40)});}return;}
   // 切り分け用：住所/名前がどの座標に解決したか・由来(geo実座標/cacheヒット/net=GSI取得)を記録。
   // title=GSIがマッチしたと主張する地名 / count=候補件数。入力qとtitleが全く掠らなければ「化け座標」の疑い。
   _dbgLog('wx_geocoded',{id:stop.id,src:_geoSrc,by:addr?'addr':'name',q:(_geoQ||addr||name||'').slice(0,40),title:_geoTitle,count:_geoCount,lat:+lat.toFixed(5),lon:+lon.toFixed(5),date});
