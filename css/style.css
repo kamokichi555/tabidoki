@@ -253,6 +253,19 @@ body.day-mode #note-preview.is-empty,body.day-mode #log-preview.is-empty{color:#
 #log-modal .nm-done{background:#C7C29A;color:#fff}
 /* ══ メモ全画面モーダル ══ */
 #note-modal,#log-modal{position:fixed;inset:0;z-index:1000000;background:var(--bg);display:flex;flex-direction:column}
+/* ══ 地点追加/編集フォーム（ボトムシート別窓） ══ */
+.add-stop-btn{width:100%;background:var(--amber);border:1.5px solid var(--amber);color:#000;font-family:inherit;font-weight:800;font-size:17px;padding:14px;border-radius:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-bottom:14px;transition:filter .12s,transform .08s}
+.add-stop-btn:active{transform:scale(.99);filter:brightness(.95)}
+body.day-mode .add-stop-btn{color:#fff}
+#stop-form-overlay{position:fixed;inset:0;z-index:900000;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .15s}
+#stop-form-overlay.open{opacity:1;pointer-events:auto}
+#stop-form-modal{position:fixed;left:50%;bottom:0;transform:translateX(-50%) translateY(100%);width:100%;max-width:480px;z-index:900001;background:var(--bg);border:1.5px solid var(--border2);border-bottom:none;border-radius:16px 16px 0 0;max-height:92dvh;display:flex;flex-direction:column;transition:transform .15s cubic-bezier(.2,0,.2,1)}
+#stop-form-modal.open{transform:translateX(-50%) translateY(0)}
+#stop-form-modal .sf-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 16px;border-bottom:1.5px solid var(--border);flex-shrink:0}
+#stop-form-modal .sf-head>#form-title{font-size:16px;font-weight:800;color:var(--amber);letter-spacing:.04em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#stop-form-modal .sf-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px}
+#stop-form-modal .sf-footer{flex-shrink:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1.5px solid var(--border);background:var(--bg)}
+body.day-mode #stop-form-modal,body.day-mode #stop-form-modal .sf-footer{background:#ffffff}
 #note-modal .nm-head,#log-modal .nm-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;gap:10px}
 #note-modal .nm-title,#log-modal .nm-title{font-weight:700;font-size:17px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #note-modal .nm-done,#log-modal .nm-done{border:none;border-radius:10px;background:var(--amber);color:#000;font-weight:800;font-size:16px;padding:9px 18px;cursor:pointer;flex-shrink:0}
