@@ -169,13 +169,13 @@
             <span class="time-inline-label">着</span>
             <input id="inp-arr" type="time" oninput="checkTimeOrder()">
           </div>
-          <span class="time-inline-arrow">↓</span>
+          <span class="time-inline-arrow">→</span>
           <div class="time-inline-item">
             <span class="time-inline-label">発</span>
             <input id="inp-dep" type="time" oninput="checkTimeOrder()">
           </div>
         </div>
-        <div id="stay-dur-preview" style="font-size:16px;color:var(--text3);font-weight:600;text-align:right;display:none;margin-top:-4px"></div>
+        <div id="stay-dur-preview" style="font-size:16px;color:var(--text3);font-weight:600;text-align:left;display:none;margin-top:2px"></div>
         <div id="time-order-error" style="display:none;font-size:16px;color:var(--red);margin-top:-4px">⚠ 出発時刻は到着時刻より後にしてください</div>
         <textarea id="inp-note" maxlength="1000" rows="6" placeholder="メモ（食事・注意点など）" style="display:none"></textarea>
         <div id="note-preview" class="is-empty" role="button" tabindex="0" onclick="openNoteModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openNoteModal()}"></div>
@@ -215,7 +215,7 @@
               <span class="time-inline-label" style="color:rgba(77,166,255,.9)">実着</span>
               <input id="inp-act-arr" type="time" style="border-color:rgba(77,166,255,.45)">
             </div>
-            <span class="time-inline-arrow">↓</span>
+            <span class="time-inline-arrow">→</span>
             <div class="time-inline-item">
               <span class="time-inline-label" style="color:rgba(77,166,255,.9)">実発</span>
               <input id="inp-act-dep" type="time" style="border-color:rgba(77,166,255,.45)">
