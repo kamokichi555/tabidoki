@@ -151,81 +151,7 @@
         <div style="font-size:15px;color:var(--text3);font-weight:600">保存時のファイル名・共有テキスト・走行記録に使われます</div>
       </div>
     </div>
-    <div class="edit-panel">
-      <div class="edit-panel-head">
-        <span id="form-title">地点を追加</span>
-        <button type="button" class="x-close" onclick="cancelEdit()" title="閉じる">✕</button>
-      </div>
-      <div class="form-gap">
-        <input id="inp-name" type="text" maxlength="50" placeholder="地点名（例：道の駅みつまた）">
-        <div class="picker-chips">
-          <button type="button" class="picker-chip ch-hw" onclick="openHighway()">🛣 高速</button>
-          <button type="button" class="picker-chip ch-mn" onclick="openMichinoEki()">🏪 道の駅</button>
-          <button type="button" class="picker-chip ch-gs" onclick="openGasStation()">⛽ GS</button>
-          <button type="button" class="picker-chip ch-kk" onclick="openKaikatsu()">🏨 快活</button>
-        </div>
-        <div class="time-inline-row">
-          <div class="time-inline-item">
-            <span class="time-inline-label">着</span>
-            <input id="inp-arr" type="time" oninput="checkTimeOrder()">
-          </div>
-          <span class="time-inline-arrow">→</span>
-          <div class="time-inline-item">
-            <span class="time-inline-label">発</span>
-            <input id="inp-dep" type="time" oninput="checkTimeOrder()">
-          </div>
-        </div>
-        <div id="stay-dur-preview" style="font-size:16px;color:var(--text3);font-weight:600;text-align:left;display:none;margin-top:2px"></div>
-        <div id="time-order-error" style="display:none;font-size:16px;color:var(--red);margin-top:-4px">⚠ 出発時刻は到着時刻より後にしてください</div>
-        <textarea id="inp-note" maxlength="1000" rows="6" placeholder="メモ（食事・注意点など）" style="display:none"></textarea>
-        <div id="note-preview" class="is-empty" role="button" tabindex="0" onclick="openNoteModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openNoteModal()}"></div>
-        <button type="button" class="details-toggle" id="details-toggle" onclick="toggleDetails()">
-          <span class="details-toggle-arrow">▼</span>
-          <span>詳細（場所・給油・走行記録・実績）</span>
-        </button>
-        <div class="details-body" id="details-body" style="display:none">
-          <input id="inp-addr" type="text" maxlength="100" placeholder="座標 / 住所 / URL（任意）" oninput="_updateGeoHint()" onpaste="_onAddrPaste(event)">
-          <div class="geo-field-row">
-            <button type="button" class="geo-map-btn" id="geo-map-btn" onclick="openInGoogleMaps()">🗺 Googleで探す</button>
-            <button type="button" class="geo-capture-btn" id="geo-capture-btn" onclick="captureCurrentLocation()">📍 現在地</button>
-          </div>
-          <span class="geo-hint" id="geo-hint"></span>
-          <button type="button" class="geo-paste-btn" id="geo-paste-btn" onclick="pasteFromClipboard()">📋 座標を貼り付け</button>
-          <div class="geo-paste-note">※ Googleで座標をコピーしてからタップ。初回は貼り付けの許可確認が出ることがあります。</div>
-          <div class="geo-warn" id="geo-warn">
-            <div class="geo-warn-title"><span class="geo-warn-ico">⚠️</span> この共有リンクには座標が入っていません</div>
-            <div class="geo-warn-body">Googleマップの「共有」リンク（maps.app.goo.gl/…）は場所の座標を持たないため取り込めません。次のどちらかで貼り直してください。
-              <ol>
-                <li>地図上の目的地のピンを長押し → 表示された座標をコピーして貼る</li>
-                <li>PCならブラウザのアドレスバーのURL（@緯度,経度 を含む）をコピーして貼る</li>
-              </ol>
-            </div>
-          </div>
-          <div class="geo-okchip" id="geo-okchip"><span>✓ 座標として確定</span><span class="geo-okcoord" id="geo-okcoord"></span><span class="geo-okchip-sub">— 保存でこの地点に記録</span></div>
-          <div class="geo-guide"><b>正確な場所の入れ方:</b> <span class="geo-step">1</span>「🗺 Googleで探す」で開く <span class="geo-step">2</span>ピンを長押しで座標コピー <span class="geo-step">3</span>この欄に貼り付け</div>
-          <div class="fuel-check-row" onclick="toggleFuelCheck()">
-            <div class="fuel-check-box" id="fuel-check-box"></div>
-            <span class="fuel-check-label">⛽ 給油ポイント</span>
-          </div>
-          <input id="inp-log" type="text" maxlength="200" placeholder="📝 走行メモ" style="display:none">
-          <div id="log-preview" class="is-empty" role="button" tabindex="0" onclick="openLogModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLogModal()}"></div>
-          <div style="font-size:16px;color:rgba(77,166,255,.9);font-weight:700;margin-top:4px;letter-spacing:.04em">実績時刻</div>
-          <div class="time-inline-row">
-            <div class="time-inline-item">
-              <span class="time-inline-label" style="color:rgba(77,166,255,.9)">実着</span>
-              <input id="inp-act-arr" type="time" style="border-color:rgba(77,166,255,.45)">
-            </div>
-            <span class="time-inline-arrow">→</span>
-            <div class="time-inline-item">
-              <span class="time-inline-label" style="color:rgba(77,166,255,.9)">実発</span>
-              <input id="inp-act-dep" type="time" style="border-color:rgba(77,166,255,.45)">
-            </div>
-          </div>
-        </div>
-        <div class="cascade-hint" id="cascade-hint">⏱ 出発時刻を変えると以降の地点が自動でずれます</div>
-        <button class="primary" id="save-btn" onclick="saveStop()" style="width:100%;justify-content:center;font-size:17px;padding:14px">＋ 追加</button>
-      </div>
-    </div>
+    <button type="button" class="add-stop-btn" id="add-stop-btn" onclick="openStopFormAdd()">＋ 地点を追加</button>
     <div class="drag-hint" id="drag-hint">地点を長押しドラッグして行程を並び替え</div>
   </div>
 
@@ -245,6 +171,86 @@
   </div>
 </div>
 </main>
+
+<!-- 地点追加/編集フォーム（ボトムシート別窓） -->
+<div id="stop-form-overlay" onclick="cancelEdit()"></div>
+<div id="stop-form-modal" role="dialog" aria-modal="true" aria-labelledby="form-title">
+  <div class="sf-head">
+    <span id="form-title">地点を追加</span>
+    <button type="button" class="x-close" onclick="cancelEdit()" title="閉じる">✕</button>
+  </div>
+  <div class="sf-body form-gap">
+    <input id="inp-name" type="text" maxlength="50" placeholder="地点名（例：道の駅みつまた）">
+    <div class="picker-chips">
+      <button type="button" class="picker-chip ch-hw" onclick="openHighway()">🛣 高速</button>
+      <button type="button" class="picker-chip ch-mn" onclick="openMichinoEki()">🏪 道の駅</button>
+      <button type="button" class="picker-chip ch-gs" onclick="openGasStation()">⛽ GS</button>
+      <button type="button" class="picker-chip ch-kk" onclick="openKaikatsu()">🏨 快活</button>
+    </div>
+    <div class="time-inline-row">
+      <div class="time-inline-item">
+        <span class="time-inline-label">着</span>
+        <input id="inp-arr" type="time" oninput="checkTimeOrder()">
+      </div>
+      <span class="time-inline-arrow">→</span>
+      <div class="time-inline-item">
+        <span class="time-inline-label">発</span>
+        <input id="inp-dep" type="time" oninput="checkTimeOrder()">
+      </div>
+    </div>
+    <div id="stay-dur-preview" style="font-size:16px;color:var(--text3);font-weight:600;text-align:left;display:none;margin-top:2px"></div>
+    <div id="time-order-error" style="display:none;font-size:16px;color:var(--red);margin-top:-4px">⚠ 出発時刻は到着時刻より後にしてください</div>
+    <textarea id="inp-note" maxlength="1000" rows="6" placeholder="メモ（食事・注意点など）" style="display:none"></textarea>
+    <div id="note-preview" class="is-empty" role="button" tabindex="0" onclick="openNoteModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openNoteModal()}"></div>
+    <button type="button" class="details-toggle" id="details-toggle" onclick="toggleDetails()">
+      <span class="details-toggle-arrow">▼</span>
+      <span>詳細（場所・給油・走行記録・実績）</span>
+    </button>
+    <div class="details-body" id="details-body" style="display:none">
+      <input id="inp-addr" type="text" maxlength="100" placeholder="座標 / 住所 / URL（任意）" oninput="_updateGeoHint()" onpaste="_onAddrPaste(event)">
+      <div class="geo-field-row">
+        <button type="button" class="geo-map-btn" id="geo-map-btn" onclick="openInGoogleMaps()">🗺 Googleで探す</button>
+        <button type="button" class="geo-capture-btn" id="geo-capture-btn" onclick="captureCurrentLocation()">📍 現在地</button>
+      </div>
+      <span class="geo-hint" id="geo-hint"></span>
+      <button type="button" class="geo-paste-btn" id="geo-paste-btn" onclick="pasteFromClipboard()">📋 座標を貼り付け</button>
+      <div class="geo-paste-note">※ Googleで座標をコピーしてからタップ。初回は貼り付けの許可確認が出ることがあります。</div>
+      <div class="geo-warn" id="geo-warn">
+        <div class="geo-warn-title"><span class="geo-warn-ico">⚠️</span> この共有リンクには座標が入っていません</div>
+        <div class="geo-warn-body">Googleマップの「共有」リンク（maps.app.goo.gl/…）は場所の座標を持たないため取り込めません。次のどちらかで貼り直してください。
+          <ol>
+            <li>地図上の目的地のピンを長押し → 表示された座標をコピーして貼る</li>
+            <li>PCならブラウザのアドレスバーのURL（@緯度,経度 を含む）をコピーして貼る</li>
+          </ol>
+        </div>
+      </div>
+      <div class="geo-okchip" id="geo-okchip"><span>✓ 座標として確定</span><span class="geo-okcoord" id="geo-okcoord"></span><span class="geo-okchip-sub">— 保存でこの地点に記録</span></div>
+      <div class="geo-guide"><b>正確な場所の入れ方:</b> <span class="geo-step">1</span>「🗺 Googleで探す」で開く <span class="geo-step">2</span>ピンを長押しで座標コピー <span class="geo-step">3</span>この欄に貼り付け</div>
+      <div class="fuel-check-row" onclick="toggleFuelCheck()">
+        <div class="fuel-check-box" id="fuel-check-box"></div>
+        <span class="fuel-check-label">⛽ 給油ポイント</span>
+      </div>
+      <input id="inp-log" type="text" maxlength="200" placeholder="📝 走行メモ" style="display:none">
+      <div id="log-preview" class="is-empty" role="button" tabindex="0" onclick="openLogModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLogModal()}"></div>
+      <div style="font-size:16px;color:rgba(77,166,255,.9);font-weight:700;margin-top:4px;letter-spacing:.04em">実績時刻</div>
+      <div class="time-inline-row">
+        <div class="time-inline-item">
+          <span class="time-inline-label" style="color:rgba(77,166,255,.9)">実着</span>
+          <input id="inp-act-arr" type="time" style="border-color:rgba(77,166,255,.45)">
+        </div>
+        <span class="time-inline-arrow">→</span>
+        <div class="time-inline-item">
+          <span class="time-inline-label" style="color:rgba(77,166,255,.9)">実発</span>
+          <input id="inp-act-dep" type="time" style="border-color:rgba(77,166,255,.45)">
+        </div>
+      </div>
+    </div>
+    <div class="cascade-hint" id="cascade-hint">⏱ 出発時刻を変えると以降の地点が自動でずれます</div>
+  </div>
+  <div class="sf-footer">
+    <button class="primary" id="save-btn" onclick="saveStop()" style="width:100%;justify-content:center;font-size:17px;padding:14px">＋ 追加</button>
+  </div>
+</div>
 
 <div id="note-modal" style="display:none">
   <div class="nm-head">
