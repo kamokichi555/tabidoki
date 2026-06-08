@@ -147,8 +147,8 @@
         <span>🏍 ツーリング名</span>
       </div>
       <div class="form-gap">
-        <input id="inp-title" type="text" maxlength="60" placeholder="例：紅葉の道志みちツーリング" autocomplete="off" autocapitalize="off" oninput="_saveTitleDebounced()" onblur="_commitTitle()">
-        <div style="font-size:15px;color:var(--text3);font-weight:600">保存時のファイル名・共有テキスト・走行記録に使われます</div>
+        <input id="inp-title" type="text" maxlength="60" placeholder="例：紅葉の道志みちツーリング" autocomplete="off" autocapitalize="off" oninput="_toggleTitleHelper();_saveTitleDebounced()" onblur="_commitTitle()">
+        <div id="title-helper" style="font-size:13px;color:var(--text3);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">保存名・共有・走行記録に使用</div>
       </div>
     </div>
     <button type="button" class="add-stop-btn" id="add-stop-btn" onclick="openStopFormAdd()">＋ 地点を追加</button>
