@@ -448,13 +448,17 @@ body.day-mode .ride-move-dur{color:var(--text3)}
 
 /* ── 日付未設定の予報注記バナー ── */
 .provisional-date-note{
-  margin:0 0 14px;padding:8px 12px;
+  margin:0 0 12px;padding:6px 10px;
   background:var(--amber-bg);
   border:1px solid var(--border);
   border-left:3px solid var(--amber);
   border-radius:var(--r);
-  color:var(--text2);font-size:16px;line-height:1.5;
+  color:var(--text2);font-size:14px;line-height:1.4;
+  display:flex;align-items:center;gap:6px;
+  white-space:nowrap;overflow:hidden;
 }
+.provisional-date-note .pdn-txt{overflow:hidden;text-overflow:ellipsis}
+.provisional-date-note>span:first-child{flex-shrink:0}
 .provisional-date-note b{color:var(--amber);font-weight:700}
 /* 走行モード用バナーコンテナ（空のときは高さ0、内容があるときのみ下マージン）。
    sticky でスクロール時も上端に貼り付ける。スワイプ対象の #ride-content の外なので地点切替では動かない */
