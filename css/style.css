@@ -80,7 +80,8 @@ body:not(.ride-mode) #now-display svg{height:clamp(26px,6.2vw,38px)!important}
 body.menu-open{overflow:hidden}
 .menu-drawer-head{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1.5px solid var(--border);flex-shrink:0}
 .menu-drawer-title{font-size:17px;font-weight:800;color:var(--amber);letter-spacing:.04em}
-.menu-drawer-close{background:transparent!important;border:1.5px solid var(--border)!important;color:var(--text3)!important;width:34px;height:34px;padding:0!important;border-radius:8px!important;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.x-close{width:36px;height:36px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0;font-size:18px;line-height:1;background:var(--bg2);border:1.5px solid var(--border2);border-radius:8px;color:var(--text3);cursor:pointer}
+.x-close:active{background:var(--bg3)}
 .menu-drawer-body{flex:1;overflow-y:auto;padding:8px 0 calc(env(safe-area-inset-bottom) + 16px);-webkit-overflow-scrolling:touch}
 .menu-section-label{font-size:14px;font-weight:800;color:var(--text3);letter-spacing:.12em;padding:14px 20px 4px;text-transform:uppercase}
 .menu-item{width:100%;background:transparent!important;border:none!important;border-radius:0!important;display:flex;flex-direction:row;align-items:center;gap:14px;padding:12px 20px!important;text-align:left}
@@ -217,8 +218,6 @@ body.day-mode .geo-paste-btn{color:#fff}
 /* 編集パネル: シンプル化 */
 .edit-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px}
 .edit-panel-head>span{font-size:15px;font-weight:700;color:var(--text2);letter-spacing:.04em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.edit-close-btn{background:transparent!important;border:1.5px solid var(--border)!important;color:var(--text3)!important;width:32px;height:32px;padding:0!important;border-radius:8px!important;font-size:16px;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.edit-close-btn:active{background:var(--bg3)!important}
 .picker-chips{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
 .picker-chip{padding:7px 6px!important;font-size:16px!important;font-weight:700;line-height:1.2;text-align:center;white-space:nowrap;border-radius:8px!important;justify-content:center;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .picker-chip.ch-hw{border-color:rgba(199,194,154,.45)!important;color:#C7C29A!important;background:rgba(199,194,154,.06)!important}
@@ -257,7 +256,6 @@ body.day-mode #note-preview.is-empty,body.day-mode #log-preview.is-empty{color:#
 #note-modal .nm-head,#log-modal .nm-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;gap:10px}
 #note-modal .nm-title,#log-modal .nm-title{font-weight:700;font-size:17px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #note-modal .nm-done,#log-modal .nm-done{border:none;border-radius:10px;background:var(--amber);color:#000;font-weight:800;font-size:16px;padding:9px 18px;cursor:pointer;flex-shrink:0}
-#note-modal .nm-close,#log-modal .nm-close{border:none;background:none;font-size:24px;padding:2px 6px;color:var(--text3);cursor:pointer;flex-shrink:0}
 #note-modal textarea,#log-modal textarea{flex:1;min-height:0;max-height:none;border:none;border-radius:0;background:var(--bg);font-size:18px;line-height:1.7;padding:16px;resize:none}
 #note-modal textarea:focus,#log-modal textarea:focus{border:none;border-width:0}
 #note-modal .nm-count,#log-modal .nm-count{flex-shrink:0;padding:8px 16px;font-size:16px;color:var(--text3);text-align:right;border-top:1px solid var(--border)}
@@ -278,6 +276,11 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
 .edit-mode .drag-handle{display:flex}
 .stop-row.drag-over{outline:2.5px solid var(--amber);border-radius:10px}
 .empty-state{text-align:center;padding:4rem 1rem;color:var(--text3);font-size:18px}
+.empty-head{font-size:19px;font-weight:700;color:var(--text2);margin-bottom:5px}
+.empty-sub{font-size:14px;color:var(--text3);margin-bottom:18px;line-height:1.6}
+.empty-acts{display:flex;flex-direction:column;gap:9px;max-width:260px;margin:0 auto}
+.empty-acts button{justify-content:center;min-height:44px;font-size:15px}
+.empty-acts .primary{min-height:46px;font-size:16px}
 .val-error{background:rgba(224,122,63,.18);border:1.5px solid var(--red);border-radius:var(--r);padding:10px 14px;font-size:15px;color:#ffaaaa;margin-bottom:4px;animation:val-shake .25s ease}
 @keyframes val-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 /* 地点住所表示 */
@@ -363,7 +366,8 @@ body.day-mode .ride-move-dur{color:var(--text3)}
 /* 日程管理 */
 .day-manage{margin:10px 14px 8px;display:flex;flex-direction:column;gap:10px}
 .day-manage-btns{display:flex;gap:8px}
-.day-manage-btns button{flex:1;font-size:15px;padding:11px;justify-content:center}
+.day-manage-btns button{flex:1;font-size:15px;padding:11px;justify-content:center;min-height:44px}
+.day-manage-btns .day-del{flex:0 0 auto;width:44px;padding:0;font-size:19px}
 .day-inline-row{display:flex;gap:8px;align-items:center}
 
 /* スプラッシュ */
@@ -490,8 +494,6 @@ body.mp-open{overflow:hidden}
 .mp-head h2{margin:0;font-size:18px;font-weight:800;flex:0 0 auto;color:var(--text)}
 .mp-head .mp-sub{flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--text3);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
-.mp-close{flex:0 0 auto;width:34px;height:34px;border:1.5px solid var(--border2);background:var(--bg2);
-  border-radius:8px;color:var(--text3);font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .mp-search{display:flex;gap:8px;padding:11px 13px 8px}
 .mp-search input{flex:1;min-width:0;background:var(--bg2);border:1.5px solid var(--border2);border-radius:9px;
   padding:11px 12px;font-family:inherit;font-size:16px;font-weight:600;color:var(--text);outline:none}
