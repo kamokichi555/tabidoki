@@ -281,7 +281,7 @@ export function _openPickerModal(cfg){
   ov.innerHTML=`<div style="background:var(--bg2);border-radius:16px 16px 0 0;width:100%;max-width:480px;height:${cfg.heightPct}%;display:flex;flex-direction:column;overflow:hidden">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0">
       <span style="font-weight:700;font-size:16px">${cfg.title}</span>
-      <button id="${id}-close-btn" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3)">✕</button>
+      <button id="${id}-close-btn" class="x-close">✕</button>
     </div>
     <div style="padding:10px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
       <input id="${id}-search" type="text" placeholder="${cfg.placeholder}" oninput="${cfg.oninput}" style="width:100%;background:var(--bg3);border:1.5px solid var(--border2);border-radius:10px;color:var(--text);font-size:16px;padding:10px 12px;font-family:inherit">

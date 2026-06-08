@@ -48,7 +48,7 @@ function buildOverlay(){
       <div class="mp-head">
         <h2>📍 地図で地点を選ぶ</h2>
         <span class="mp-sub" id="mp-sub"></span>
-        <button type="button" class="mp-close" id="mp-close" aria-label="閉じる">✕</button>
+        <button type="button" class="x-close" id="mp-close" aria-label="閉じる">✕</button>
       </div>
       <div class="mp-search">
         <input id="mp-q" type="text" placeholder="駅名・施設名・住所で検索 → 🔍/Enter" autocomplete="off">

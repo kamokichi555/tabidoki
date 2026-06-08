@@ -124,7 +124,7 @@ export function openRideNote(id){
   ov.innerHTML=`<div style="background:var(--bg2);border-radius:16px;width:100%;max-width:440px;max-height:80%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.5)">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
       <span style="font-weight:700;font-size:16px;color:var(--amber);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 ${esc(s.name)}</span>
-      <button id="ride-note-close-btn" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3);flex-shrink:0">✕</button>
+      <button id="ride-note-close-btn" class="x-close">✕</button>
     </div>
     <div style="overflow-y:auto;flex:1;padding:16px;font-size:15px;line-height:1.7;color:var(--text);white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;-webkit-overflow-scrolling:touch">${esc(s.note)}</div>
   </div>`;

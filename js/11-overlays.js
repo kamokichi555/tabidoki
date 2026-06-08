@@ -110,7 +110,7 @@ export function openSplashSettings(){
       <span style="font-weight:700;font-size:17px">📜 設定</span>
       <div style="display:flex;align-items:center;gap:4px">
         <a href="tabidoki_manual.html" target="_blank" rel="noopener" title="マニュアルを開く" style="display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:700;color:var(--amber);text-decoration:none;padding:5px 10px;border:1.5px solid rgba(255,184,0,.35);border-radius:8px;background:rgba(255,184,0,.1);white-space:nowrap">📖 マニュアル</a>
-        <button id="ss-close-btn" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3)">✕</button>
+        <button id="ss-close-btn" class="x-close">✕</button>
       </div>
     </div>
     <div style="overflow-y:auto;flex:1;padding:16px;-webkit-overflow-scrolling:touch">
