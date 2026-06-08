@@ -390,13 +390,13 @@ export function provisionalDateBanner(dayIdx){
 }
 
 /* 空状態（行程ゼロ）の共通オンボーディング。通常ビュー・走行ビューで同一表示にしてモード差を無くす。
-   onclick の関数（onEditBtnClick/loadSampleData）は _expose 済みのグローバル。 */
+   onclick の関数（openStopFormAdd/loadSampleData）は _expose 済みのグローバル。 */
 export function _emptyStateInner(){
   return `<div style="font-size:48px;opacity:.4;margin-bottom:12px">🗺️</div>
     <div class="empty-head">まだ行程がありません</div>
     <div class="empty-sub">地点を追加して旅程を作りましょう。<br>まずは例を見るのもおすすめです。</div>
     <div class="empty-acts">
-      <button type="button" class="primary" onclick="onEditBtnClick();setTimeout(function(){var e=document.getElementById('inp-name');if(e){try{e.scrollIntoView({block:'center',behavior:'smooth'});e.focus();}catch(_){}}},60)">＋ 最初の地点を追加</button>
+      <button type="button" class="primary" onclick="openStopFormAdd()">＋ 最初の地点を追加</button>
       <button type="button" onclick="loadSampleData()">🗺️ サンプルを見る</button>
     </div>`;
 }

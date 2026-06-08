@@ -15,7 +15,7 @@ import { save } from './03-storage.js';
 import { wxQueueIds, wxStopRes, enqueueStop, _isoToday } from './04-weather.js';
 import { _cachedCdiForId, _invalidateCdi, currentDayIdxOf, syncBorderAddr } from './06-day.js';
 import { render, renderRide, showAppError, showInfoToast, showValError } from './07-render.js';
-import { setFormAdd } from './08-mode.js';
+import { setFormAdd, closeStopFormModal } from './08-mode.js';
 import { _dbgLog, _dbgSnapshot } from './12-debug.js';
 import { _gpsNotifyManualSet } from './14-gps.js';
 
@@ -84,7 +84,7 @@ export function saveStop(){
       delete wxStopRes[S.editingId];wxQueueIds.delete(S.editingId);
       if(newDep&&oldDep!==newDep)cascadeFrom(S.currentDay,idx,oldDep);
       // B案: 編集しても並び順は変えない（順序はユーザーのドラッグ/整列ボタンに委ねる）
-      setFormAdd();S.activeEditStopId=null;
+      setFormAdd();S.activeEditStopId=null;closeStopFormModal();
     }else{
       if(ds.length>=LIMIT.stopsPerDay){showValError(`地点は1日${LIMIT.stopsPerDay}件までです`);return;}
       const newId=Date.now().toString(36)+Math.random().toString(36).slice(2);
@@ -93,6 +93,7 @@ export function saveStop(){
       // フォームを完全リセット（編集分岐と同じ挙動）。給油チェック・詳細パネル・時刻エラー表示・
       // 滞在時間プレビューも初期化し、次の追加に給油ON等が継承されないようにする。
       setFormAdd();
+      closeStopFormModal();
       syncBorderAddr();save();render();
       // キーボードを閉じてから追加地点へスクロール
       requestAnimationFrame(()=>{
@@ -262,7 +263,7 @@ export function delStop(id){
     delete wxStopRes[id];wxQueueIds.delete(id);
     data.days[S.currentDay].stops=data.days[S.currentDay].stops.filter(s=>s.id!==id);
     if(id===S.manualCurrentId){S.manualCurrentId=null;_invalidateCdi();}
-    if(S.editingId===id)setFormAdd();syncBorderAddr();save();render();
+    if(S.editingId===id){setFormAdd();closeStopFormModal();}syncBorderAddr();save();render();
     showInfoToast('🗑️ 地点を削除しました',2000);
   }catch(e){showAppError(EC.STOP,e);}
 }

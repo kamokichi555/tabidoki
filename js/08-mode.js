@@ -111,7 +111,7 @@ export function toggleRide(){
   _resetClockTs(); // 走行モード切替時に時計サイズを即時更新
   updateClock();   // キャッシュリセット後すぐに再描画
   document.body.classList.toggle('ride-mode',S.isRide);
-  if(S.isRide&&S.isEdit){S.isEdit=false;_dom('edit-area').style.display='none';}
+  if(S.isRide&&S.isEdit){S.isEdit=false;closeStopFormModal();_dom('edit-area').style.display='none';}
   _dom('normal-view').style.display=S.isRide?'none':'block';
   _dom('ride-view').classList.toggle('active',S.isRide);
   _dom('ride-btn').classList.toggle('on',S.isRide);
@@ -188,6 +188,26 @@ export function setFormAdd(){
   const _prev=document.getElementById('stay-dur-preview');if(_prev){_prev.textContent='';_prev.style.display='none';}
   _setFuelCheck(false);_setDetailsOpen(false);updateDragHint();
 }
+/* 地点フォーム（ボトムシート別窓）の開閉。idは不変・フォーム本体は移設のみのため
+   既存のsetFormAdd/openEditStop/saveStop/ピッカー/ジオ系はそのまま動く。 */
+export function openStopFormModal(){
+  const ov=_dom('stop-form-overlay'),md=_dom('stop-form-modal');
+  if(ov) ov.classList.add('open');
+  if(md){md.classList.add('open');md.scrollTop=0;const b=md.querySelector('.sf-body');if(b)b.scrollTop=0;}
+}
+export function closeStopFormModal(){
+  const ov=_dom('stop-form-overlay'),md=_dom('stop-form-modal');
+  if(ov) ov.classList.remove('open');
+  if(md) md.classList.remove('open');
+}
+/* 「＋ 地点を追加」/ 空状態ボタンから新規フォームを別窓で開く。
+   編集モードでなければ先に入る（toggleEdit内でsetFormAddも実行される）。 */
+export function openStopFormAdd(){
+  if(S.isRide) return;
+  if(!S.isEdit) toggleEdit(); else setFormAdd();
+  openStopFormModal();
+  requestAnimationFrame(()=>{const e=_dom('inp-name');if(e){try{e.focus();}catch(_){}}});
+}
 export function openEditStop(id){
   _dbgLog('openEditStop',()=>({id,snap:_dbgSnapshot()}));
   try{
@@ -204,14 +224,14 @@ export function openEditStop(id){
     const idx=ds.findIndex(s=>s.id===id);_dom('cascade-hint').style.display=(s.dep&&idx<ds.length-1)?'block':'none';
     const _prev=document.getElementById('stay-dur-preview');if(_prev){const _sd=stayDur(s.arr,s.dep);_prev.textContent=_sd?'⏱ 滞在 '+_sd:'';_prev.style.display=_sd?'block':'none';}
     updateDragHint();
-    _dom('normal-view')?.scrollTo({top:0,behavior:'smooth'});
+    openStopFormModal();
   }catch(e){showAppError(EC.EDIT_OPEN,e);}
 }
 export function tapStopInEdit(id){
   S.activeEditStopId=(S.activeEditStopId===id?null:id);
   render();
 }
-export function cancelEdit(noRender){setFormAdd();S.activeEditStopId=null;if(!noRender)render();}
+export function cancelEdit(noRender){closeStopFormModal();setFormAdd();S.activeEditStopId=null;if(!noRender)render();}
 
 // 行程データ（地点）が1件以上存在するか判定
 export function _hasAnyStops(){
