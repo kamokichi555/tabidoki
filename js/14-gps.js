@@ -365,7 +365,7 @@ export function _gpsUpdateStatus(){
   const el=document.getElementById('gps-status');
   if(!el) return;
   el.style.display='';
-  // アイコン(上)＋文字(下)の縦並びで表示する。icon/label を別spanに分けてCSSで縦積み。
+  // アイコン＋文字を横並びで表示する。icon/label を別spanに分けCSSで横組み（文字14px）。
   // 文字列はすべて固定リテラルなのでinnerHTMLでも安全（外部入力なし）。
   const set=(icon,label,cls,title)=>{
     el.className='gps-status'+(cls?' '+cls:'');
@@ -373,9 +373,9 @@ export function _gpsUpdateStatus(){
     el.innerHTML='<span class="gps-ico">'+icon+'</span><span class="gps-txt">'+label+'</span>';
   };
   // オフ時も常時表示（タップでオンにできる）
-  if(!_gpsEnabled){set('📡','GPS OFF','off','GPS自動追跡：オフ（タップでオン）');return;}
+  if(!_gpsEnabled){set('📡','OFF','off','GPS自動追跡：オフ（タップでオン）');return;}
   // オン・走行前：待機中（走行モードに入ると追跡開始）
-  if(!S.isRide){set('📍','GPS ON','ok','GPS自動追跡：オン（走行中に追跡。タップでオフ）');return;}
+  if(!S.isRide){set('📍','ON','ok','GPS自動追跡：オン（走行中に追跡。タップでオフ）');return;}
   // オン・走行中：実測状態
   if(!_gpsLastPos){
     // 一度も測位できないまま GPS_NOFIX_MS 経過＝本体GPSオフ疑い（タイマーがフラグを立てる）
