@@ -412,9 +412,10 @@ body.day-mode .ride-move-dur{color:var(--text3)}
 .ride-name{font-size:34px;font-weight:700;line-height:1.35;margin-bottom:10px;color:var(--text);word-break:break-word;overflow-wrap:anywhere}
 .curr .ride-name{color:var(--amber)}
 .ride-times-row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end}
+.ride-chips{display:flex;gap:16px;flex-wrap:nowrap;align-items:flex-end;min-width:0}
 .ride-chip{display:flex;flex-direction:row;align-items:baseline;gap:6px}
 .ride-chip-label{font-size:16px;color:var(--text2);font-weight:700;letter-spacing:.06em;text-transform:uppercase;flex-shrink:0}
-.ride-chip-val,.next-chip-val{font-family:'SF Mono','Menlo','Courier New',monospace;font-size:38px;font-weight:700;color:var(--text);letter-spacing:.02em;line-height:1}
+.ride-chip-val,.next-chip-val{font-family:'SF Mono','Menlo','Courier New',monospace;font-size:clamp(26px,7.5vw,34px);font-weight:700;color:var(--text);letter-spacing:.02em;line-height:1}
 .curr .ride-chip-val{color:var(--amber)}
 
 .ride-dep-cd{display:inline-flex;align-items:baseline;gap:4px;margin-left:12px}
