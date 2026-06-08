@@ -161,7 +161,7 @@ export function renderRide(){
   const el=_dom('ride-content');
   const bar=_dom('ride-swipe-bar');
   const flat=currentDayFlat();
-  if(!flat.length){el.innerHTML='<div style="text-align:center;color:var(--text3);padding:3rem 1rem;font-size:20px">🗺️<br><br>行程を追加してください</div>';bar.style.display='none';const _pb=_rideBannerEl();if(_pb){_pb.innerHTML='';_pb.style.display='none';}return;}
+  if(!flat.length){el.innerHTML='<div class="empty-state">'+_emptyStateInner()+'</div>';bar.style.display='none';const _pb=_rideBannerEl();if(_pb){_pb.innerHTML='';_pb.style.display='none';}return;}
   S.rideViewIdx=Math.max(0,Math.min(flat.length-1,S.rideViewIdx));
   _urgentRideFetch(flat); // 先に現在/次地点を最優先取得（ensureDayWeatherが全件キューに入れる前に）
   ensureDayWeather(S.currentDay);
@@ -389,13 +389,25 @@ export function provisionalDateBanner(dayIdx){
   return `<div class="provisional-date-note" style="${_s}">📅 日付未設定のため <b style="color:var(--amber);font-weight:700">${ds}</b> の予報を表示しています</div>`;
 }
 
+/* 空状態（行程ゼロ）の共通オンボーディング。通常ビュー・走行ビューで同一表示にしてモード差を無くす。
+   onclick の関数（onEditBtnClick/loadSampleData）は _expose 済みのグローバル。 */
+export function _emptyStateInner(){
+  return `<div style="font-size:48px;opacity:.4;margin-bottom:12px">🗺️</div>
+    <div class="empty-head">まだ行程がありません</div>
+    <div class="empty-sub">地点を追加して旅程を作りましょう。<br>まずは例を見るのもおすすめです。</div>
+    <div class="empty-acts">
+      <button type="button" class="primary" onclick="onEditBtnClick();setTimeout(function(){var e=document.getElementById('inp-name');if(e){try{e.scrollIntoView({block:'center',behavior:'smooth'});e.focus();}catch(_){}}},60)">＋ 最初の地点を追加</button>
+      <button type="button" onclick="loadSampleData()">🗺️ サンプルを見る</button>
+    </div>`;
+}
+
 /* ══ render（通常ビュー） ══ */
 export function render(){
   try{
   if(S.isRide){renderRide();return;}
   const tl=document.getElementById('timeline'),em=document.getElementById('empty-state'),ds=stops();
   tl.className=S.isEdit&&S.editingId===null?'timeline edit-mode':'timeline';
-  if(!ds.length){tl.innerHTML='';em.style.display='block';return;}
+  if(!ds.length){tl.innerHTML='';em.innerHTML=_emptyStateInner();em.style.display='block';return;}
   em.style.display='none';
   // cdiをキャッシュ利用
   const cdi=_getCdi();
