@@ -174,9 +174,9 @@ export function renderRide(){
   const _fuelBadge=(s,extra='')=>s.fuel?`<div class="stop-fuel-badge" style="width:100%;justify-content:center${extra}">⛽ 給油ポイント</div>`:'';
   const _noteCompact=s=>s.note?`<div class="ride-note-compact" title="${esc(s.note)}" role="button" tabindex="0" onclick="event.stopPropagation();openRideNote('${escJsAttr(s.id)}')"><span class="ride-note-txt">${esc(s.note)}</span><span class="ride-note-more">タップで全文 ›</span></div>`:'';
   const _logHtml=s=>s.log?`<div class="ride-log">📝 ${esc(s.log)}</div>`:'';
-  const _chips=(s,cls='ride-chip-val')=>{const _sd=stayDur(s.arr,s.dep);return`
+  const _chips=(s,cls='ride-chip-val')=>{const _sd=stayDur(s.arr,s.dep);return`<div class="ride-chips">
         ${s.arr?`<div class="ride-chip"><div class="ride-chip-label">着</div><div class="${cls}">${s.arr}</div></div>`:''}
-        ${s.dep?`<div class="ride-chip"><div class="ride-chip-label">発</div><div class="${cls}">${s.dep}</div>${_sd?`<div style="font-size:15px;color:var(--text3);font-weight:600;align-self:center;margin-left:2px">${_sd}</div>`:''}</div>`:''}`;
+        ${s.dep?`<div class="ride-chip"><div class="ride-chip-label">発</div><div class="${cls}">${s.dep}</div>${_sd?`<div style="font-size:15px;color:var(--text3);font-weight:600;align-self:center;margin-left:2px">${_sd}</div>`:''}</div>`:''}</div>`;
   };
   let h='';
   const vs=flat[S.rideViewIdx];
