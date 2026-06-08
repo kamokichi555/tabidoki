@@ -385,8 +385,8 @@ export function provisionalDateBanner(dayIdx){
   if(!day||day.date) return '';
   const pd=new Date();pd.setDate(pd.getDate()+dayIdx);
   const ds=mdw(pd);
-  const _s='margin:0 0 14px;padding:8px 12px;background:var(--amber-bg);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--r,12px);color:var(--text2);font-size:16px;line-height:1.5';
-  return `<div class="provisional-date-note" style="${_s}">📅 日付未設定のため <b style="color:var(--amber);font-weight:700">${ds}</b> の予報を表示しています</div>`;
+  const _s='margin:0 0 12px;padding:6px 10px;background:var(--amber-bg);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--r,12px);color:var(--text2);font-size:14px;line-height:1.4;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden';
+  return `<div class="provisional-date-note" style="${_s}"><span style="flex-shrink:0">📅</span><span class="pdn-txt" style="overflow:hidden;text-overflow:ellipsis">日付未設定 ・ <b style="color:var(--amber);font-weight:700">${ds}</b> の予報を表示中</span></div>`;
 }
 
 /* 空状態（行程ゼロ）の共通オンボーディング。通常ビュー・走行ビューで同一表示にしてモード差を無くす。
