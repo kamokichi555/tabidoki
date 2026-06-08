@@ -342,6 +342,32 @@ export function hideInfoToast(){
   if(t) t.style.display='none';
   if(_infoTimer){clearTimeout(_infoTimer);_infoTimer=null;}
 }
+
+/* ── 確認ダイアログ（再利用可能）。Promise<boolean> を返す。
+   将来的に他の window.confirm もここへ寄せれば見た目を統一できる。
+   #confirm-modal が無い環境では素の confirm() にフォールバック。 */
+let _cfmResolve=null;
+export function showConfirmDialog({title='確認',body='',okLabel='OK',cancelLabel='キャンセル',danger=false}={}){
+  return new Promise(resolve=>{
+    const ov=document.getElementById('confirm-modal');
+    if(!ov){resolve(window.confirm(body||title));return;}
+    document.getElementById('cfm-title').textContent=title;
+    document.getElementById('cfm-body').textContent=body;   // textContent=ユーザー入力(地点名)のXSS防止
+    const ok=document.getElementById('cfm-ok'),cancel=document.getElementById('cfm-cancel');
+    ok.textContent=okLabel;cancel.textContent=cancelLabel;
+    ok.classList.toggle('danger',!!danger);
+    ov.style.display='flex';
+    _cfmResolve=resolve;
+  });
+}
+function _cfmClose(result){
+  const ov=document.getElementById('confirm-modal');
+  if(ov)ov.style.display='none';
+  const r=_cfmResolve;_cfmResolve=null;
+  if(r)r(result);
+}
+export function _cfmOk(){_cfmClose(true);}
+export function _cfmCancel(){_cfmClose(false);}
 // グローバルエラーハンドラは _dbgInit() 内で一本化して登録
 
 /* ══ バリデーション ══ */
@@ -436,10 +462,10 @@ export function render(){
     ${s.log?`<div class="stop-log">📝 ${esc(s.log)}</div>`:''}
     ${st==='current'?'<div class="current-badge">▶ 現在地</div>':''}
     ${!isLast&&_mdur?`<div class="move-dur-label${_mlv>=0?' lv'+_mlv:''}">→ 次まで ${_mdur}</div>`:''}
-    ${S.isEdit&&S.editingId===null&&S.activeEditStopId===s.id?`<div class="stop-edit-row">      <button class="small amber-outline" onclick="event.stopPropagation();setCurrentStop('${s.id}')">📍 現在</button>
-      <button class="small amber-outline" onclick="event.stopPropagation();openEditStop('${s.id}')">✏️ 編集</button>
-      ${(()=>{const href=buildMapHref(s);return href?`<a class="map-link-btn" href="${esc(href)}" target="_blank" rel="noopener">🗺 マップ</a>`:'';})()}
-      <button class="small danger" onclick="event.stopPropagation();delStop('${s.id}')">削除</button>
+    ${S.isEdit&&S.editingId===null&&S.activeEditStopId===s.id?`<div class="stop-edit-row">      <button class="eb amber-outline" title="現在地にする" aria-label="現在地にする" onclick="event.stopPropagation();setCurrentStop('${s.id}')"><span class="eb-cur">▶</span></button>
+      <button class="eb amber-outline" title="編集" aria-label="編集" onclick="event.stopPropagation();openEditStop('${s.id}')">✏️</button>
+      ${(()=>{const href=buildMapHref(s);return href?`<a class="eb map-link-btn" title="マップで開く" aria-label="マップで開く" href="${esc(href)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺</a>`:'';})()}
+      <button class="eb danger" title="削除" aria-label="削除" onclick="event.stopPropagation();delStop('${s.id}')">🗑</button>
     </div>`:''}
   </div>
 </div>`;

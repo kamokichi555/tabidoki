@@ -14,7 +14,7 @@ import { fromMin, isTimeOrderOk, isValidTime, parseCoord, extractMapCoord, isSha
 import { save } from './03-storage.js';
 import { wxQueueIds, wxStopRes, enqueueStop, _isoToday } from './04-weather.js';
 import { _cachedCdiForId, _invalidateCdi, currentDayIdxOf, syncBorderAddr } from './06-day.js';
-import { render, renderRide, showAppError, showInfoToast, showValError } from './07-render.js';
+import { render, renderRide, showAppError, showConfirmDialog, showInfoToast, showValError } from './07-render.js';
 import { setFormAdd, closeStopFormModal } from './08-mode.js';
 import { _dbgLog, _dbgSnapshot } from './12-debug.js';
 import { _gpsNotifyManualSet } from './14-gps.js';
@@ -257,8 +257,20 @@ export function openInGoogleMaps(){
   _dbgLog('open_gmaps',{hasCoord:!!c});
 }
 export function delStop(id){
-  _dbgLog('delStop',()=>({id,snap:_dbgSnapshot()}));
+  _dbgLog('delStop:request',{id});
   if(!_canEditData()) return; // 起動時の復元確認が保留中はdataを変更しない（汚染防止）
+  const stop=data.days[S.currentDay]?.stops.find(s=>s.id===id);
+  const name=stop&&stop.name?stop.name:'この地点';
+  showConfirmDialog({
+    title:'地点を削除',
+    body:`「${name}」を削除します。この操作は元に戻せません。`,
+    okLabel:'削除する',
+    danger:true
+  }).then(ok=>{ if(ok) _delStopConfirmed(id); });
+}
+function _delStopConfirmed(id){
+  _dbgLog('delStop',()=>({id,snap:_dbgSnapshot()}));
+  if(!_canEditData()) return; // 確認待ちの間に状態が変わっている可能性があるため再ガード
   try{
     delete wxStopRes[id];wxQueueIds.delete(id);
     data.days[S.currentDay].stops=data.days[S.currentDay].stops.filter(s=>s.id!==id);
