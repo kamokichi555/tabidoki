@@ -114,19 +114,17 @@ button.small{padding:6px 10px;font-size:16px}
 #ride-btn{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
 #ride-btn.on{background:var(--amber);color:#000;border-color:var(--amber)}
 #gps-btn.on{color:var(--green)}
-.gps-status{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-weight:700;line-height:1;padding:3px 8px;border-radius:14px;background:var(--amber-bg);border:1px solid var(--border);color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:30vw;flex:0 1 auto;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;transition:transform .1s}
-.gps-status .gps-ico{font-size:15px;line-height:1}
-.gps-status .gps-txt{font-size:9px;line-height:1}
+.gps-status{display:inline-flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;font-weight:700;line-height:1;padding:6px 11px;border-radius:13px;background:var(--amber-bg);border:1.5px solid var(--border2);color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:46vw;flex:0 1 auto;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;transition:transform .1s}
+.gps-status .gps-ico{font-size:17px;line-height:1;flex-shrink:0}
+.gps-status .gps-txt{font-size:14px;line-height:1;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .gps-status:active{transform:scale(.95)}
-.gps-status.off{color:var(--text3);border-color:var(--border);background:transparent;opacity:.9}
-.gps-status.ok{color:var(--green);border-color:var(--green)}
-.gps-status.warn{color:var(--amber);border-color:var(--amber)}
+.gps-status.off{color:var(--text3);border-color:var(--border2);background:transparent;opacity:.9}
+.gps-status.ok{color:var(--green);border-color:var(--green);background:rgba(166,192,110,.14)}
+.gps-status.warn{color:var(--amber);border-color:var(--amber);background:rgba(143,165,107,.16)}
 /* GPS区間プログレスバー（走行モード 現在地→次の目的地） */
 .ride-seg{margin:2px 2px 12px;padding:0 2px}
 .ride-seg-top{display:flex;align-items:flex-end;justify-content:center;margin-bottom:4px}
-.ride-seg-remain{font-family:'SF Mono','Menlo','Courier New',monospace;font-size:30px;font-weight:700;color:var(--green);line-height:1;animation:ride-dist-blink 1s ease-in-out infinite}
-@keyframes ride-dist-blink{0%,100%{opacity:1}50%{opacity:.2}}
-@media (prefers-reduced-motion:reduce){.ride-seg-remain{animation:none}}
+.ride-seg-remain{font-family:'SF Mono','Menlo','Courier New',monospace;font-size:30px;font-weight:700;color:var(--green);line-height:1}
 .ride-seg-remain small{font-size:14px;color:var(--text3);margin-left:4px;font-weight:700;font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif}
 .ride-seg.stale{opacity:.5} /* トンネル等で位置が古いとき薄く */
 /* ══ 次の目的地：1行コンパクト表示（案A） ══ */
@@ -383,8 +381,7 @@ body.day-mode .ride-move-dur{color:var(--text3)}
 .ride-card{background:var(--bg2);border-radius:16px;border:1.5px solid var(--border2);padding:14px 16px 16px;margin-bottom:10px}
 .ride-card.curr{border-color:var(--amber);border-width:2.5px;background:#1c1500}
 .ride-tag{font-size:16px;font-weight:700;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px}
-.ride-tag.curr-tag{color:var(--amber);animation:curr-blink 1.2s ease-in-out infinite}
-@keyframes curr-blink{0%,100%{opacity:1}50%{opacity:.25}}
+.ride-tag.curr-tag{color:var(--amber)}
 .ride-name{font-size:34px;font-weight:700;line-height:1.35;margin-bottom:10px;color:var(--text);word-break:break-word;overflow-wrap:anywhere}
 .curr .ride-name{color:var(--amber)}
 .ride-times-row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end}
