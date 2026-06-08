@@ -10,7 +10,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { EC, EC_MSG } from './00-constants.js';
 import { S, _dom, data } from './01-state.js';
-import { actDiffHtml, buildMapHref, esc, escJsAttr, fmtHM, hasGeo, isTimeOrderOk, mdw, moveDur, moveDurLevel, moveDurRide, nowMin, stayDur, toMin, wrapDiff } from './02-utils.js';
+import { actDiffHtml, buildMapHref, esc, escJsAttr, fmtHM, hasGeo, isTimeOrderOk, mdw, moveDur, moveDurLevel, moveDurRide, nowMin, parseCoord, stayDur, toMin, wrapDiff } from './02-utils.js';
 import { _isoToday, enqueueStop, ensureDayWeather, rideWxCompact, rideWxStrip, stopWxInner } from './04-weather.js';
 import { getStatus } from './05-stop.js';
 import { _getCdi, _updateRecordBtn, currentDayFlat, stops, switchDay } from './06-day.js';
@@ -409,7 +409,7 @@ export function render(){
   <div class="stop-line-col"><div class="stop-dot"></div>${!isLast?'<div class="stop-connector"></div>':''}</div>
   ${S.isEdit&&S.editingId===null?`<div class="drag-handle" data-drag-id="${s.id}" ontouchstart="onTouchDragStart(event,'${s.id}')" ontouchmove="onTouchDragMove(event)" ontouchend="onTouchDragEnd(event)" ontouchcancel="_cancelTouchDrag()" onmousedown="onMouseDragStart(event,'${s.id}')">⠿</div>`:''}
   <div class="stop-body"${S.isEdit&&S.editingId===null?` onclick="tapStopInEdit('${s.id}')"`:''}>    <div class="stop-name-row"><span class="stop-name-text">${esc(s.name)}</span>${S.isEdit&&S.editingId===null?`<span style="font-size:16px;color:var(--text3);margin-left:auto">▾</span>`:''}</div>
-    ${s.addr?`<div class="stop-addr">📍 ${esc(s.addr)}</div>`:''}
+    ${s.addr?(parseCoord(s.addr)?`<div class="stop-addr">📍 <span class="stop-addr-coordlabel">座標登録済み</span><span class="stop-addr-coord">${esc(s.addr)}</span></div>`:`<div class="stop-addr">📍 ${esc(s.addr)}</div>`):''}
     <div class="stop-times">
       ${s.arr?`<div class="time-chip"><span class="time-label">着</span><span class="time-value">${s.arr}</span></div>`:''}
       ${s.dep?`<div class="time-chip"><span class="time-label">発</span><span class="time-value">${s.dep}</span>${_sdur?`<span style="font-size:16px;color:var(--text3);font-weight:600;margin-left:4px;align-self:center">${_sdur}</span>`:''}</div>`:''}

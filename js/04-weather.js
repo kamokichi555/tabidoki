@@ -131,12 +131,12 @@ export function stopWxInner(stopId,hasAddr){
     </div>
   </div>`;
   if(r.outOfRange) return '<div class="stop-wx-loading" title="予報は16日先まで取得できます">📅 予報期間外</div>';
-  if(r.geoFail) return `<div class="stop-wx-confirm light">
-    <div class="swm-msg">⚠️ 住所が特定できませんでした</div>
-    <div class="swm-btns">
-      <button type="button" class="swm-ok" onclick="retryStopWeather('${escJsAttr(stopId)}')">再取得</button>
-      <button type="button" class="swm-fix" onclick="openEditStop('${escJsAttr(stopId)}')">住所を直す</button>
-    </div>
+  if(r.geoFail) return `<div class="geo-mini">
+    <span class="gm-msg">⚠️ 住所が特定できません</span>
+    <span class="gm-acts">
+      <button type="button" class="gm-act" onclick="retryStopWeather('${escJsAttr(stopId)}')">再取得</button>
+      <button type="button" class="gm-act" onclick="openEditStop('${escJsAttr(stopId)}')">直す</button>
+    </span>
   </div>`;
   if(r.error) return `<div class="stop-wx-loading" onclick="retryStopWeather('${stopId}')" style="cursor:pointer" title="タップして再取得">↻ 再取得</div>`;
   const w=WMO[r.wcode]??{e:'🌡️',t:'不明'};
