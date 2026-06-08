@@ -32,7 +32,8 @@ body.day-mode input[type=text],body.day-mode input[type=time],body.day-mode inpu
 body.day-mode .ride-set-curr-btn{background:#e8e8e8;border-color:rgba(0,0,0,.2);color:#333}
 /* 実績時刻・走行ログ */
 .stop-act-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:5px;align-items:baseline}
-.stop-act-chip{display:flex;align-items:baseline;gap:4px}
+.stop-act-chip{display:flex;align-items:baseline;gap:4px;white-space:nowrap;flex-shrink:0}
+body.fs-xl .stop-act-row{flex-direction:column;align-items:flex-start;gap:4px}
 .stop-act-label{font-size:16px;color:var(--text3);font-weight:700;letter-spacing:.04em}
 .stop-act-value{font-size:20px;font-weight:700;font-family:'SF Mono','Menlo','Courier New',monospace;color:var(--text2);letter-spacing:.02em}
 .stop-act-diff{font-size:15px;font-weight:700;padding:1px 7px;border-radius:5px;margin-left:4px;align-self:center}
@@ -196,7 +197,8 @@ body.day-mode .geo-paste-btn{color:#fff}
 .stop-name-row{font-size:22px;font-weight:700;color:var(--text);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;line-height:1.5;min-width:0}
 .stop-name-text{min-width:0;word-break:break-word;overflow-wrap:anywhere}
 .stop-times{display:flex;gap:20px;margin-bottom:6px;flex-wrap:wrap;align-items:baseline}
-.time-chip{display:flex;align-items:baseline;gap:5px}
+.time-chip{display:flex;align-items:baseline;gap:5px;white-space:nowrap;flex-shrink:0}
+body.fs-xl .stop-times{flex-direction:column;align-items:flex-start;gap:4px}
 .time-label{font-size:15px;color:var(--text3);font-weight:700;letter-spacing:.04em}
 .time-value{font-size:24px;font-weight:700;font-family:'SF Mono','Menlo','Courier New',monospace;color:var(--text);letter-spacing:.02em}
 .stop-note{font-size:17px;color:var(--text2);background:var(--bg3);border-left:4px solid var(--border2);border-radius:0 6px 6px 0;padding:8px 12px;margin-top:8px;line-height:1.7;word-break:break-word;overflow-wrap:anywhere;white-space:pre-wrap}
@@ -412,8 +414,9 @@ body.day-mode .ride-move-dur{color:var(--text3)}
 .ride-name{font-size:34px;font-weight:700;line-height:1.35;margin-bottom:10px;color:var(--text);word-break:break-word;overflow-wrap:anywhere}
 .curr .ride-name{color:var(--amber)}
 .ride-times-row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end}
-.ride-chips{display:flex;gap:16px;flex-wrap:nowrap;align-items:flex-end;min-width:0}
-.ride-chip{display:flex;flex-direction:row;align-items:baseline;gap:6px}
+.ride-chips{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;min-width:0}
+.ride-chip{display:flex;flex-direction:row;align-items:baseline;gap:6px;white-space:nowrap;flex-shrink:0}
+body.fs-xl .ride-chips{flex-direction:column;gap:6px;align-items:flex-start}
 .ride-chip-label{font-size:16px;color:var(--text2);font-weight:700;letter-spacing:.06em;text-transform:uppercase;flex-shrink:0}
 .ride-chip-val,.next-chip-val{font-family:'SF Mono','Menlo','Courier New',monospace;font-size:clamp(26px,7.5vw,34px);font-weight:700;color:var(--text);letter-spacing:.02em;line-height:1}
 .curr .ride-chip-val{color:var(--amber)}
