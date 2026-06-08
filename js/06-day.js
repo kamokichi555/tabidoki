@@ -158,6 +158,13 @@ export const _saveTitleDebounced=debounce(()=>{
 export function _syncTitleInput(){
   const el=document.getElementById('inp-title');
   if(el) el.value=data.title||'';
+  _toggleTitleHelper();
+}
+// 補足テキストは未入力時のみ表示（入力済みなら隠して占有を最小化）。入力欄の現在値で即時判定。
+export function _toggleTitleHelper(){
+  const h=document.getElementById('title-helper'),el=document.getElementById('inp-title');
+  if(!h) return;
+  h.style.display=(el&&el.value.trim())?'none':'';
 }
 // debounce未確定のツーリング名入力を即時data.titleへ反映（保存/共有/記録の前に呼ぶ）
 export function _flushTitle(){
