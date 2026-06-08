@@ -179,11 +179,9 @@
         <div id="time-order-error" style="display:none;font-size:16px;color:var(--red);margin-top:-4px">⚠ 出発時刻は到着時刻より後にしてください</div>
         <textarea id="inp-note" maxlength="1000" rows="6" placeholder="メモ（食事・注意点など）" style="display:none"></textarea>
         <div id="note-preview" class="is-empty" role="button" tabindex="0" onclick="openNoteModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openNoteModal()}"></div>
-        <input id="inp-log" type="text" maxlength="200" placeholder="📝 走行メモ" style="display:none">
-        <div id="log-preview" class="is-empty" role="button" tabindex="0" onclick="openLogModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLogModal()}"></div>
         <button type="button" class="details-toggle" id="details-toggle" onclick="toggleDetails()">
           <span class="details-toggle-arrow">▼</span>
-          <span>詳細（住所・給油・実績）</span>
+          <span>詳細（場所・給油・走行記録・実績）</span>
         </button>
         <div class="details-body" id="details-body" style="display:none">
           <input id="inp-addr" type="text" maxlength="100" placeholder="座標 / 住所 / URL（任意）" oninput="_updateGeoHint()" onpaste="_onAddrPaste(event)">
@@ -204,11 +202,13 @@
             </div>
           </div>
           <div class="geo-okchip" id="geo-okchip"><span>✓ 座標として確定</span><span class="geo-okcoord" id="geo-okcoord"></span><span class="geo-okchip-sub">— 保存でこの地点に記録</span></div>
-          <div class="geo-guide"><b>正確な場所の入れ方:</b> <span class="geo-step">1</span>「🗺 Googleで開く」で探す <span class="geo-step">2</span>ピンを長押しで座標コピー <span class="geo-step">3</span>この欄に貼り付け</div>
+          <div class="geo-guide"><b>正確な場所の入れ方:</b> <span class="geo-step">1</span>「🗺 Googleで探す」で開く <span class="geo-step">2</span>ピンを長押しで座標コピー <span class="geo-step">3</span>この欄に貼り付け</div>
           <div class="fuel-check-row" onclick="toggleFuelCheck()">
             <div class="fuel-check-box" id="fuel-check-box"></div>
             <span class="fuel-check-label">⛽ 給油ポイント</span>
           </div>
+          <input id="inp-log" type="text" maxlength="200" placeholder="📝 走行メモ" style="display:none">
+          <div id="log-preview" class="is-empty" role="button" tabindex="0" onclick="openLogModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLogModal()}"></div>
           <div style="font-size:16px;color:rgba(77,166,255,.9);font-weight:700;margin-top:4px;letter-spacing:.04em">実績時刻</div>
           <div class="time-inline-row">
             <div class="time-inline-item">
