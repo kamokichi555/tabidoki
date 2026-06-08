@@ -35,6 +35,8 @@
     <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
       <img class="splash-title-img" src="icons/splash-title.png?v=16" alt="旅刻">
             <div style="font-size:clamp(11px,3vw,15px);color:rgba(240,235,215,.75);letter-spacing:.22em;font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;font-weight:700;animation:splash-in .6s ease .65s both">mk18</div>
+            <!-- ビルド版（バンプ）。リリースごとに sw.js の CACHE_NAME 末尾 vNN と同じ値へ手動更新すること -->
+            <div style="font-size:clamp(10px,2.6vw,13px);color:rgba(240,235,215,.6);letter-spacing:.22em;font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;font-weight:700;animation:splash-in .6s ease .68s both">v50</div>
     </div>
     <div style="width:28px"></div>
     <div style="writing-mode:vertical-rl;text-orientation:mixed;font-family:'Yuji Boku','Kaisei HarunoUmi','Hiragino Mincho ProN','Yu Mincho',serif;color:rgba(235,230,215,.88);text-shadow:2px 2px 4px rgba(0,0,0,.95),0 0 20px rgba(0,0,0,.8);animation:splash-in .6s ease .7s both;position:relative;z-index:1;line-height:1.6">
@@ -59,9 +61,11 @@
       </div>
     </div>
     <div class="header-quick">
-      <button id="ride-btn" onclick="toggleRide()" title="走行モード">🏍️</button>
+      <div id="mode-toggle" class="mode-toggle" role="group" aria-label="走行と編集の切替">
+        <button id="mt-ride" type="button" onclick="setMode('ride')" title="走行モード" aria-pressed="false">🏍️<span class="mt-lbl">走行</span></button>
+        <button id="mt-edit" type="button" onclick="setMode('edit')" title="編集モード" aria-pressed="true" class="on">✏️<span class="mt-lbl">編集</span></button>
+      </div>
       <button id="cancel-ride-btn" onclick="cancelToRide()" style="display:none" title="走行モードを終了">✖</button>
-      <button id="edit-btn" onclick="onEditBtnClick()" title="編集">✏️</button>
     </div>
     <input type="file" id="load-file-input" accept=".json,application/json" style="display:none" onchange="onFileSelected(event)">
   </div>
