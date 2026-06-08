@@ -2,25 +2,25 @@
  * 旅刻 mk15 — style.css
  * Copyright © 鴨吉 All Rights Reserved.
  */
-:root{--bg:#0F1110;--bg2:#1C1F1C;--bg3:#2A2F2A;--text:#F2F2E6;--text2:#B8BCA8;--text3:#8A9082;--border:rgba(199,194,154,.16);--border2:rgba(199,194,154,.34);--amber:#8FA56B;--amber-bg:rgba(143,165,107,.12);--green:#A6C06E;--red:#E07A3F;--r:6px;--rl:9px}
+:root{--bg:#0F1110;--bg2:#1C1F1C;--bg3:#2A2F2A;--text:#F2F2E6;--text2:#B8BCA8;--text3:#8A9082;--border:rgba(199,194,154,.16);--border2:rgba(199,194,154,.34);--amber:#C7A24A;--amber-bg:rgba(199,162,74,.12);--green:#A6C06E;--red:#E07A3F;--r:6px;--rl:9px}
 /* 屋外昼間モード */
-body.day-mode{--bg:#E7EBE3;--bg2:#F4F6F2;--bg3:#DCE1D9;--text:#1A1F1C;--text2:#2E342F;--text3:#4A5450;--border:rgba(74,84,80,.22);--border2:rgba(74,84,80,.38);--amber:#4E6B4A;--amber-bg:rgba(78,107,74,.12);--green:#46742C;--red:#E26D3D}
+body.day-mode{--bg:#E7EBE3;--bg2:#F4F6F2;--bg3:#DCE1D9;--text:#1A1F1C;--text2:#2E342F;--text3:#4A5450;--border:rgba(74,84,80,.22);--border2:rgba(74,84,80,.38);--amber:#8A6B1A;--amber-bg:rgba(138,107,26,.12);--green:#46742C;--red:#E26D3D}
 /* キーボード表示/格納の遷移中などに body が縮んで露出する root 領域を body と同色に塗り、
    キーボード上部の黒帯（standalone PWA で manifest background_color=#000000 の canvas が露出）を防ぐ。
    ※ CSSカスタムプロパティは上方向に継承しないため html は :has() でテーマ追従させる。
    ※ 下記の背景2色は :root / body.day-mode の --bg と同期させること（どちらか変更時は両方更新）。 */
 html{background:#0F1110;color-scheme:dark}
 html:has(body.day-mode){background:#E7EBE3;color-scheme:light}
-body.day-mode #ride-btn{background:rgba(78,107,74,.15)}
+body.day-mode #ride-btn{background:rgba(138,107,26,.15)}
 body.day-mode #ride-btn.on{background:var(--amber);color:#fff}
-body.day-mode .stop-row.current .stop-dot{box-shadow:0 0 0 5px var(--amber-bg),0 0 14px rgba(78,107,74,.4)}
+body.day-mode .stop-row.current .stop-dot{box-shadow:0 0 0 5px var(--amber-bg),0 0 14px rgba(138,107,26,.4)}
 body.day-mode .ride-card{background:#ffffff;border-color:rgba(0,0,0,.25)}
 body.day-mode .ride-card.curr{background:#EAEFE0;border-color:var(--amber)}
 body.day-mode .curr .ride-chip-val{color:#3C5638} /* 白背景でのコントラスト確保 */
 body.day-mode .ride-note{background:rgba(0,0,0,.06);border-left-color:var(--amber)}
 body.day-mode .ride-note.dm-note{background:rgba(180,0,0,.07);border-left-color:var(--red);color:#9A4A22}
 body.day-mode .ride-wx-compact .cw-cond{color:#555}
-body.day-mode .ride-note-compact{background:rgba(143,165,107,.1);border-left-color:var(--amber);color:#555}
+body.day-mode .ride-note-compact{background:rgba(199,162,74,.1);border-left-color:var(--amber);color:#555}
 body.day-mode .stop-note{background:rgba(0,0,0,.06);border-left-color:rgba(0,0,0,.25)}
 body.day-mode .stop-note.dm{border-left-color:var(--red);color:#9A4A22}
 body.day-mode .stop-wx{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.15)}
@@ -43,7 +43,7 @@ body.day-mode .ride-set-curr-btn{background:#e8e8e8;border-color:rgba(0,0,0,.2);
 body.day-mode .stop-log{background:rgba(122,110,72,.06);border-left-color:rgba(122,110,72,.35)}
 .ride-log{font-size:16px;color:var(--text2);background:rgba(199,194,154,.08);border-left:4px solid rgba(199,194,154,.5);border-radius:0 8px 8px 0;padding:8px 12px;margin-top:8px;line-height:1.7;word-break:break-word}
 body.day-mode .ride-log{background:rgba(122,110,72,.07);border-left-color:rgba(122,110,72,.4)}
-.stop-fuel-badge{display:inline-flex;align-items:center;gap:4px;font-size:16px;font-weight:700;color:var(--amber);background:var(--amber-bg);border:1px solid rgba(143,165,107,.35);border-radius:6px;padding:3px 9px;margin-top:6px}
+.stop-fuel-badge{display:inline-flex;align-items:center;gap:4px;font-size:16px;font-weight:700;color:var(--amber);background:var(--amber-bg);border:1px solid rgba(199,162,74,.35);border-radius:6px;padding:3px 9px;margin-top:6px}
 .fuel-check-row{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg3);border:1.5px solid var(--border2);border-radius:var(--r);cursor:pointer;user-select:none;-webkit-user-select:none}
 .fuel-check-row:active{opacity:.7}
 .fuel-check-box{width:22px;height:22px;border-radius:6px;border:2px solid var(--border2);background:var(--bg2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
@@ -109,7 +109,7 @@ button{background:var(--bg2);border:1.5px solid var(--border2);border-radius:var
 button:active{opacity:.7;transform:scale(.97)}
 button.primary{background:var(--amber);border-color:var(--amber);color:#000;font-weight:800}
 button.danger{color:var(--red);border-color:var(--red);background:rgba(224,122,63,.08);font-size:15px}
-button.amber-outline{color:var(--amber);border-color:var(--amber);background:rgba(143,165,107,.08)}
+button.amber-outline{color:var(--amber);border-color:var(--amber);background:rgba(199,162,74,.08)}
 button.small{padding:6px 10px;font-size:16px}
 #ride-btn{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
 #ride-btn.on{background:var(--amber);color:#000;border-color:var(--amber)}
@@ -120,7 +120,7 @@ button.small{padding:6px 10px;font-size:16px}
 .gps-status:active{transform:scale(.95)}
 .gps-status.off{color:var(--text3);border-color:var(--border2);background:transparent;opacity:.9}
 .gps-status.ok{color:var(--green);border-color:var(--green);background:rgba(166,192,110,.14)}
-.gps-status.warn{color:var(--amber);border-color:var(--amber);background:rgba(143,165,107,.16)}
+.gps-status.warn{color:var(--amber);border-color:var(--amber);background:rgba(199,162,74,.16)}
 /* GPS区間プログレスバー（走行モード 現在地→次の目的地） */
 .ride-seg{margin:2px 2px 12px;padding:0 2px}
 .ride-seg-top{display:flex;align-items:flex-end;justify-content:center;margin-bottom:4px}
@@ -207,7 +207,7 @@ body.day-mode .ride-next-strip{background:#fff;border-color:rgba(0,0,0,.22)}
 .stop-row.past .time-value{color:var(--text3)}
 .stop-row.past .stop-note{opacity:.45}
 .stop-row.past .stop-connector{background:var(--bg3)}
-.stop-row.current .stop-dot{border-color:var(--amber);background:var(--amber);box-shadow:0 0 0 5px var(--amber-bg),0 0 14px rgba(143,165,107,.4);width:18px;height:18px}
+.stop-row.current .stop-dot{border-color:var(--amber);background:var(--amber);box-shadow:0 0 0 5px var(--amber-bg),0 0 14px rgba(199,162,74,.4);width:18px;height:18px}
 .stop-row.current .stop-name-text{color:var(--amber)}
 .stop-row.current .time-value{color:var(--amber)}
 .stop-row.current .stop-connector{background:var(--amber-bg)}
@@ -220,7 +220,7 @@ body.day-mode .ride-next-strip{background:#fff;border-color:rgba(0,0,0,.22)}
 .picker-chips{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
 .picker-chip{padding:7px 6px!important;font-size:16px!important;font-weight:700;line-height:1.2;text-align:center;white-space:nowrap;border-radius:8px!important;justify-content:center;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .picker-chip.ch-hw{border-color:rgba(199,194,154,.45)!important;color:#C7C29A!important;background:rgba(199,194,154,.06)!important}
-.picker-chip.ch-mn{border-color:rgba(143,165,107,.45)!important;color:var(--amber)!important;background:rgba(143,165,107,.06)!important}
+.picker-chip.ch-mn{border-color:rgba(199,162,74,.45)!important;color:var(--amber)!important;background:rgba(199,162,74,.06)!important}
 .picker-chip.ch-gs{border-color:rgba(166,192,110,.45)!important;color:var(--green)!important;background:rgba(166,192,110,.06)!important}
 .picker-chip.ch-kk{border-color:rgba(183,168,120,.45)!important;color:#B7A878!important;background:rgba(183,168,120,.06)!important}
 .time-inline-row{display:flex;flex-direction:column;gap:4px}
@@ -230,7 +230,7 @@ body.day-mode .ride-next-strip{background:#fff;border-color:rgba(0,0,0,.22)}
 .time-inline-arrow{font-size:14px;color:var(--text3);font-weight:700;padding-left:30px}
 .details-toggle{width:100%;background:transparent!important;border:1px dashed var(--border2)!important;color:var(--text3)!important;font-size:16px!important;font-weight:700;padding:9px!important;justify-content:center;letter-spacing:.04em;border-radius:8px!important}
 .details-toggle:active{background:var(--bg3)!important}
-.details-toggle.open{color:var(--amber)!important;border-color:rgba(143,165,107,.5)!important;border-style:solid!important}
+.details-toggle.open{color:var(--amber)!important;border-color:rgba(199,162,74,.5)!important;border-style:solid!important}
 .details-toggle-arrow{display:inline-block;transition:transform .2s;font-size:14px}
 .details-toggle.open .details-toggle-arrow{transform:rotate(180deg)}
 .details-body{display:flex;flex-direction:column;gap:12px;padding:12px;background:rgba(255,255,255,.02);border-radius:10px;border:1px solid var(--border)}
@@ -268,7 +268,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
 .input-group{display:flex;flex-direction:column;gap:6px}
 .input-label{font-size:15px;color:var(--text2);font-weight:700;letter-spacing:.04em}
 .form-gap{display:flex;flex-direction:column;gap:12px}
-.cascade-hint{font-size:14px;color:var(--amber);background:rgba(143,165,107,.12);border:1px solid rgba(143,165,107,.3);border-radius:var(--r);padding:10px 14px;display:none}
+.cascade-hint{font-size:14px;color:var(--amber);background:rgba(199,162,74,.12);border:1px solid rgba(199,162,74,.3);border-radius:var(--r);padding:10px 14px;display:none}
 .drag-hint{font-size:14px;color:var(--text3);text-align:center;margin-bottom:16px}
 .stop-row[draggable=true]{cursor:grab}
 .stop-row.dragging{opacity:.3;transform:scale(.98)}
@@ -295,7 +295,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
 body.day-mode .stop-wx-tmin{color:#7A6E48}
 .stop-wx-precip{font-size:14px;font-weight:800;padding:2px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0}
 .stop-wx-precip.low{color:var(--text3);background:var(--bg3)}
-.stop-wx-precip.mid{color:var(--amber);background:rgba(143,165,107,.18)}
+.stop-wx-precip.mid{color:var(--amber);background:rgba(199,162,74,.18)}
 .stop-wx-precip.high{color:var(--red);background:rgba(224,122,63,.18)}
 .stop-wx-loading{font-size:15px;color:var(--text3);margin-top:5px;opacity:.7}
 /* 住所の解釈確認UI（編集画面）。strong=化け疑い（警告色）, light=部分一致（中立色）。 */
@@ -327,12 +327,12 @@ body.day-mode .ride-wx-compact{background:rgba(0,0,0,.06);border-color:rgba(0,0,
 .ride-wx-compact .stop-wx-tmax{font-size:16px;font-weight:700;color:var(--red);white-space:nowrap;flex-shrink:0}
 .ride-wx-compact .stop-wx-tmin{font-size:16px;font-weight:700;color:#C7C29A;white-space:nowrap;flex-shrink:0}
 .ride-wx-compact .cw-precip.low{color:var(--text3);background:rgba(255,255,255,.08)}
-.ride-wx-compact .cw-precip.mid{color:var(--amber);background:rgba(143,165,107,.18)}
+.ride-wx-compact .cw-precip.mid{color:var(--amber);background:rgba(199,162,74,.18)}
 .ride-wx-compact .cw-precip.high{color:var(--red);background:rgba(224,122,63,.18)}
-.ride-note-compact{display:flex;align-items:center;gap:8px;font-size:16px;color:var(--text2);margin-top:5px;padding:6px 10px;border-left:3px solid var(--amber);background:rgba(143,165,107,.06);border-radius:0 6px 6px 0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ride-note-compact{display:flex;align-items:center;gap:8px;font-size:16px;color:var(--text2);margin-top:5px;padding:6px 10px;border-left:3px solid var(--amber);background:rgba(199,162,74,.06);border-radius:0 6px 6px 0;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .ride-note-compact .ride-note-txt{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ride-note-compact .ride-note-more{flex:0 0 auto;font-size:14px;font-weight:700;color:var(--amber);white-space:nowrap;opacity:.85}
-.ride-note-compact:active{background:rgba(143,165,107,.14)}
+.ride-note-compact:active{background:rgba(199,162,74,.14)}
 /* 編集画面で使う際、🩸を含むメモ(.dm)は赤系アクセントで視認性を維持 */
 .ride-note-compact.dm{border-left-color:var(--red);background:rgba(224,122,63,.08)}
 .ride-note-compact.dm .ride-note-more{color:var(--red)}
@@ -414,13 +414,13 @@ body.day-mode .ride-move-dur{color:var(--text3)}
 .ride-route-btn{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;width:100%;padding:13px;border-radius:12px;background:rgba(154,161,122,.15);border:1.5px solid rgba(154,161,122,.5);color:#9AA17A;font-size:17px;font-weight:700;letter-spacing:.04em;text-decoration:none;-webkit-tap-highlight-color:transparent}
 .ride-route-btn:active{background:rgba(154,161,122,.28)}
 .ride-set-curr-btn{margin-top:10px;width:100%;justify-content:center;background:var(--bg3);border:1.5px solid var(--border2);color:var(--text2);font-size:14px;padding:10px;border-radius:10px;letter-spacing:.03em}
-.ride-set-curr-btn:active{background:rgba(143,165,107,.15);border-color:var(--amber);color:var(--amber)}
+.ride-set-curr-btn:active{background:rgba(199,162,74,.15);border-color:var(--amber);color:var(--amber)}
 #ride-content{transition:transform .24s cubic-bezier(.4,0,.2,1),opacity .24s ease;will-change:transform,opacity}
 #ride-content.sw-exit-left{transform:translateX(-80px);opacity:0;pointer-events:none}
 #ride-content.sw-exit-right{transform:translateX(80px);opacity:0;pointer-events:none}
 #ride-content.sw-enter-left{transform:translateX(80px);opacity:0;pointer-events:none}
 #ride-content.sw-enter-right{transform:translateX(-80px);opacity:0;pointer-events:none}
-.ride-swipe-arr{font-size:22px;color:var(--amber);opacity:1;transition:opacity .15s,transform .12s;padding:6px 16px;font-weight:900;letter-spacing:.08em;text-shadow:0 0 8px rgba(143,165,107,.5)}
+.ride-swipe-arr{font-size:22px;color:var(--amber);opacity:1;transition:opacity .15s,transform .12s;padding:6px 16px;font-weight:900;letter-spacing:.08em;text-shadow:0 0 8px rgba(199,162,74,.5)}
 .ride-swipe-arr.dim{opacity:.15;pointer-events:none}
 .ride-swipe-arr:active{transform:scale(.85)}
 /* ── 7セグメント時計 ── */
@@ -452,9 +452,9 @@ body.day-mode .ride-move-dur{color:var(--text3)}
 body::before{
   content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
   background:
-    repeating-linear-gradient(0deg, rgba(143,165,107,.05) 0 1px, transparent 1px 3px),
-    linear-gradient(rgba(143,165,107,.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(143,165,107,.018) 1px, transparent 1px);
+    repeating-linear-gradient(0deg, rgba(199,162,74,.05) 0 1px, transparent 1px 3px),
+    linear-gradient(rgba(199,162,74,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(199,162,74,.018) 1px, transparent 1px);
   background-size:100% 3px, 26px 26px, 26px 26px;
   mix-blend-mode:normal;
 }
