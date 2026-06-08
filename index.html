@@ -274,7 +274,7 @@
   <div class="app-err-code" id="app-err-code">E-GL01</div>
   <div class="app-err-msg" id="app-err-msg"></div>
 </div>
-<div id="info-toast" style="display:none;position:fixed;bottom:max(24px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:10002;width:calc(100% - 28px);max-width:440px;background:var(--bg2);border:1.5px solid var(--border2);border-radius:14px;padding:14px 18px;box-shadow:0 4px 24px rgba(0,0,0,.5);animation:toast-in .22s cubic-bezier(.2,0,.2,1);text-align:center;font-size:15px;font-weight:700;color:var(--text)">
+<div id="info-toast" style="display:none;position:fixed;top:calc(var(--hh,62px) + 10px);left:50%;transform:translateX(-50%);z-index:10002;width:calc(100% - 28px);max-width:440px;background:var(--bg2);border:1.5px solid var(--border2);border-radius:14px;padding:14px 18px;box-shadow:0 4px 24px rgba(0,0,0,.5);animation:toast-in .22s cubic-bezier(.2,0,.2,1);text-align:center;font-size:15px;font-weight:700;color:var(--text)">
 </div>
 <div id="dbg-badge" onclick="openSplashSettings()" title="デバッグログ"><span id="dbg-badge-text">🐛</span></div>
 <script>if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');</script>
