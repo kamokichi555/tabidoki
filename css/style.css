@@ -69,7 +69,7 @@ body:not(.ride-mode) #now-display svg{height:clamp(26px,6.2vw,38px)!important}
 #menu-toggle-btn.open span:nth-child(2){opacity:0}
 #menu-toggle-btn.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
 .header-quick{display:flex;gap:6px;justify-self:end}
-.header-quick button{padding:6px 10px;font-size:20px;line-height:1;border-radius:10px}
+.header-quick button{min-width:44px;min-height:44px;padding:0 6px;font-size:21px;line-height:1;border-radius:10px;justify-content:center}
 #ride-btn{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
 #ride-btn.on{background:var(--amber);color:#000;border-color:var(--amber)}
 /* ══ ドロワー ══ */
@@ -114,7 +114,7 @@ button.small{padding:6px 10px;font-size:16px}
 #ride-btn{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
 #ride-btn.on{background:var(--amber);color:#000;border-color:var(--amber)}
 #gps-btn.on{color:var(--green)}
-.gps-status{display:inline-flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;font-weight:700;line-height:1;padding:6px 11px;border-radius:13px;background:var(--amber-bg);border:1.5px solid var(--border2);color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:46vw;flex:0 1 auto;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;transition:transform .1s}
+.gps-status{display:inline-flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;font-weight:700;line-height:1;min-height:44px;padding:6px 11px;border-radius:13px;background:var(--amber-bg);border:1.5px solid var(--border2);color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:46vw;flex:0 1 auto;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;transition:transform .1s}
 .gps-status .gps-ico{font-size:17px;line-height:1;flex-shrink:0}
 .gps-status .gps-txt{font-size:14px;line-height:1;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .gps-status:active{transform:scale(.95)}
