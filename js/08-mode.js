@@ -103,8 +103,9 @@ document.addEventListener('visibilitychange',()=>{
 
 export function toggleRide(){
   _closeAllOverlays();
-  // 編集中にライドモードへ切り替える場合は確認（新設計では常にS.isEdit=trueのため毎回出る）
-  if(!S.isRide&&S.isEdit){const msg=_formHasData()?'入力中のデータが保存されていません。\n走行モードに切り替えますか？':'走行モードに切り替えます。よろしいですか？';if(!confirm(msg))return;}
+  // 走行へ切り替える際、未保存の入力（地点フォーム）があるときだけ確認する。
+  // 保存済みデータはlocalStorageに即時反映されているため、確認不要でスムーズに切替。
+  if(!S.isRide&&S.isEdit&&_formHasData()){if(!confirm('入力中のデータが保存されていません。\n走行モードに切り替えますか？'))return;}
   _flushRouteSave(); // 入力中のrouteUrlを取りこぼさない（S.currentDay変更前に保存）
   _dbgLog('toggleRide:in', _dbgSnapshot);
   S.isRide=!S.isRide;
@@ -114,10 +115,7 @@ export function toggleRide(){
   if(S.isRide&&S.isEdit){S.isEdit=false;closeStopFormModal();_dom('edit-area').style.display='none';}
   _dom('normal-view').style.display=S.isRide?'none':'block';
   _dom('ride-view').classList.toggle('active',S.isRide);
-  _dom('ride-btn').classList.toggle('on',S.isRide);
-  _dom('ride-btn').textContent=S.isRide?'📋':'🏍️';
-  _dom('edit-btn').style.display='';
-  _dom('edit-btn').textContent='✏️'; // ✅ボタン廃止につき常に✏️
+  _syncModeToggle(); // 走行/編集トグルの表示状態を同期
   _dom('day-tabs').style.display=S.isRide?'none':'';
   _dom('day-manage').style.display=S.isRide?'none':S.isEdit?'flex':'none'; // 走行終了時はS.isEditの状態に従う
   if(S.isRide){
@@ -133,7 +131,7 @@ export function toggleRide(){
     if(typeof _gpsOnRideEnd==='function') _gpsOnRideEnd(); // GPS自動追跡停止
     _releaseWakeLock(); // 画面スリープ抑止を解除（通常のスリープに戻す）
     _updateStickyTops();
-    render(); // 走行中にsetCurrentStop等で変わった地点状態をnormal-viewに反映
+    toggleEdit(); // 走行解除→そのまま編集可能な状態へ直行（読み取り専用ビューを廃止）
   }
   _dbgLog('toggleRide:out', _dbgSnapshot);
 }
@@ -149,10 +147,27 @@ export function onEditBtnClick(){
   }
   if(!S.isEdit) toggleEdit();
 }
+/* 走行/編集トグルの表示状態を現在のS.isRideに同期する。
+   on=現在のモード側を強調。要素が無い場合（描画前など）は何もしない。 */
+export function _syncModeToggle(){
+  const r=document.getElementById('mt-ride'),e=document.getElementById('mt-edit');
+  if(r){r.classList.toggle('on',S.isRide);r.setAttribute('aria-pressed',S.isRide?'true':'false');}
+  if(e){e.classList.toggle('on',!S.isRide);e.setAttribute('aria-pressed',!S.isRide?'true':'false');}
+}
+/* ヘッダーの走行/編集トグルから呼ばれる。target='ride'|'edit'。
+   走行解除はそのまま編集モードへ直行する（toggleRide内でtoggleEditを呼ぶ）。 */
+export function setMode(target){
+  if(target==='ride'){
+    if(!S.isRide) toggleRide();
+  }else{ // 'edit'
+    if(S.isRide) toggleRide();      // 走行解除→編集へ直行
+    else if(!S.isEdit) toggleEdit();// 念のため（通常は常に編集中）
+  }
+}
 export function cancelToRide(){
   if(!_confirmLeaveEdit()) return;
   if(S.isEdit){cancelEdit();S.isEdit=false;_dom('edit-area').style.display='none';}
-  _dom('cancel-ride-btn').style.display='none';_dom('ride-btn').style.display='';
+  _dom('cancel-ride-btn').style.display='none';
   if(S.isRide) toggleRide(); // S.isRide=trueのときだけtoggleRide（内部でS.isRide=falseにする）
 }
 export function toggleEdit(){
@@ -165,6 +180,7 @@ export function toggleEdit(){
   setFormAdd();
   _dom('normal-view')?.scrollTo({top:0,behavior:'instant'});
   _dom('day-manage').style.display='flex';
+  _syncModeToggle(); // 走行/編集トグルを「編集」側に同期
   _updateStickyTops();
   render();
   _dbgLog('toggleEdit:out', _dbgSnapshot);

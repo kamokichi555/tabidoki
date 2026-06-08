@@ -14,7 +14,7 @@ import { IS_IOS, WEEK, _migrateData, _resolveCurrentStopId, _sanitizeImportedDat
 import { _bumpWxGen, _lsSetItem, wxGen, wxQueue, wxQueueFast, wxQueueIds, wxStopRes } from './04-weather.js';
 import { _cachedCdiForId, _flushTitle, _invalidateCdi, _scrollNormalViewToFirstStop, _syncTitleInput, renderTabs } from './06-day.js';
 import { _lastClockTs, _resetClockTs, hideInfoToast, render, showAppError, showInfoToast, updateClock } from './07-render.js';
-import { _hasAnyStops, setFormAdd, _releaseWakeLock } from './08-mode.js';
+import { _hasAnyStops, setFormAdd, _releaseWakeLock, _syncModeToggle } from './08-mode.js';
 import { _closeAllOverlays, _closeOverlay, _lowerHeaderForOverlay } from './11-overlays.js';
 import { _dbgLog, _dbgSnapshot } from './12-debug.js';
 import { _gpsOnRideEnd } from './14-gps.js';
@@ -432,11 +432,12 @@ export function _applyImportedData(p,titleFallback,skipConfirm,silent){
   _invalidateCdi();
   save(); // 読み込んだデータを即座にlocalStorageへ反映（読み込み直後にタブを閉じても残るように）
   requestAnimationFrame(()=>{
-    if(S.isRide){S.isRide=false;if(typeof _gpsOnRideEnd==='function')_gpsOnRideEnd();if(typeof _releaseWakeLock==='function')_releaseWakeLock();document.body.classList.remove('ride-mode');_dom('normal-view').style.display='block';_dom('ride-view').classList.remove('active');_dom('ride-btn').classList.remove('on');_dom('ride-btn').textContent='🏍️';_dom('day-tabs').style.display='';_dom('day-manage').style.display='none';_dom('cancel-ride-btn').style.display='none';}
+    if(S.isRide){S.isRide=false;if(typeof _gpsOnRideEnd==='function')_gpsOnRideEnd();if(typeof _releaseWakeLock==='function')_releaseWakeLock();document.body.classList.remove('ride-mode');_dom('normal-view').style.display='block';_dom('ride-view').classList.remove('active');_dom('day-tabs').style.display='';_dom('day-manage').style.display='none';_dom('cancel-ride-btn').style.display='none';}
     if(!S.isEdit){S.isEdit=true;_dom('edit-area').style.display='block';}
     _syncTitleInput(); // 読み込んだタイトルをツーリング名欄に反映
     setFormAdd(); // S.isEdit状態に関わらず常にフォームをリセット（既存編集中のロード時に古い入力値が残るのを防ぐ）
     S.editingId=null;S.activeEditStopId=null;
+    _syncModeToggle(); // インポート後は編集モードなのでトグルを同期
     renderTabs();render();hideInfoToast();
     if(!silent){
       if(_truncated)showInfoToast(`⚠️ 1日${LIMIT.stopsPerDay}件を超える地点は読み込みませんでした`,4000);

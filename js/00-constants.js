@@ -19,7 +19,9 @@ export const WMO={
    ▼ APP_VERSION：表示・ログ用の「リリース版」。リリースごとに上げる。
      これを変えたら、import で繋がらない以下も手動で併せて更新すること：
        ・sw.js の CACHE_NAME（'tabidoki-<ver>-v1'）← キャッシュ無効化に必須
-       ・index.html の <title> と スプラッシュの版表示
+       ・index.html の <title>
+     ▼ なお index.html スプラッシュの版表示（mk18の下の vNN）は sw.js の CACHE_NAME 末尾の
+       ビルド番号と同じ値。バンプ（毎リリース）のたびに sw.js と index.html の両方を更新すること。
    ▼ DEFAULT.version は別物（下記参照）。混同しないこと。 */
 export const APP_VERSION='mk18';
 export const DEFAULT={
