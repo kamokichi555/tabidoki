@@ -272,6 +272,17 @@
   <div class="nm-count" id="log-modal-count">0 / 200</div>
 </div>
 
+<div id="confirm-modal" class="cfm-ov" style="display:none" onclick="if(event.target===this)_cfmCancel()">
+  <div class="cfm" role="dialog" aria-modal="true" aria-labelledby="cfm-title">
+    <div class="cfm-title" id="cfm-title">確認</div>
+    <div class="cfm-body" id="cfm-body"></div>
+    <div class="cfm-acts">
+      <button type="button" class="cfm-cancel" id="cfm-cancel" onclick="_cfmCancel()">キャンセル</button>
+      <button type="button" class="cfm-ok" id="cfm-ok" onclick="_cfmOk()">OK</button>
+    </div>
+  </div>
+</div>
+
 <div id="app-error-toast">
   <button id="app-err-dismiss" onclick="dismissAppError()">✕</button>
   <div class="app-err-code" id="app-err-code">E-GL01</div>
