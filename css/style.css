@@ -280,6 +280,8 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.5)
 @keyframes val-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 /* 地点住所表示 */
 .stop-addr{font-size:15px;color:var(--text3);margin-top:3px;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stop-addr-coordlabel{color:var(--text2);font-weight:700}
+.stop-addr-coord{font-family:'SF Mono','Menlo',monospace;font-size:12px;color:var(--text3);margin-left:6px;letter-spacing:.01em}
 /* 地点ごと天気バッジ（行程ビュー） */
 .stop-wx{display:flex;align-items:center;gap:6px;margin-top:7px;padding:6px 10px;background:rgba(255,255,255,.04);border-radius:8px;border:1px solid var(--border)}
 .stop-wx-icon{font-size:18px;line-height:1;flex-shrink:0;align-self:center}
@@ -307,6 +309,12 @@ body.day-mode .stop-wx-tmin{color:#7A6E48}
 .stop-wx-confirm .swm-fix{background:transparent;color:var(--text2);border:1px solid var(--border2)}
 body.day-mode .stop-wx-confirm.strong{background:rgba(224,122,63,.1);border-color:rgba(224,122,63,.5)}
 body.day-mode .stop-wx-confirm.light{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.18)}
+/* 住所特定失敗（geoFail）の控えめ1行通知。地点名・時刻の視認を妨げないよう枠/塗りボタンを廃し小リンク化 */
+.geo-mini{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:13px;line-height:1.4}
+.geo-mini .gm-msg{color:var(--text3);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.geo-mini .gm-acts{flex-shrink:0;display:flex;align-items:center;gap:2px}
+.geo-mini .gm-act{background:transparent!important;border:none!important;padding:4px 7px!important;font-size:13px!important;font-weight:700;color:var(--amber)!important;border-radius:6px!important}
+.geo-mini .gm-act:active{background:var(--bg3)!important}
 /* 走行モードの天気ブロック */
 .ride-wx-compact{display:flex;flex-direction:column;gap:5px;margin-top:7px;padding:9px 12px;background:rgba(0,0,0,.15);border-radius:10px;border:1px solid var(--border2)}
 body.day-mode .ride-wx-compact{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.15)}
