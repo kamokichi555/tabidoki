@@ -2,6 +2,9 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1a1916">
 <meta name="format-detection" content="telephone=no">
@@ -687,7 +690,7 @@
     </svg>
     <div class="splash-tag">RIDE LEDGER</div>
     <div class="splash-sub">北海道ツーリング 費用シミュレーター</div>
-    <div class="splash-credit">Powered By 鴨吉</div>
+    <div class="splash-credit">Powered By 鴨吉　<span id="splashVer"></span></div>
   </div>
 </div>
 
@@ -737,6 +740,27 @@
       <input type="file" id="importFile" accept="application/json,.json" style="display:none">
     </div>
 
+    <div class="section-label">🏍️ バイク設定</div>
+
+    <div class="field">
+      <label>バイク名（車種）</label>
+      <input type="text" id="bikeName" value="" placeholder="例：CRF250L / Ninja400"
+        maxlength="40" oninput="calc()"
+        style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:13px;font-family:inherit;">
+    </div>
+
+    <div class="slider-field">
+      <div class="slider-header">
+        <label>WMTC燃費</label>
+        <span class="sv" id="fuelKmV">25 km/L</span>
+      </div>
+      <input type="range" id="fuelKm" min="10" max="60" step="1" value="25"
+        oninput="syncS('fuelKm','fuelKmV',v=>v+' km/L');calc()">
+    </div>
+    <div style="font-size:11.5px;color:var(--text-faint);margin:-0.4rem 0 0.5rem;line-height:1.55;padding:0 2px;">
+      WMTCモード燃費（車検証・カタログ記載値）を入力。実燃費は積載・走り方でやや下がるため、不安なら少し低めに設定すると安全側に見積れます。
+    </div>
+
     <div class="section-label">⛴ フェリー・日程</div>
 
     <div class="field">
@@ -784,15 +808,6 @@
       </div>
       <input type="range" id="dailyKm" min="150" max="400" step="10" value="250"
         oninput="syncS('dailyKm','dailyKmV',v=>v+' km');calc()">
-    </div>
-
-    <div class="slider-field">
-      <div class="slider-header">
-        <label>燃費</label>
-        <span class="sv" id="fuelKmV">25 km/L</span>
-      </div>
-      <input type="range" id="fuelKm" min="10" max="40" step="1" value="25"
-        oninput="syncS('fuelKm','fuelKmV',v=>v+' km/L');calc()">
     </div>
 
     <div class="slider-field">
@@ -950,6 +965,10 @@
         </li>
       </ul>
     </div>
+    <div id="appFooter" style="margin-top:1rem;text-align:center;font-size:11.5px;color:var(--text-faint);line-height:1.7;">
+      EZO RIDE LEDGER　<span id="footVer"></span><br>
+      Powered By 鴨吉
+    </div>
   </section>
 
 </div>
@@ -969,6 +988,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
+const APP_VERSION = 'v1.4 (2026-06-09)';
 const FERRY = {
   A: {
     tourist: { under125: 22550, mid: 24750, large: 26950 },
@@ -1046,9 +1066,10 @@ function syncS(id, outId, fmt) {
   document.getElementById(outId).textContent = fmt(v);
 }
 function yen(n) { return '¥' + Math.round(n).toLocaleString(); }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 /* ── 設定の保存・読み込み ── */
-const SETTING_IDS = ['depDate','touringDays','ccClass','cabin','dailyKm','fuelKm','gasPrice','day0Km','accommodation','mealDay','actDay','ferryMeal','souvenir'];
+const SETTING_IDS = ['bikeName','depDate','touringDays','ccClass','cabin','dailyKm','fuelKm','gasPrice','day0Km','accommodation','mealDay','actDay','ferryMeal','souvenir'];
 const SLIDERS = [
   ['touringDays','touringDaysV', v=>v+' 日'],
   ['dailyKm','dailyKmV',   v=>v+' km'],
@@ -1060,7 +1081,7 @@ const SLIDERS = [
   ['ferryMeal','ferryMealV', v=>v.toLocaleString()+' 円'],
   ['souvenir','souvenirV', v=>v.toLocaleString()+' 円']
 ];
-const DEFAULTS = { depDate:'2026-07-13', touringDays:'5', ccClass:'mid', cabin:'tourist', dailyKm:'250', fuelKm:'25', gasPrice:'170', day0Km:'160', accommodation:'mix', mealDay:'2500', actDay:'1000', ferryMeal:'2000', souvenir:'10000' };
+const DEFAULTS = { bikeName:'', depDate:'2026-07-13', touringDays:'5', ccClass:'mid', cabin:'tourist', dailyKm:'250', fuelKm:'25', gasPrice:'170', day0Km:'160', accommodation:'mix', mealDay:'2500', actDay:'1000', ferryMeal:'2000', souvenir:'10000' };
 const LS_KEY = 'hts-cost-settings-v1';
 
 function refreshReadouts() {
@@ -1141,6 +1162,7 @@ function calc() {
   const cc     = document.getElementById('ccClass').value;
   const cabin  = document.getElementById('cabin').value;
   const N       = +document.getElementById('touringDays').value;
+  const bikeName  = (document.getElementById('bikeName').value || '').trim();
   const dailyKm   = +document.getElementById('dailyKm').value;
   const fuelKm    = +document.getElementById('fuelKm').value;
   const gasPrice  = +document.getElementById('gasPrice').value;
@@ -1205,10 +1227,11 @@ function calc() {
   ).join('');
 
   // Breakdown cards
+  const bikeLabel = bikeName ? esc(bikeName) + ' / ' : '';
   const periodLabel = outPeriod === retPeriod ? `${outPeriod}期間` : `往路${outPeriod}・復路${retPeriod}期間`;
   const bdata = [
     { color: HEX.ferry, label: 'フェリー代（往復）',    val: yen(ferryTotal), sub: `${periodLabel} | ${CABIN_LABEL[cabin]} | ${CC_LABEL[cc]}` },
-    { color: HEX.fuel,  label: '燃料代（往路+北海道内）',val: yen(fuelTotal),  sub: `${hkKm}km走行 / 燃費${fuelKm}km/L` },
+    { color: HEX.fuel,  label: '燃料代（往路+北海道内）',val: yen(fuelTotal),  sub: `${bikeLabel}${hkKm + day0Km}km走行 / 燃費${fuelKm}km/L` },
     { color: HEX.acc,   label: `宿泊費（${N}泊）`,        val: yen(accTotal),  sub: accInfo.label }
   ];
   document.getElementById('bcards').innerHTML = bdata.map(b =>
@@ -1223,8 +1246,8 @@ function calc() {
   const rows = [
     { label: 'フェリー 往路（大洗→苫小牧）', note: `${fmtDate(depDate)} 大洗発 ${outPeriod}期間 | バイク（${CC_LABEL[cc]}）+ ${CABIN_LABEL[cabin]}`, val: outFare },
     { label: 'フェリー 復路（苫小牧→大洗）', note: `${fmtDate(retDate)} 苫小牧発 ${retPeriod}期間 | バイク（${CC_LABEL[cc]}）+ ${CABIN_LABEL[cabin]}`, val: retFare },
-    { label: '燃料代 ― 往路（横浜→大洗）', note: `${day0Km}km / ${fuelKm}km/L × ${gasPrice}円/L`,    val: day0Fuel   },
-    { label: `燃料代 ― 北海道内（${N}日間）`, note: `${hkKm}km / ${fuelKm}km/L × ${gasPrice}円/L`,     val: hkFuel     },
+    { label: '燃料代 ― 往路（横浜→大洗）', note: `${day0Km}km / ${fuelKm}km/L（WMTC）× ${gasPrice}円/L`,    val: day0Fuel   },
+    { label: `燃料代 ― 北海道内（${N}日間）`, note: `${hkKm}km / ${fuelKm}km/L（WMTC）× ${gasPrice}円/L`,     val: hkFuel     },
     { label: `宿泊費（${N}泊）`,               note: accInfo.note,                                        val: accTotal   },
     { label: `食事代（${N}日間）`,             note: `${mealDay.toLocaleString()}円/日 × ${N}日`,         val: mealTotal  },
     { label: `観光・アクティビティ（${N}日間）`,note: `${actDay.toLocaleString()}円/日 × ${N}日`,         val: actTotal   },
@@ -1257,7 +1280,7 @@ function calc() {
 
   // 動的ラベル
   document.getElementById('accLabel').textContent = `🏠 宿泊（北海道 ${N}泊）`;
-  document.getElementById('headerSub').textContent = `大洗⇔苫小牧フェリー往復（2日）＋ 北海道ツーリング${N}日間 ＝ 全${N + 2}日間（1名・バイク）`;
+  document.getElementById('headerSub').textContent = `大洗⇔苫小牧フェリー往復（2日）＋ 北海道ツーリング${N}日間 ＝ 全${N + 2}日間（1名${bikeName ? '・' + bikeName : '・バイク'}）`;
 
   // Notice
   const notices = ['フェリー料金は商船三井さんふらわあ「夕方便」公式運賃（2026/4/1〜9/30）に基づく往路・復路の合計です。'];
@@ -1290,6 +1313,14 @@ document.getElementById('importFile').addEventListener('change', function() {
 });
 // 初期表示パネル（モバイルで非表示のうち最初の1つを有効化）
 showTab('settings');
+
+// バージョン表示（キャッシュ確認用）
+(function(){
+  const sv = document.getElementById('splashVer');
+  const fv = document.getElementById('footVer');
+  if (sv) sv.textContent = APP_VERSION;
+  if (fv) fv.textContent = APP_VERSION;
+})();
 
 // 前回設定を自動復元（localStorage）。なければデフォルトで計算。
 if (!loadLocal()) calc();
