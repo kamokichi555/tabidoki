@@ -10,9 +10,9 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { EC, LIMIT } from './00-constants.js';
 import { S, _canEditData, _dom, data } from './01-state.js';
-import { fromMin, isTimeOrderOk, isValidTime, parseCoord, extractMapCoord, isShareMapUrl, isDmsCoord, sanitize, toMin } from './02-utils.js';
+import { fromMin, isTimeOrderOk, isValidTime, parseCoord, extractMapCoord, isShareMapUrl, isDmsCoord, sanitize, toMin, _newStopId } from './02-utils.js';
 import { save } from './03-storage.js';
-import { wxQueueIds, wxStopRes, enqueueStop, _isoToday } from './04-weather.js';
+import { wxQueueIds, wxStopRes, _findStopAndDate, _requeueStopWeather } from './04-weather.js';
 import { _cachedCdiForId, _invalidateCdi, currentDayIdxOf, syncBorderAddr } from './06-day.js';
 import { render, renderRide, showAppError, showConfirmDialog, showInfoToast, showValError } from './07-render.js';
 import { setFormAdd, closeStopFormModal } from './08-mode.js';
@@ -36,19 +36,12 @@ export function getStatus(s,idx,ds,cdi){
 }
 // 化け座標の確認UIで「はい、この場所で表示」を押したとき：その地点を承認(geoOk=true)して保存し天気を再取得。
 export function confirmGeo(stopId){
-  let stop=null,date='';
-  for(let di=0;di<data.days.length;di++){
-    const s=data.days[di].stops.find(s=>s.id===stopId);
-    if(s){stop=s;date=data.days[di].date||_isoToday(di);break;}
-  }
-  if(!stop) return;
+  const found=_findStopAndDate(stopId);
+  if(!found) return;
+  const {stop,date}=found;
   stop.geoOk=true;
   save();
-  delete wxStopRes[stopId];wxQueueIds.delete(stopId);
-  enqueueStop(stop,date);
-  const el=document.getElementById('wx-'+stopId);
-  if(el) el.innerHTML='<div class="stop-wx-loading">🌐 取得中…</div>';
-  showInfoToast('🌐 この場所で天気を取得します',2000);
+  _requeueStopWeather(stop,date,'🌐 この場所で天気を取得します');
 }
 export function saveStop(){
   _dbgLog('saveStop:in', _dbgSnapshot);
@@ -87,7 +80,7 @@ export function saveStop(){
       setFormAdd();S.activeEditStopId=null;closeStopFormModal();
     }else{
       if(ds.length>=LIMIT.stopsPerDay){showValError(`地点は1日${LIMIT.stopsPerDay}件までです`);return;}
-      const newId=Date.now().toString(36)+Math.random().toString(36).slice(2);
+      const newId=_newStopId();
       ds.push({id:newId,name,addr,arr:newArr,dep:newDep,note,log,actArr,actDep,fuel,geo});
       // B案: 追加した地点は末尾に置き、並び順はユーザーのドラッグに委ねる（自動で並べ替えない）
       // フォームを完全リセット（編集分岐と同じ挙動）。給油チェック・詳細パネル・時刻エラー表示・

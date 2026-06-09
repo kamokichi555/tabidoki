@@ -12,7 +12,7 @@ import { EC, LSK } from './00-constants.js';
 import { S, _dom, data } from './01-state.js';
 import { stayDur } from './02-utils.js';
 import { ensureDayWeather } from './04-weather.js';
-import { _flushRouteSave, _syncTitleInput, _updateStickyTops, currentDayFlat, currentDayIdxOf, renderTabs, stops } from './06-day.js';
+import { _flushRouteSave, _syncTitleInput, _updateStickyTops, currentDayIdxOf, stops } from './06-day.js';
 import { _lastClockTs, _resetClockTs, render, renderRide, showAppError, updateClock } from './07-render.js';
 import { _closeAllOverlays, _setDetailsOpen, _setFuelCheck } from './11-overlays.js';
 import { _updateGeoHint } from './05-stop.js';
@@ -136,17 +136,6 @@ export function toggleRide(){
   _dbgLog('toggleRide:out', _dbgSnapshot);
 }
 
-export function onEditBtnClick(){
-  if(S.isRide){
-    // S.rideViewIdxはcurrentDayFlat基準なのでcurrentDayFlatを使用
-    const flat=currentDayFlat();
-    const vs=flat[Math.max(0,Math.min(flat.length-1,S.rideViewIdx))];
-    toggleRide();
-    if(vs) S.currentDay=vs.dayIdx;
-    renderTabs(); // render()は直後のtoggleEdit()が正しいS.isEdit状態で呼ぶため不要
-  }
-  if(!S.isEdit) toggleEdit();
-}
 /* 走行/編集トグルの表示状態を現在のS.isRideに同期する。
    on=現在のモード側を強調。要素が無い場合（描画前など）は何もしない。 */
 export function _syncModeToggle(){

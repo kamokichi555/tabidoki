@@ -47,14 +47,20 @@ function _clearLongPressTimer(){
   if(_tLongPressTimer!==null){clearTimeout(_tLongPressTimer);_tLongPressTimer=null;}
 }
 
+/* ── 共通: ドラッグ用ゴースト（元行の半透明複製）を生成し body に追加して返す。touch/mouse共用。 ── */
+function _makeGhost(srcEl){
+  const r=srcEl.getBoundingClientRect();
+  const g=srcEl.cloneNode(true);
+  Object.assign(g.style,{position:'fixed',left:r.left+'px',top:r.top+'px',width:r.width+'px',opacity:'.7',pointerEvents:'none',zIndex:'9999',transform:'scale(1.02)',background:'var(--bg2)',borderRadius:'10px',boxShadow:'0 8px 32px rgba(0,0,0,.5)',transition:'none'});
+  document.body.appendChild(g);
+  return g;
+}
+
 /** ゴーストを生成してドラッグ本開始 */
 function _startDragGhost(){
   if(!tDragEl)return;
   tStopRows=document.querySelectorAll('.stop-row');
-  tGhost=tDragEl.cloneNode(true);
-  const r=tDragEl.getBoundingClientRect();
-  Object.assign(tGhost.style,{position:'fixed',left:r.left+'px',top:r.top+'px',width:r.width+'px',opacity:'.7',pointerEvents:'none',zIndex:'9999',transform:'scale(1.02)',background:'var(--bg2)',borderRadius:'10px',boxShadow:'0 8px 32px rgba(0,0,0,.5)',transition:'none'});
-  document.body.appendChild(tGhost);
+  tGhost=_makeGhost(tDragEl);
   tDragEl.classList.add('dragging');
   if(navigator.vibrate)navigator.vibrate(30); // 長押し確定を触覚でフィードバック
   updateDragHint();
@@ -155,9 +161,7 @@ export function onMouseDragStart(e,id){
   const r=mDragEl.getBoundingClientRect();
   mOffsetY=e.clientY-r.top;
   mStopRows=document.querySelectorAll('.stop-row');
-  mGhost=mDragEl.cloneNode(true);
-  Object.assign(mGhost.style,{position:'fixed',left:r.left+'px',top:r.top+'px',width:r.width+'px',opacity:'.7',pointerEvents:'none',zIndex:'9999',transform:'scale(1.02)',background:'var(--bg2)',borderRadius:'10px',boxShadow:'0 8px 32px rgba(0,0,0,.5)',transition:'none'});
-  document.body.appendChild(mGhost);
+  mGhost=_makeGhost(mDragEl);
   mDragEl.classList.add('dragging');
   document.addEventListener('mousemove',onMouseDragMove);
   document.addEventListener('mouseup',onMouseDragEnd);

@@ -14,6 +14,16 @@ import { _updateStickyTops } from './06-day.js';
 import { _bindOverlayVp, _closeAllOverlays, _closeOverlay, _lowerHeaderForOverlay, _makeApplyVp, _setDetailsOpen, _setFuelCheck } from './11-overlays.js';
 import { _dbgLog, _dbgSnapshot } from './12-debug.js';
 
+/* ══ 施設取得（Overpass）共通の調整値 ══
+   高速SA/PA・道の駅の「取得」と「localStorageキャッシュ」で共有する値を1箇所に集約する。
+   高速側・道の駅側で同じ値が散在しており、片方だけ書き換えると挙動が食い違うため一元管理する。 */
+const OVERPASS_JP_BBOX='24,122,46,155';       // Overpassクエリの日本全域bbox（south,west,north,east）
+const FACILITY_CACHE_TTL_MS=7*24*60*60*1000;  // 起動時：この年齢までのキャッシュは表示に使う（7日）
+const FACILITY_REFRESH_MS=24*60*60*1000;      // これより古ければ裏で再取得／取得時はこれより新しいキャッシュでネット省略（24時間）
+const FACILITY_CACHE_MAX_BYTES=600000;        // localStorageへ保存する施設キャッシュJSONの上限（約600KB）
+const HIGHWAY_MIN_COUNT=30;                   // 高速：この件数を超えたときだけ取得結果/キャッシュを採用
+const MICHI_MIN_COUNT=100;                    // 道の駅：同上
+
 
 /* ══ 高速道路施設選択モーダル（Overpass API + localStorageキャッシュ） ══ */
 export const HIGHWAY_FALLBACK=[
@@ -311,10 +321,10 @@ export async function _fetchHighwayOnline(){
   _refresh();
   try{
     const CACHE_KEY=LSK.highwayCache;
-    const cached=_readFacilityCache(CACHE_KEY,24*60*60*1000,30);
+    const cached=_readFacilityCache(CACHE_KEY,FACILITY_REFRESH_MS,HIGHWAY_MIN_COUNT);
     if(cached){_mergeHighwayData(cached.d);return;}
     // Overpass APIで高速道路SA/PA取得
-    const els=await _overpassFetch(`[out:json][timeout:100];\nnwr["highway"="services"]["name"~"SA|PA|サービスエリア|パーキングエリア|オアシス|EXPASA|NEOPASA"](24,122,46,155);\nout center tags;`);
+    const els=await _overpassFetch(`[out:json][timeout:100];\nnwr["highway"="services"]["name"~"SA|PA|サービスエリア|パーキングエリア|オアシス|EXPASA|NEOPASA"](${OVERPASS_JP_BBOX});\nout center tags;`);
     const result=[];
     const seen=new Set();
     for(const el of els){
@@ -323,8 +333,8 @@ export async function _fetchHighwayOnline(){
       seen.add(name);
       result.push([name,_extractAddr(el.tags)]);
     }
-    if(result.length>30){
-      const _hwJson=JSON.stringify({d:result,t:Date.now()});if(_hwJson.length<600000)try{_lsSetItem(CACHE_KEY,_hwJson);}catch(e){}
+    if(result.length>HIGHWAY_MIN_COUNT){
+      const _hwJson=JSON.stringify({d:result,t:Date.now()});if(_hwJson.length<FACILITY_CACHE_MAX_BYTES)try{_lsSetItem(CACHE_KEY,_hwJson);}catch(e){}
       _mergeHighwayData(result);
     }
   }catch(e){
@@ -337,10 +347,10 @@ export async function _fetchHighwayOnline(){
 }
 
 (function _initHighwayData(){
-  const cached=_readFacilityCache(LSK.highwayCache,7*24*60*60*1000,30);
+  const cached=_readFacilityCache(LSK.highwayCache,FACILITY_CACHE_TTL_MS,HIGHWAY_MIN_COUNT);
   if(cached){
     _mergeHighwayData(cached.d);
-    if(Date.now()-cached.t>24*60*60*1000) setTimeout(_fetchHighwayOnline,6000);
+    if(Date.now()-cached.t>FACILITY_REFRESH_MS) setTimeout(_fetchHighwayOnline,6000);
     return;
   }
   setTimeout(_fetchHighwayOnline,6000);
@@ -648,11 +658,11 @@ export async function _fetchMichiOnline(){
   try{
     const CACHE_KEY=LSK.michiCache;
     // キャッシュ確認（24時間有効）
-    const cached=_readFacilityCache(CACHE_KEY,24*60*60*1000,100);
+    const cached=_readFacilityCache(CACHE_KEY,FACILITY_REFRESH_MS,MICHI_MIN_COUNT);
     if(cached){_mergeMichiData(cached.d);return;}
     // Overpass API で全国道の駅取得
     const els=await _overpassFetch(`[out:json][timeout:100];
-nwr["name"~"^道の駅"](24,122,46,155);
+nwr["name"~"^道の駅"](${OVERPASS_JP_BBOX});
 out center tags;`);
     const result=[];
     const seen=new Set();
@@ -664,8 +674,8 @@ out center tags;`);
       seen.add(shortName);
       result.push([shortName,_extractAddr(el.tags)]);
     }
-    if(result.length>100){
-      const _mcJson=JSON.stringify({d:result,t:Date.now()});if(_mcJson.length<600000)try{_lsSetItem(LSK.michiCache,_mcJson);}catch(e){}
+    if(result.length>MICHI_MIN_COUNT){
+      const _mcJson=JSON.stringify({d:result,t:Date.now()});if(_mcJson.length<FACILITY_CACHE_MAX_BYTES)try{_lsSetItem(LSK.michiCache,_mcJson);}catch(e){}
       _mergeMichiData(result);
     }
   }catch(e){
@@ -680,11 +690,11 @@ out center tags;`);
 
 // キャッシュがあれば即時反映、なければバックグラウンド取得
 (function _initMichiData(){
-  const cached=_readFacilityCache(LSK.michiCache,7*24*60*60*1000,100);
+  const cached=_readFacilityCache(LSK.michiCache,FACILITY_CACHE_TTL_MS,MICHI_MIN_COUNT);
   if(cached){
     _mergeMichiData(cached.d);
     // 1日以上経過していれば裏でリフレッシュ
-    if(Date.now()-cached.t > 24*60*60*1000) setTimeout(_fetchMichiOnline, 5000);
+    if(Date.now()-cached.t > FACILITY_REFRESH_MS) setTimeout(_fetchMichiOnline, 5000);
     return;
   }
   // キャッシュなし → スプラッシュ後に取得開始

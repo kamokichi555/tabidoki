@@ -176,6 +176,9 @@ export function isValidTime(s){return typeof s==='string'&&/^([01]\d|2[0-3]):[0-
 export function isValidDate(s){return typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s);}
 /* ── 共通: iOS判定（iOSは a.download非対応のため保存方法を分岐する） ── */
 export const IS_IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)&&!window.MSStream;
+/* ── 共通: 地点ID生成（時刻36進＋乱数）。saveStop/addDay/取り込みサニタイズで共用。
+   ※ 形式を変える場合は _sanitizeImportedData のID検証 /^[a-z0-9]+$/i・length<=40 と整合させること。 ── */
+export function _newStopId(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
 /**
  * 取り込みデータを破壊的にサニタイズ（不正値の除去・上限切詰・ID再発行）。
  * 受け取るのは外部由来の未検証データなので型は any。
@@ -197,9 +200,9 @@ export function _sanitizeImportedData(p){
     if(d.stops.length>LIMIT.stopsPerDay){d.stops=d.stops.slice(0,LIMIT.stopsPerDay);truncated=true;}
     for(const s of d.stops){
       if(!s||typeof s!=='object')continue;
-      s.id=(typeof s.id==='string'&&/^[a-z0-9]+$/i.test(s.id)&&s.id.length<=40)?s.id:(Date.now().toString(36)+Math.random().toString(36).slice(2));
+      s.id=(typeof s.id==='string'&&/^[a-z0-9]+$/i.test(s.id)&&s.id.length<=40)?s.id:_newStopId();
       // 重複IDは新規発行（wxStopResキー衝突防止）
-      while(seenIds.has(s.id)){s.id=Date.now().toString(36)+Math.random().toString(36).slice(2);}
+      while(seenIds.has(s.id)){s.id=_newStopId();}
       seenIds.add(s.id);
       s.name=sanitize(s.name,LIMIT.name);
       s.addr=sanitize(s.addr,LIMIT.addr);

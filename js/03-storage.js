@@ -22,6 +22,9 @@ import { _gpsOnRideEnd } from './14-gps.js';
 
 /* ══ データ管理（localStorage） ══ */
 
+/* ── 共通: ファイル名に使えない文字を _ に置換（保存JSON名・記録txt名で共用） ── */
+function _safeFilename(s){return String(s).replace(/[\\/:*?"<>|]/g,'_');}
+
 /* ── 全日の登録地点数の合計（空データ判定で共用） ── */
 function _totalStops(){return (data.days||[]).reduce((sum,d)=>sum+(d.stops?.length||0),0);}
 
@@ -298,7 +301,7 @@ function _getShareJson(){
   if(totalStops===0){showInfoToast('⚠️ 地点が登録されていません',3500);return null;}
   data.currentStopId=S.manualCurrentId;
   data.version=DEFAULT.version;
-  return {json:JSON.stringify(data,null,2),title:(data.title||'ツーリング行程').replace(/[\\/:*?"<>|]/g,'_')};
+  return {json:JSON.stringify(data,null,2),title:_safeFilename(data.title||'ツーリング行程')};
 }
 
 /* ── 共有シート経由でJSONを保存（Android等。Driveアプリ/LINE/Keep等を選べる） ── */
@@ -330,7 +333,7 @@ export function saveJSON(){
     data.currentStopId=S.manualCurrentId;
     data.version=DEFAULT.version;
     const json=JSON.stringify(data,null,2);
-    const title=(data.title||'ツーリング行程').replace(/[\\/:*?"<>|]/g,'_');
+    const title=_safeFilename(data.title||'ツーリング行程');
     downloadTextFile({
       text:json, filename:`${title}.json`,
       blobType:'application/json',
@@ -381,7 +384,7 @@ export function saveRecord(){
     lines.push('旅刻'+APP_VERSION+' / Powered by 鴨吉');
     const text=lines.join('\n');
     const dateStr=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
-    const title=(data.title||'ツーリング').replace(/[\\/:*?"<>|]/g,'_');
+    const title=_safeFilename(data.title||'ツーリング');
     const filename=`旅刻_記録_${title}_${dateStr}.txt`;
     downloadTextFile({
       text, filename,

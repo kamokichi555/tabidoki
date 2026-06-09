@@ -67,6 +67,39 @@ export function _stopById(id){
   for(const day of data.days){for(const s of day.stops){if(s.id===id) return s;}}
   return null;
 }
+/* ── 共通: 「取得中…」ローディング表示HTML（3つの天気レンダラ・再取得系で共用） ── */
+export const WX_LOADING_HTML='<div class="stop-wx-loading">🌐 取得中…</div>';
+/* ── 共通: idから地点とその日付（未設定なら今日+N日）を引く。見つからなければnull。
+   retryStopWeather / confirmGeo の同型ループを集約。 ── */
+export function _findStopAndDate(id){
+  for(let di=0;di<data.days.length;di++){
+    const s=data.days[di].stops.find(x=>x.id===id);
+    if(s) return {stop:s,date:data.days[di].date||_isoToday(di)};
+  }
+  return null;
+}
+/* ── 共通: 1地点の天気を取り直す（結果破棄→キュー再投入→loading表示→任意トースト）。
+   retryStopWeather（再取得）と confirmGeo（化け承認後の再取得）で共用。 ── */
+export function _requeueStopWeather(stop,date,toastMsg){
+  delete wxStopRes[stop.id];
+  wxQueueIds.delete(stop.id);
+  enqueueStop(stop,date);
+  const el=document.getElementById('wx-'+stop.id);
+  if(el) el.innerHTML=WX_LOADING_HTML;
+  if(toastMsg) showInfoToast(toastMsg,2000);
+}
+/* ── 共通: 天気結果オブジェクト r を表示状態トークンへ分類（3つの天気レンダラで分岐順を統一）。
+   返り値: 'loading'|'past'|'confirm'|'outOfRange'|'geoFail'|'error'|'ok'。
+   ※ geoFail は {error:true,geoFail:true} のため error より先に判定すること（順序依存）。 ── */
+export function _wxState(r){
+  if(!r||r==='loading') return 'loading';
+  if(r.isPast) return 'past';
+  if(r.geoConfirm) return 'confirm';
+  if(r.outOfRange) return 'outOfRange';
+  if(r.geoFail) return 'geoFail';
+  if(r.error) return 'error';
+  return 'ok';
+}
 export let wxQueueRunning=false;
 export let wxGen=0; // 世代トークン：refreshAllWeatherで++し、実行中ループは世代変化で自然離脱する
 export function _bumpWxGen(){ wxGen++; } // 他モジュールからの世代更新用（importは再代入不可のため）
@@ -94,51 +127,46 @@ export function retryStopWeather(stopId){
   const r=wxStopRes[stopId];
   if(r==='loading'||wxQueueIds.has(stopId)){showInfoToast('🌐 取得中です',1500);return;}
   // 対象地点とその日付を取得
-  let stop=null,date='';
-  for(let di=0;di<data.days.length;di++){
-    const s=data.days[di].stops.find(s=>s.id===stopId);
-    if(s){stop=s;date=data.days[di].date||_isoToday(di);break;}
-  }
-  if(!stop){return;}
+  const found=_findStopAndDate(stopId);
+  if(!found) return;
+  const {stop,date}=found;
   if(!(stop.addr||'').trim()&&!hasGeo(stop)){showInfoToast('⚠️ 住所または座標がないため取得できません',2000);return;}
-  delete wxStopRes[stopId];
-  wxQueueIds.delete(stopId);
-  enqueueStop(stop,date);
-  // 即時 loading 表示
-  const el=document.getElementById('wx-'+stopId);
-  if(el) el.innerHTML='<div class="stop-wx-loading">🌐 取得中…</div>';
-  showInfoToast('🌐 天気を再取得します',2000);
+  _requeueStopWeather(stop,date,'🌐 天気を再取得します');
 }
 
 export function stopWxInner(stopId,hasAddr){
   if(!hasAddr) return '';  // 住所なしは一切表示しない
   const r=wxStopRes[stopId];
-  if(!r) return '<div class="stop-wx-loading">🌐 取得中…</div>';
-  if(r==='loading') return '<div class="stop-wx-loading">🌐 取得中…</div>';
-  if(r.isPast) return '';
-  if(r.geoConfirm==='mismatch') return `<div class="stop-wx-confirm strong">
+  switch(_wxState(r)){
+    case 'loading': return WX_LOADING_HTML;
+    case 'past': return '';
+    case 'confirm':
+      // geoConfirm は 'mismatch'(化け＝強確認) / 'partial'(掠る＝軽確認) のみ（doFetchStop参照）
+      if(r.geoConfirm==='mismatch') return `<div class="stop-wx-confirm strong">
     <div class="swm-msg">⚠️ 住所が特定できません。GSIは「${esc(r.title||'?')}」にマッチしました。この場所で合っていますか？</div>
     <div class="swm-btns">
       <button type="button" class="swm-ok" onclick="confirmGeo('${escJsAttr(stopId)}')">はい、この場所で表示</button>
       <button type="button" class="swm-fix" onclick="openEditStop('${escJsAttr(stopId)}')">住所を直す</button>
     </div>
   </div>`;
-  if(r.geoConfirm==='partial') return `<div class="stop-wx-confirm light">
+      return `<div class="stop-wx-confirm light">
     <div class="swm-msg">📍 「${esc(r.title||'?')}」として扱います。よろしいですか？</div>
     <div class="swm-btns">
       <button type="button" class="swm-ok" onclick="confirmGeo('${escJsAttr(stopId)}')">OK</button>
       <button type="button" class="swm-fix" onclick="openEditStop('${escJsAttr(stopId)}')">住所を直す</button>
     </div>
   </div>`;
-  if(r.outOfRange) return '<div class="stop-wx-loading" title="予報は16日先まで取得できます">📅 予報期間外</div>';
-  if(r.geoFail) return `<div class="geo-mini">
+    case 'outOfRange': return '<div class="stop-wx-loading" title="予報は16日先まで取得できます">📅 予報期間外</div>';
+    case 'geoFail': return `<div class="geo-mini">
     <span class="gm-msg">⚠️ 住所が特定できません</span>
     <span class="gm-acts">
       <button type="button" class="gm-act" onclick="retryStopWeather('${escJsAttr(stopId)}')">再取得</button>
       <button type="button" class="gm-act" onclick="openEditStop('${escJsAttr(stopId)}')">直す</button>
     </span>
   </div>`;
-  if(r.error) return `<div class="stop-wx-loading" onclick="retryStopWeather('${stopId}')" style="cursor:pointer" title="タップして再取得">↻ 再取得</div>`;
+    case 'error': return `<div class="stop-wx-loading" onclick="retryStopWeather('${stopId}')" style="cursor:pointer" title="タップして再取得">↻ 再取得</div>`;
+  }
+  // 'ok'：通常の天気カード
   const w=WMO[r.wcode]??{e:'🌡️',t:'不明'};
   const p=r.precip??null;
   const pStr=p!==null?`${p}%`:'--';
@@ -166,14 +194,19 @@ export function stopWxInner(stopId,hasAddr){
 
 /* 走行画面 天気表示（2行レイアウト） */
 export function rideWxCompact(stopId,hasAddr){
-  const r=wxStopRes[stopId];
   if(!hasAddr) return '';
+  const r=wxStopRes[stopId];
   const _state=(icon,msg)=>`<div class="ride-wx-compact"><div class="cw-row1"><span class="cw-icon">${icon}</span><span class="cw-cond" style="opacity:.5">${msg}</span></div></div>`;
-  if(!r||r==='loading') return _state('🌐','取得中…');
-  if(r.isPast) return '';
-  if(r.geoConfirm) return '';
-  if(r.outOfRange) return _state('📅','予報期間外');
-  if(r.error) return `<div class="ride-wx-compact" onclick="retryStopWeather('${stopId}')" style="cursor:pointer"><div class="cw-row1"><span class="cw-icon">↻</span><span class="cw-cond" style="opacity:.5">再取得</span></div></div>`;
+  switch(_wxState(r)){
+    case 'loading': return _state('🌐','取得中…');
+    case 'past': return '';
+    case 'confirm': return '';
+    case 'outOfRange': return _state('📅','予報期間外');
+    // 走行画面はgeoFail専用UIを持たないため error と同じ「↻再取得」に集約（従来挙動）
+    case 'geoFail':
+    case 'error': return `<div class="ride-wx-compact" onclick="retryStopWeather('${stopId}')" style="cursor:pointer"><div class="cw-row1"><span class="cw-icon">↻</span><span class="cw-cond" style="opacity:.5">再取得</span></div></div>`;
+  }
+  // 'ok'
   const w=WMO[r.wcode]??{e:'🌡️',t:''};
   const p=r.precip??null;
   const pStr=p!==null?`${p}%`:'';
@@ -202,11 +235,16 @@ export function rideWxCompact(stopId,hasAddr){
 export function rideWxStrip(stopId,hasAddr){
   if(!hasAddr) return '';
   const r=wxStopRes[stopId];
-  if(!r||r==='loading') return '<span class="ride-wx-strip"><span class="rws-ic">🌐</span></span>';
-  if(r.isPast) return '';
-  if(r.geoConfirm) return '';
-  if(r.outOfRange) return '<span class="ride-wx-strip"><span class="rws-ic">📅</span></span>';
-  if(r.error) return `<span class="ride-wx-strip" onclick="event.stopPropagation();retryStopWeather('${stopId}')" style="cursor:pointer"><span class="rws-ic">↻</span></span>`;
+  switch(_wxState(r)){
+    case 'loading': return '<span class="ride-wx-strip"><span class="rws-ic">🌐</span></span>';
+    case 'past': return '';
+    case 'confirm': return '';
+    case 'outOfRange': return '<span class="ride-wx-strip"><span class="rws-ic">📅</span></span>';
+    // 走行画面はgeoFail専用UIを持たないため error と同じ「↻」に集約（従来挙動）
+    case 'geoFail':
+    case 'error': return `<span class="ride-wx-strip" onclick="event.stopPropagation();retryStopWeather('${stopId}')" style="cursor:pointer"><span class="rws-ic">↻</span></span>`;
+  }
+  // 'ok'
   const w=WMO[r.wcode]??{e:'🌡️',t:''};
   const temp=r.temp!=null?Math.round(r.temp):(r.tmax!=null?Math.round(r.tmax):null);
   const p=r.precip??null;
@@ -236,7 +274,7 @@ export function _showLoadingDom(stopId){
   if(!el) return;
   // addrがある地点のみloading表示（住所なしは取得しても表示しない）
   const s=_stopById(stopId);
-  if(s&&(s.addr||hasGeo(s))) el.innerHTML='<div class="stop-wx-loading">🌐 取得中…</div>';
+  if(s&&(s.addr||hasGeo(s))) el.innerHTML=WX_LOADING_HTML;
 }
 
 /* ── wttr.in コード → WMO近似変換 ── */

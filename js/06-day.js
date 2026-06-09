@@ -10,7 +10,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { EC, LIMIT } from './00-constants.js';
 import { S, _canEditData, _dom, data } from './01-state.js';
-import { debounce, hasGeo, isSafeUrl, mdw, parseISODate, sanitize } from './02-utils.js';
+import { debounce, hasGeo, isSafeUrl, mdw, parseISODate, sanitize, _newStopId } from './02-utils.js';
 import { save } from './03-storage.js';
 import { wxQueueIds, wxStopRes } from './04-weather.js';
 import { render, showAppError, showInfoToast, showUrlError } from './07-render.js';
@@ -209,7 +209,7 @@ export function addDay(){
     // 前日の最終地点を新タブの先頭にコピー（名前・住所のみ、時刻・メモ・実績はリセット）
     const prevLast=prev?.stops?.length ? prev.stops[prev.stops.length-1] : null;
     const inheritStop=prevLast ? [{
-      id: Date.now().toString(36)+Math.random().toString(36).slice(2),
+      id: _newStopId(),
       name: prevLast.name,
       addr: prevLast.addr,
       arr:'', dep:'', note:'', log:'', actArr:'', actDep:'', fuel:false,
