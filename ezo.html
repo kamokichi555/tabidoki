@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a1916">
+<meta name="format-detection" content="telephone=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>EZO RIDE LEDGER｜北海道ツーリング費用シミュレーター</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  * { -webkit-tap-highlight-color: rgba(0,0,0,0.08); }
+
+  :root {
+    --bg: #f5f3ef;
+    --surface: #ffffff;
+    --surface2: #f0ede8;
+    --border: #dedad3;
+    --text: #1a1916;
+    --text-muted: #6b6860;
+    --text-faint: #a09d98;
+    --accent: #1d5fa6;
+    --accent-light: #e8f0fb;
+    --ferry: #1d5fa6;
+    --fuel:  #1d8a5e;
+    --acc:   #c04a1e;
+    --meal:  #9a6b00;
+    --act:   #7c3d8e;
+    --fship: #4a7a9b;
+    --souv:  #b03a6e;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--text);
+    color: #fff;
+    padding: 2rem 2rem 1.6rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 0.85rem;
+  }
+  .brand-logo {
+    height: 56px;
+    width: auto;
+    display: block;
+  }
+  .brand-tag {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 17px;
+    line-height: 1.05;
+    letter-spacing: 0.18em;
+    color: rgba(255,255,255,0.6);
+    align-self: flex-end;
+    padding-bottom: 7px;
+  }
+  .header-title {
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: 0.01em;
+    color: rgba(255,255,255,0.92);
+  }
+  .header-sub {
+    font-size: 12.5px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 0.4rem;
+    line-height: 1.5;
+  }
+
+  /* ── Layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    grid-template-areas: "settings results" "settings sources";
+    align-content: start;
+    gap: 0;
+    min-height: calc(100vh - 120px);
+  }
+  #panel-settings { grid-area: settings; }
+  #panel-results  { grid-area: results; }
+  #panel-sources  { grid-area: sources; }
+  .sources-panel { background: var(--bg); padding: 0 1.75rem 1.75rem; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 1.5rem;
+    overflow-y: auto;
+  }
+  .section-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 1.5rem 0 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  .field { margin-bottom: 1rem; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+  }
+  .field select {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6860' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+  }
+  .field select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .slider-field { margin-bottom: 1rem; }
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.35rem;
+  }
+  .slider-header label { font-size: 13px; color: var(--text-muted); }
+  .slider-header .sv {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    min-width: 80px;
+    text-align: right;
+  }
+  input[type=range] {
+    width: 100%;
+    height: 6px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--border);
+    border-radius: 3px;
+    margin: 10px 0;
+    touch-action: pan-y;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    cursor: pointer;
+  }
+
+  /* ── Data save/load ── */
+  .io-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1.25rem;
+  }
+  .btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 44px;
+    padding: 8px 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn:hover { background: var(--surface2); }
+  .btn:active { transform: scale(0.97); }
+  .btn .bi { font-size: 15px; }
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(80px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(20px);
+    background: var(--text);
+    color: #fff;
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s, transform 0.25s;
+    z-index: 100;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.err { background: var(--acc); }
+
+  /* ── Main panel ── */
+  .main { padding: 1.75rem; background: var(--bg); }
+
+  /* Total hero */
+  .total-hero {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .total-hero .label { font-size: 13px; color: var(--text-muted); }
+  .total-hero .amount {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .total-hero .range {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  /* Bar */
+  .bar-wrap { margin-bottom: 0.6rem; }
+  .bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+
+  /* Breakdown cards */
+  .breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 1.25rem;
+  }
+  .bcard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.875rem 1rem;
+    border-top: 3px solid transparent;
+  }
+  .bcard .blabel { font-size: 11px; color: var(--text-muted); margin-bottom: 0.3rem; }
+  .bcard .bval { font-size: 18px; font-weight: 600; color: var(--text); }
+  .bcard .bsub { font-size: 11px; color: var(--text-faint); margin-top: 0.2rem; }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 1.25rem;
+  }
+  .stat {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+  }
+  .stat .slabel { font-size: 11px; color: var(--text-faint); margin-bottom: 3px; }
+  .stat .sval { font-size: 16px; font-weight: 600; }
+
+  /* Detail table */
+  .detail-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .detail-title {
+    padding: 0.875rem 1.25rem;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  table { width: 100%; border-collapse: collapse; }
+  tr { border-bottom: 1px solid var(--border); }
+  tr:last-child { border-bottom: none; }
+  td { padding: 0.75rem 1.25rem; font-size: 13.5px; }
+  td:last-child { text-align: right; font-weight: 600; }
+  td.note { font-size: 11.5px; color: var(--text-faint); font-weight: 400; padding-top: 0; padding-bottom: 0.6rem; }
+  tr.total-row { background: var(--surface2); }
+  tr.total-row td { font-size: 15px; font-weight: 700; padding: 1rem 1.25rem; }
+
+  .notice {
+    font-size: 11.5px;
+    color: var(--text-faint);
+    padding: 0.875rem 1.25rem;
+    border-top: 1px solid var(--border);
+    line-height: 1.6;
+    background: var(--surface);
+  }
+
+  /* Sources */
+  .sources-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: 1.25rem;
+  }
+  .sources-title {
+    padding: 0.875rem 1.25rem;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .sources-list { list-style: none; }
+  .sources-list li {
+    padding: 0.7rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .sources-list li:last-child { border-bottom: none; }
+  .sources-list .src-label {
+    display: block;
+    color: var(--text-muted);
+    font-size: 11px;
+    margin-bottom: 0.2rem;
+  }
+  .sources-list a {
+    color: var(--accent);
+    text-decoration: none;
+    word-break: break-all;
+  }
+  .sources-list a:hover { text-decoration: underline; }
+  .src-date {
+    font-size: 10.5px;
+    color: var(--text-faint);
+    margin-left: 0.4rem;
+  }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; min-height: 0; }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+    .breakdown-grid { grid-template-columns: repeat(2, 1fr); }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 640px) {
+    .header { padding: 1.5rem 1.15rem 1.25rem; padding-top: max(1.5rem, env(safe-area-inset-top)); }
+    .brand-logo { height: 44px; }
+    .brand-tag { font-size: 15px; padding-bottom: 5px; }
+    .header-title { font-size: 14px; }
+    .header-sub { font-size: 12px; }
+
+    .sidebar { padding: 1.15rem; }
+    .main { padding: 1.15rem; padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
+
+    /* iOSの自動ズーム防止のため入力系は16px、タップ領域を拡大 */
+    .field label, .slider-header label { font-size: 14px; }
+    .field select {
+      font-size: 16px;
+      padding: 12px 14px;
+      padding-right: 34px;
+      border-radius: var(--radius);
+      background-position: right 14px center;
+    }
+    input[type=date] {
+      font-size: 16px !important;
+      padding: 12px 14px !important;
+      border-radius: var(--radius) !important;
+      min-height: 48px;
+    }
+    .slider-field { margin-bottom: 1.5rem; }
+    .slider-header .sv { font-size: 14px; }
+    input[type=range] { height: 8px; margin: 14px 0; }
+    input[type=range]::-webkit-slider-thumb { width: 30px; height: 30px; }
+    input[type=range]::-moz-range-thumb { width: 30px; height: 30px; }
+
+    .total-hero { padding: 1.25rem; }
+    .total-hero .amount { font-size: 30px; }
+    .total-hero .range { font-size: 12px; }
+
+    .breakdown-grid { grid-template-columns: 1fr; gap: 8px; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .stat { padding: 0.7rem 0.85rem; }
+
+    #scheduleInfo { font-size: 13px !important; }
+
+    /* テーブルを縦並びカード風にして横はみ出しを防ぐ */
+    table, tbody, tfoot { display: block; width: 100%; }
+    .detail-card tr {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      padding: 0 0;
+      border-bottom: none;
+    }
+    .detail-card tbody tr:has(td.note) { border-bottom: 1px solid var(--border); }
+    .detail-card td {
+      padding: 0.7rem 1.15rem;
+      font-size: 14px;
+    }
+    .detail-card td:first-child { flex: 1; }
+    .detail-card td:last-child { white-space: nowrap; }
+    .detail-card td.note {
+      flex: 1 1 100%;
+      padding: 0 1.15rem 0.7rem;
+      font-size: 12px;
+    }
+    tr.total-row td { font-size: 16px; padding: 1rem 1.15rem; }
+
+    .sources-list li { padding: 0.8rem 1.15rem; font-size: 13px; }
+    .notice { font-size: 12px; padding: 1rem 1.15rem; }
+  }
+
+  @media (max-width: 380px) {
+    .stats-row { grid-template-columns: 1fr; }
+    .total-hero { flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+  }
+
+  /* ── Tab bar (mobile only) ── */
+  .tabbar { display: none; }
+  .mini-total { display: none; }
+
+  @media (max-width: 640px) {
+    /* パネル切替：モバイルでは1画面ずつ表示 */
+    .layout { display: block; }
+    .panel { display: none; }
+    .panel.is-active { display: block; }
+    .sidebar.panel { border-bottom: none; }
+
+    /* 結果・参照パネルは下タブ分の余白を確保 */
+    body { padding-bottom: 0; }
+    .main, .sidebar.panel, .sources-panel {
+      padding-bottom: calc(72px + env(safe-area-inset-bottom)) !important;
+    }
+
+    /* 下部固定タブバー */
+    .tabbar {
+      display: flex;
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding-bottom: env(safe-area-inset-bottom);
+      z-index: 50;
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+    }
+    .tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 9px 4px 8px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-faint);
+      font-family: inherit;
+      min-height: 56px;
+      justify-content: center;
+    }
+    .tab .tab-ico { font-size: 19px; line-height: 1; }
+    .tab .tab-lbl { font-size: 11px; font-weight: 600; }
+    .tab[aria-selected="true"] {
+      color: var(--accent);
+      box-shadow: inset 0 2px 0 var(--accent);
+    }
+
+    /* 条件設定タブの上部に概算総額を常時表示 */
+    .mini-total {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 0.85rem 1.1rem;
+      margin-bottom: 1.25rem;
+    }
+    .mini-total .ml { font-size: 12px; opacity: 0.85; }
+    .mini-total .mv { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+  }
+  /* ── Splash (起動演出) ── */
+  .splash {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: #1a1916;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    animation: splashOut 0.6s ease 5s forwards;
+  }
+  .splash::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 42%, rgba(240,168,104,0.10), transparent 60%);
+    opacity: 0;
+    animation: glowIn 0.8s ease 0.3s forwards;
+  }
+  .splash-inner {
+    text-align: center;
+    padding: 0 1.5rem;
+  }
+  .splash-logo {
+    width: min(78vw, 420px);
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  .splash-tile {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: tileSpin 0.9s cubic-bezier(0.2,0.8,0.25,1) 0.2s both;
+  }
+  .splash-word {
+    opacity: 0;
+    transform: translateX(-26px);
+    animation: wordIn 0.6s cubic-bezier(0.2,0.8,0.25,1) 1s both;
+  }
+  .chk {
+    opacity: 0;
+    animation: chkIn 0.5s ease both;
+  }
+  .chk:nth-child(1){animation-delay:.55s}.chk:nth-child(2){animation-delay:.60s}.chk:nth-child(3){animation-delay:.65s}
+  .chk:nth-child(4){animation-delay:.62s}.chk:nth-child(5){animation-delay:.67s}.chk:nth-child(6){animation-delay:.72s}
+  .chk:nth-child(7){animation-delay:.69s}.chk:nth-child(8){animation-delay:.74s}.chk:nth-child(9){animation-delay:.79s}
+  .chk:nth-child(10){animation-delay:.76s}.chk:nth-child(11){animation-delay:.81s}.chk:nth-child(12){animation-delay:.86s}
+  .chk:nth-child(13){animation-delay:.83s}.chk:nth-child(14){animation-delay:.88s}.chk:nth-child(15){animation-delay:.93s}
+  .splash-tag {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 0.5em;
+    color: rgba(255,255,255,0.65);
+    margin: 0.6rem 0 0 0.5em;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 1.35s both;
+  }
+  .splash-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+    margin-top: 0.6rem;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 1.6s both;
+  }
+  .splash-credit {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: calc(1.75rem + env(safe-area-inset-bottom));
+    text-align: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 0.22em;
+    color: rgba(240,168,104,0.85);
+    opacity: 0;
+    animation: fadeUp 0.6s ease 1.9s both;
+  }
+  body.ready .header,
+  body.ready .layout,
+  body.ready .tabbar { animation: appIn 0.6s ease both; }
+
+  @keyframes tileSpin {
+    from { transform: rotate(-220deg) scale(0.2); opacity: 0; }
+    to   { transform: rotate(0deg) scale(1); opacity: 1; }
+  }
+  @keyframes chkIn {
+    from { opacity: 0; transform: scale(0.3); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes wordIn {
+    from { opacity: 0; transform: translateX(-26px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes glowIn { to { opacity: 1; } }
+  @keyframes splashOut {
+    to { opacity: 0; visibility: hidden; }
+  }
+  @keyframes appIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .splash.skip { animation: none; opacity: 0; visibility: hidden; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .splash { animation: splashOut 0.3s ease 0.6s forwards; }
+    .splash-tile, .splash-word, .chk, .splash-tag, .splash-sub, .splash-credit,
+    body.ready .header, body.ready .layout, body.ready .tabbar { animation: none; opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="splash" id="splash" aria-hidden="true">
+  <div class="splash-inner">
+    <svg class="splash-logo" viewBox="0 0 470 210" role="img" aria-label="EZO">
+      <g class="splash-tile" transform="translate(98,105) rotate(45)">
+        <clipPath id="splashTile">
+          <path d="M -58 -44 L -50 -52 L -42 -44 L -34 -52 L -26 -44 L -18 -52 L -10 -44 L -2 -52 L 6 -44 L 14 -52 L 22 -44 L 30 -52 L 38 -44 L 46 -52 L 54 -44 L 58 -48 L 58 52 L -58 52 Z"/>
+        </clipPath>
+        <g clip-path="url(#splashTile)">
+          <rect x="-58" y="-58" width="116" height="116" fill="#0d4ad9"/>
+          <rect x="-58" y="34" width="116" height="24" fill="#e8202a"/>
+          <rect x="34" y="-58" width="24" height="116" fill="#15ad48"/>
+          <rect x="34" y="34" width="24" height="24" fill="#0c9038"/>
+          <g fill="#ffffff">
+            <rect class="chk" x="-44" y="-42" width="12" height="12"/><rect class="chk" x="-20" y="-42" width="12" height="12"/><rect class="chk" x="4" y="-42" width="12" height="12"/>
+            <rect class="chk" x="-32" y="-30" width="12" height="12"/><rect class="chk" x="-8" y="-30" width="12" height="12"/><rect class="chk" x="16" y="-30" width="12" height="12"/>
+            <rect class="chk" x="-44" y="-18" width="12" height="12"/><rect class="chk" x="-20" y="-18" width="12" height="12"/><rect class="chk" x="4" y="-18" width="12" height="12"/>
+            <rect class="chk" x="-32" y="-6" width="12" height="12"/><rect class="chk" x="-8" y="-6" width="12" height="12"/><rect class="chk" x="16" y="-6" width="12" height="12"/>
+            <rect class="chk" x="-44" y="6" width="12" height="12"/><rect class="chk" x="-20" y="6" width="12" height="12"/><rect class="chk" x="4" y="6" width="12" height="12"/>
+          </g>
+        </g>
+      </g>
+      <text class="splash-word" x="196" y="145" font-size="128" letter-spacing="-4" fill="#ffffff"
+        font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900">EZO</text>
+    </svg>
+    <div class="splash-tag">RIDE LEDGER</div>
+    <div class="splash-sub">北海道ツーリング 費用シミュレーター</div>
+    <div class="splash-credit">Powered By 鴨吉</div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="brand">
+    <svg class="brand-logo" viewBox="0 0 470 200" role="img" aria-label="EZO ロゴ">
+      <title>EZO</title>
+      <g transform="translate(98,100) rotate(45)">
+        <clipPath id="ezoTile">
+          <path d="M -58 -44 L -50 -52 L -42 -44 L -34 -52 L -26 -44 L -18 -52 L -10 -44 L -2 -52 L 6 -44 L 14 -52 L 22 -44 L 30 -52 L 38 -44 L 46 -52 L 54 -44 L 58 -48 L 58 52 L -58 52 Z"/>
+        </clipPath>
+        <g clip-path="url(#ezoTile)">
+          <rect x="-58" y="-58" width="116" height="116" fill="#0d4ad9"/>
+          <rect x="-58" y="34" width="116" height="24" fill="#e8202a"/>
+          <rect x="34" y="-58" width="24" height="116" fill="#15ad48"/>
+          <rect x="34" y="34" width="24" height="24" fill="#0c9038"/>
+          <g fill="#ffffff">
+            <rect x="-44" y="-42" width="12" height="12"/><rect x="-20" y="-42" width="12" height="12"/><rect x="4" y="-42" width="12" height="12"/>
+            <rect x="-32" y="-30" width="12" height="12"/><rect x="-8" y="-30" width="12" height="12"/><rect x="16" y="-30" width="12" height="12"/>
+            <rect x="-44" y="-18" width="12" height="12"/><rect x="-20" y="-18" width="12" height="12"/><rect x="4" y="-18" width="12" height="12"/>
+            <rect x="-32" y="-6" width="12" height="12"/><rect x="-8" y="-6" width="12" height="12"/><rect x="16" y="-6" width="12" height="12"/>
+            <rect x="-44" y="6" width="12" height="12"/><rect x="-20" y="6" width="12" height="12"/><rect x="4" y="6" width="12" height="12"/>
+          </g>
+        </g>
+      </g>
+      <text x="196" y="140" font-size="128" letter-spacing="-4" fill="#ffffff"
+        font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900">EZO</text>
+    </svg>
+    <span class="brand-tag">RIDE<br>LEDGER</span>
+  </div>
+  <div class="header-title">北海道ツーリング 費用シミュレーター</div>
+  <div class="header-sub" id="headerSub">大洗⇔苫小牧フェリー往復（2日）＋ 北海道ツーリング5日間 ＝ 全7日間（1名・バイク）</div>
+</div>
+
+<div class="layout" id="layout">
+  <aside class="sidebar panel" id="panel-settings" data-panel="settings">
+
+    <div class="mini-total" id="miniTotal" onclick="showTab('results')" role="button" tabindex="0">
+      <span class="ml">概算総費用（タップで結果へ）</span>
+      <span class="mv" id="miniTotalAmt">—</span>
+    </div>
+
+    <div class="io-row">
+      <button class="btn" onclick="exportJSON()"><span class="bi">💾</span>保存</button>
+      <button class="btn" onclick="document.getElementById('importFile').click()"><span class="bi">📂</span>読込</button>
+      <button class="btn" onclick="resetDefaults()"><span class="bi">↺</span>リセット</button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+    </div>
+
+    <div class="section-label">⛴ フェリー・日程</div>
+
+    <div class="field">
+      <label>出発日（大洗発フェリー乗船日）</label>
+      <input type="date" id="depDate" value="2026-07-13" min="2026-04-01" max="2026-09-30"
+        onchange="calc()"
+        style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:13px;font-family:inherit;cursor:pointer;">
+    </div>
+
+    <div class="slider-field">
+      <div class="slider-header">
+        <label>北海道 滞在日数</label>
+        <span class="sv" id="touringDaysV">5 日</span>
+      </div>
+      <input type="range" id="touringDays" min="3" max="10" step="1" value="5"
+        oninput="syncS('touringDays','touringDaysV',v=>v+' 日');calc()">
+    </div>
+
+    <div id="scheduleInfo" style="font-size:12px;color:var(--text-muted);margin:-0.25rem 0 0.75rem;line-height:1.7;padding:0.6rem 0.75rem;background:var(--surface2);border-radius:var(--radius-sm);"></div>
+
+    <div class="field">
+      <label>バイク排気量クラス</label>
+      <select id="ccClass" onchange="calc()">
+        <option value="under125">原付二種（51〜125cc）</option>
+        <option value="mid" selected>125cc超〜400cc以下（中型）</option>
+        <option value="large">400cc超〜750cc以下（大型）</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>客室グレード</label>
+      <select id="cabin" onchange="calc()">
+        <option value="tourist" selected>ツーリスト（大部屋・雑魚寝）</option>
+        <option value="comfort">コンフォート（半個室）</option>
+        <option value="inside">スーペリアインサイド（個室）</option>
+      </select>
+    </div>
+
+    <div class="section-label">⛽ 燃料・走行</div>
+
+    <div class="slider-field">
+      <div class="slider-header">
+        <label>北海道内 1日走行距離</label>
+        <span class="sv" id="dailyKmV">250 km</span>
+      </div>
+      <input type="range" id="dailyKm" min="150" max="400" step="10" value="250"
+        oninput="syncS('dailyKm','dailyKmV',v=>v+' km');calc()">
+    </div>
+
+    <div class="slider-field">
+      <div class="slider-header">
+        <label>燃費</label>
+        <span class="sv" id="fuelKmV">25 km/L</span>
+      </div>
+      <input type="range" id="fuelKm" min="10" max="40" step="1" value="25"
+        oninput="syncS('fuelKm','fuelKmV',v=>v+' km/L');calc()">
+    </div>
+
+    <div class="slider-field">
+      <div class="slider-header">
+        <label>ガソリン価格</label>
+        <span class="sv" id="gasPriceV">170 円/L</span>
+      </div>
+      <input type="range" id="gasPrice" min="150" max="200" step="1" value="170"
+        oninput="syncS('gasPrice','gasPriceV',v=>v+' 円/L');calc()">
+    </div>
+
+    <div class="slider-field">
+      <div class="slider-header">
+        <label>横浜→大洗 走行距離</label>
+        <span class="sv" id="day0KmV">160 km</span>
+      </div>
+      <input type="range" id="day0Km" min="100" max="200" step="5" value="160"
+        oninput="syncS('day0Km','day0KmV',v=>v+' km');calc()">
+    </div>
+
+    <div class="section-label" id="accLabel">🏠 宿泊（北海道 5泊）</div>
+
+    <div class="field">
+      <label>宿泊スタイル</label>
+      <select id="accommodation" onchange="calc()">
+        <option value="rider">ライダーハウス中心（〜2,500円/泊）</option>
+        <option value="mix" selected>ライダーハウス ＋ 旅館ミックス</option>
+        <option value="ryokan">旅館・温泉宿（素泊まり）</option>
+        <option value="hotel">ビジネスホテル中心</option>
+      </select>
+    </div>
+
+    <div class="section-label">🍜 食事・その他</div>
+
+    <div class="slider-field">
+      <div class="slider-header">
+        <label>1日の食事代</label>
+        <span class="sv" id="mealDayV">2,500 円</span>
+      </div>
+      <input type="range" id="mealDay" min="1000" max="5000" step="500" value="2500"
+        oninput="syncS('mealDay','mealDayV',v=>v.toLocaleString()+' 円');calc()">
+    </div>
+
+    <div class="slider-field">
+      <div class="slider-header">
+        <label>観光・入場料（1日）</label>
+        <span class="sv" id="actDayV">1,000 円</span>
+      </div>
+      <input type="range" id="actDay" min="0" max="3000" step="500" value="1000"
+        oninput="syncS('actDay','actDayV',v=>v.toLocaleString()+' 円');calc()">
+    </div>
+
+    <div class="slider-field">
+      <div class="slider-header">
+        <label>フェリー内 食事・売店（往復）</label>
+        <span class="sv" id="ferryMealV">2,000 円</span>
+      </div>
+      <input type="range" id="ferryMeal" min="0" max="6000" step="500" value="2000"
+        oninput="syncS('ferryMeal','ferryMealV',v=>v.toLocaleString()+' 円');calc()">
+    </div>
+
+    <div class="slider-field">
+      <div class="slider-header">
+        <label>お土産代（旅行全体）</label>
+        <span class="sv" id="souvenirV">10,000 円</span>
+      </div>
+      <input type="range" id="souvenir" min="0" max="50000" step="1000" value="10000"
+        oninput="syncS('souvenir','souvenirV',v=>v.toLocaleString()+' 円');calc()">
+    </div>
+
+  </aside>
+
+  <main class="main panel" id="panel-results" data-panel="results">
+
+    <div class="total-hero">
+      <div>
+        <div class="label">概算総費用</div>
+        <div class="amount" id="totalAmt">—</div>
+      </div>
+      <div class="range" id="totalRange"></div>
+    </div>
+
+    <div class="bar-wrap">
+      <div class="bar" id="bar"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="breakdown-grid" id="bcards"></div>
+
+    <div class="stats-row">
+      <div class="stat">
+        <div class="slabel">北海道内 総走行距離</div>
+        <div class="sval" id="mKm">—</div>
+      </div>
+      <div class="stat">
+        <div class="slabel">燃料消費量（北海道内）</div>
+        <div class="sval" id="mLiter">—</div>
+      </div>
+      <div class="stat">
+        <div class="slabel">1日あたり費用（宿泊込）</div>
+        <div class="sval" id="mPerDay">—</div>
+      </div>
+      <div class="stat">
+        <div class="slabel">フェリー代の割合</div>
+        <div class="sval" id="mFerryRatio">—</div>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-title">内訳詳細</div>
+      <table>
+        <tbody id="detailBody"></tbody>
+        <tfoot>
+          <tr class="total-row">
+            <td>合計（概算）</td>
+            <td id="tTotal">—</td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="notice" id="notice"></div>
+    </div>
+
+  </main>
+
+  <section class="sources-panel panel" id="panel-sources" data-panel="sources">
+    <div class="sources-card">
+      <div class="sources-title">料金データの参照元</div>
+      <ul class="sources-list">
+        <li>
+          <span class="src-label">フェリー運賃（夕方便・バイク特殊手荷物運賃・客室運賃 2026/4/1〜9/30）</span>
+          <a href="https://www.sunflower.co.jp/route/fare/twilight/" target="_blank" rel="noopener">商船三井さんふらわあ 公式｜夕方便 運賃</a>
+          <span class="src-date">2026年確認</span>
+        </li>
+        <li>
+          <span class="src-label">期間カレンダー（A〜E期間の対象日程）</span>
+          <a href="https://www.sunflower.co.jp/route/fare/twilight/pdf/calendar202604-202609.pdf" target="_blank" rel="noopener">商船三井さんふらわあ 公式｜期間カレンダー 2026年4月〜9月（PDF）</a>
+        </li>
+        <li>
+          <span class="src-label">バイク料金・車両区分の参考解説</span>
+          <a href="https://skyticket.jp/guide/504286/" target="_blank" rel="noopener">skyticket観光ガイド｜大洗〜苫小牧 フェリー車・バイク料金</a>
+          <span class="src-date">2026/4/9更新</span>
+        </li>
+        <li>
+          <span class="src-label">北海道のガソリン価格（レギュラー 約170円/L）</span>
+          <a href="https://pps-net.org/oilstand/hokaido" target="_blank" rel="noopener">新電力ネット｜北海道のガソリン価格推移</a>
+          <span class="src-date">2026/6/1週</span>
+        </li>
+        <li>
+          <span class="src-label">1日の走行距離の目安（250km前後）</span>
+          <a href="https://sotoasobi.blog/dohoku-oneday/" target="_blank" rel="noopener">ソトアソビ｜北海道ツーリング 1日の走行距離</a>
+        </li>
+        <li>
+          <span class="src-label">ライダーハウス宿泊相場（1,500〜2,500円/泊）</span>
+          <a href="https://endlesstravler118888.com/otaru-riderhouse-kakuyasu/" target="_blank" rel="noopener">ライダーハウス小樽 料金ガイド（2025年版）</a>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+
+<nav class="tabbar" id="tabbar" role="tablist">
+  <button class="tab" data-tab="settings" role="tab" aria-selected="true">
+    <span class="tab-ico">⚙</span><span class="tab-lbl">条件設定</span>
+  </button>
+  <button class="tab" data-tab="results" role="tab" aria-selected="false">
+    <span class="tab-ico">📊</span><span class="tab-lbl">結果</span>
+  </button>
+  <button class="tab" data-tab="sources" role="tab" aria-selected="false">
+    <span class="tab-ico">🔗</span><span class="tab-lbl">参照リンク</span>
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const FERRY = {
+  A: {
+    tourist: { under125: 22550, mid: 24750, large: 26950 },
+    comfort: { under125: 24530, mid: 26730, large: 28930 },
+    inside:  { under125: 31900, mid: 34100, large: 36300 }
+  },
+  B: {
+    tourist: { under125: 28050, mid: 29150, large: 31350 },
+    comfort: { under125: 30030, mid: 31130, large: 33330 },
+    inside:  { under125: 38500, mid: 39600, large: 41800 }
+  },
+  C: {
+    tourist: { under125: 31900, mid: 33000, large: 35200 },
+    comfort: { under125: 34100, mid: 35200, large: 37400 },
+    inside:  { under125: 43450, mid: 44550, large: 46750 }
+  },
+  D: {
+    tourist: { under125: 35750, mid: 37950, large: 40150 },
+    comfort: { under125: 37950, mid: 40150, large: 42350 },
+    inside:  { under125: 47300, mid: 49500, large: 51700 }
+  },
+  E: {
+    tourist: { under125: 39600, mid: 41800, large: 44000 },
+    comfort: { under125: 42900, mid: 45100, large: 47300 },
+    inside:  { under125: 52800, mid: 55000, large: 57200 }
+  }
+};
+// 大洗発・苫小牧発で期間カレンダーが異なる（2026/4/1〜9/30 夕方便）
+// 各レンジは [開始MMDD, 終了MMDD]
+const PERIOD_RANGES = {
+  oarai: [
+    { p:'A', r:[[407,416]] },
+    { p:'B', r:[[401,406],[417,423],[506,617],[824,827],[830,903],[906,910],[913,917],[928,930]] },
+    { p:'C', r:[[427,428],[430,430],[503,505],[618,703],[705,710],[712,716],[816,823],[828,829],[904,905],[911,912],[921,927]] },
+    { p:'D', r:[[424,426],[429,429],[501,502],[704,704],[711,711],[717,723],[726,730],[803,804],[918,920]] },
+    { p:'E', r:[[724,725],[731,802],[805,815]] }
+  ],
+  tomakomai: [
+    { p:'A', r:[[407,423]] },
+    { p:'B', r:[[401,406],[424,430],[507,617],[901,903],[906,910],[913,917],[927,930]] },
+    { p:'C', r:[[506,506],[618,716],[721,723],[728,730],[824,831],[904,905],[911,912],[918,920],[923,924]] },
+    { p:'D', r:[[501,503],[717,720],[726,727],[802,804],[818,820],[925,926]] },
+    { p:'E', r:[[504,505],[724,725],[731,801],[805,817],[821,823],[921,922]] }
+  ]
+};
+function mmdd(d) { return (d.getMonth()+1)*100 + d.getDate(); }
+function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+function periodOf(dir, date) {
+  const v = mmdd(date);
+  for (const g of PERIOD_RANGES[dir]) {
+    for (const [s,e] of g.r) { if (v>=s && v<=e) return g.p; }
+  }
+  return null;
+}
+const WD = ['日','月','火','水','木','金','土'];
+function fmtDate(d) { return `${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}）`; }
+const CABIN_LABEL = { tourist: 'ツーリスト', comfort: 'コンフォート', inside: 'スーペリアインサイド' };
+const CC_LABEL = { under125: '〜125cc', mid: '126〜400cc', large: '401cc以上' };
+const ACC = {
+  rider:  { avg: 2000,  label: 'ライダーハウス中心',     note: '1,500〜2,500円/泊 ｜ 寝袋・マット持参が基本' },
+  mix:    { avg: 4500,  label: 'ライダーハウス＋旅館',    note: 'ライダーハウス3泊 + 旅館2泊 ≈ 平均4,000〜5,000円/泊' },
+  ryokan: { avg: 8000,  label: '旅館・温泉宿',            note: '素泊まり 6,000〜10,000円/泊' },
+  hotel:  { avg: 9500,  label: 'ビジネスホテル中心',      note: '8,000〜11,000円/泊' }
+};
+const COLORS = {
+  ferry: 'var(--ferry)', fuel: 'var(--fuel)', acc: 'var(--acc)',
+  meal: 'var(--meal)', act: 'var(--act)', fship: 'var(--fship)', souv: 'var(--souv)'
+};
+const HEX = {
+  ferry:'#1d5fa6', fuel:'#1d8a5e', acc:'#c04a1e', meal:'#9a6b00', act:'#7c3d8e', fship:'#4a7a9b', souv:'#b03a6e'
+};
+
+function syncS(id, outId, fmt) {
+  const v = +document.getElementById(id).value;
+  document.getElementById(outId).textContent = fmt(v);
+}
+function yen(n) { return '¥' + Math.round(n).toLocaleString(); }
+
+/* ── 設定の保存・読み込み ── */
+const SETTING_IDS = ['depDate','touringDays','ccClass','cabin','dailyKm','fuelKm','gasPrice','day0Km','accommodation','mealDay','actDay','ferryMeal','souvenir'];
+const SLIDERS = [
+  ['touringDays','touringDaysV', v=>v+' 日'],
+  ['dailyKm','dailyKmV',   v=>v+' km'],
+  ['fuelKm','fuelKmV',     v=>v+' km/L'],
+  ['gasPrice','gasPriceV', v=>v+' 円/L'],
+  ['day0Km','day0KmV',     v=>v+' km'],
+  ['mealDay','mealDayV',   v=>v.toLocaleString()+' 円'],
+  ['actDay','actDayV',     v=>v.toLocaleString()+' 円'],
+  ['ferryMeal','ferryMealV', v=>v.toLocaleString()+' 円'],
+  ['souvenir','souvenirV', v=>v.toLocaleString()+' 円']
+];
+const DEFAULTS = { depDate:'2026-07-13', touringDays:'5', ccClass:'mid', cabin:'tourist', dailyKm:'250', fuelKm:'25', gasPrice:'170', day0Km:'160', accommodation:'mix', mealDay:'2500', actDay:'1000', ferryMeal:'2000', souvenir:'10000' };
+const LS_KEY = 'hts-cost-settings-v1';
+
+function refreshReadouts() {
+  SLIDERS.forEach(([id,out,f]) => {
+    const el = document.getElementById(id);
+    if (el) document.getElementById(out).textContent = f(+el.value);
+  });
+}
+function collectSettings() {
+  const s = {};
+  SETTING_IDS.forEach(id => { const el = document.getElementById(id); if (el) s[id] = el.value; });
+  return s;
+}
+function applySettings(s) {
+  if (!s) return;
+  SETTING_IDS.forEach(id => {
+    if (s[id] != null) { const el = document.getElementById(id); if (el) el.value = s[id]; }
+  });
+  refreshReadouts();
+  calc();
+}
+function saveLocal() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(collectSettings())); } catch (e) {}
+}
+function loadLocal() {
+  try {
+    const r = localStorage.getItem(LS_KEY);
+    if (r) { applySettings(JSON.parse(r)); return true; }
+  } catch (e) {}
+  return false;
+}
+function exportJSON() {
+  const data = { format:'hts-cost-v1', savedAt: new Date().toISOString(), settings: collectSettings() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const d = (document.getElementById('depDate').value || 'settings').replace(/-/g,'');
+  a.href = url;
+  a.download = `hokkaido-touring-${d}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast('JSONを書き出しました');
+}
+function importJSON(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      const s = data && data.settings ? data.settings : data;
+      if (!s || typeof s !== 'object') throw new Error('invalid');
+      applySettings(s);
+      toast('設定を読み込みました');
+    } catch (err) {
+      toast('読み込めませんでした（JSON形式を確認）', true);
+    }
+  };
+  reader.readAsText(file);
+}
+function resetDefaults() {
+  applySettings(DEFAULTS);
+  try { localStorage.removeItem(LS_KEY); } catch (e) {}
+  toast('初期設定に戻しました');
+}
+let toastTimer;
+function toast(msg, isErr) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.toggle('err', !!isErr);
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function calc() {
+  const cc     = document.getElementById('ccClass').value;
+  const cabin  = document.getElementById('cabin').value;
+  const N       = +document.getElementById('touringDays').value;
+  const dailyKm   = +document.getElementById('dailyKm').value;
+  const fuelKm    = +document.getElementById('fuelKm').value;
+  const gasPrice  = +document.getElementById('gasPrice').value;
+  const day0Km    = +document.getElementById('day0Km').value;
+  const accStyle  = document.getElementById('accommodation').value;
+  const mealDay   = +document.getElementById('mealDay').value;
+  const actDay    = +document.getElementById('actDay').value;
+  const ferryMeal = +document.getElementById('ferryMeal').value;
+  const souvenir  = +document.getElementById('souvenir').value;
+
+  // 日程から期間を自動判定
+  const depStr = document.getElementById('depDate').value;
+  const depDate = new Date(depStr + 'T00:00:00');
+  const retDate = addDays(depDate, N);          // 苫小牧発（最終ツーリング日の夜に乗船）
+  const arrTomakomai = addDays(depDate, 1);      // 苫小牧着＝ツーリング初日
+  const arrOarai = addDays(depDate, N + 1);      // 大洗帰着
+
+  const outPeriodRaw = periodOf('oarai', depDate);
+  const retPeriodRaw = periodOf('tomakomai', retDate);
+  const outPeriod = outPeriodRaw || 'C';
+  const retPeriod = retPeriodRaw || outPeriod;
+  const dateWarn = (!outPeriodRaw || !retPeriodRaw);
+
+  const outFare = FERRY[outPeriod][cabin][cc];
+  const retFare = FERRY[retPeriod][cabin][cc];
+  const ferryTotal = outFare + retFare;
+
+  const hkKm    = dailyKm * N;
+  const day0Fuel = (day0Km  / fuelKm) * gasPrice;
+  const hkFuel   = (hkKm   / fuelKm) * gasPrice;
+  const fuelTotal = Math.round(day0Fuel + hkFuel);
+
+  const accInfo  = ACC[accStyle];
+  const accTotal = accInfo.avg * N;
+
+  const mealTotal  = mealDay * N;
+  const actTotal   = actDay  * N;
+  const grand      = ferryTotal + fuelTotal + accTotal + mealTotal + actTotal + ferryMeal + souvenir;
+
+  // Total
+  document.getElementById('totalAmt').textContent   = yen(grand);
+  document.getElementById('totalRange').textContent = `±10〜15% の幅あり`;
+  document.getElementById('tTotal').textContent = yen(grand);
+  const miniAmt = document.getElementById('miniTotalAmt');
+  if (miniAmt) miniAmt.textContent = yen(grand);
+
+  // Bar
+  const parts = [
+    { key:'ferry', v: ferryTotal, label:'フェリー' },
+    { key:'fuel',  v: fuelTotal,  label:'燃料' },
+    { key:'acc',   v: accTotal,   label:'宿泊' },
+    { key:'meal',  v: mealTotal,  label:'食事' },
+    { key:'act',   v: actTotal,   label:'観光' },
+    { key:'fship', v: ferryMeal,  label:'船内費用' },
+    { key:'souv',  v: souvenir,   label:'お土産' }
+  ];
+  document.getElementById('bar').innerHTML = parts.map(p =>
+    `<div style="flex:${p.v};background:${HEX[p.key]};"></div>`
+  ).join('');
+  document.getElementById('legend').innerHTML = parts.map(p =>
+    `<span class="legend-item"><span class="dot" style="background:${HEX[p.key]}"></span>${p.label} ${Math.round(p.v/grand*100)}%</span>`
+  ).join('');
+
+  // Breakdown cards
+  const periodLabel = outPeriod === retPeriod ? `${outPeriod}期間` : `往路${outPeriod}・復路${retPeriod}期間`;
+  const bdata = [
+    { color: HEX.ferry, label: 'フェリー代（往復）',    val: yen(ferryTotal), sub: `${periodLabel} | ${CABIN_LABEL[cabin]} | ${CC_LABEL[cc]}` },
+    { color: HEX.fuel,  label: '燃料代（往路+北海道内）',val: yen(fuelTotal),  sub: `${hkKm}km走行 / 燃費${fuelKm}km/L` },
+    { color: HEX.acc,   label: `宿泊費（${N}泊）`,        val: yen(accTotal),  sub: accInfo.label }
+  ];
+  document.getElementById('bcards').innerHTML = bdata.map(b =>
+    `<div class="bcard" style="border-top-color:${b.color}">
+       <div class="blabel">${b.label}</div>
+       <div class="bval">${b.val}</div>
+       <div class="bsub">${b.sub}</div>
+     </div>`
+  ).join('');
+
+  // Detail table
+  const rows = [
+    { label: 'フェリー 往路（大洗→苫小牧）', note: `${fmtDate(depDate)} 大洗発 ${outPeriod}期間 | バイク（${CC_LABEL[cc]}）+ ${CABIN_LABEL[cabin]}`, val: outFare },
+    { label: 'フェリー 復路（苫小牧→大洗）', note: `${fmtDate(retDate)} 苫小牧発 ${retPeriod}期間 | バイク（${CC_LABEL[cc]}）+ ${CABIN_LABEL[cabin]}`, val: retFare },
+    { label: '燃料代 ― 往路（横浜→大洗）', note: `${day0Km}km / ${fuelKm}km/L × ${gasPrice}円/L`,    val: day0Fuel   },
+    { label: `燃料代 ― 北海道内（${N}日間）`, note: `${hkKm}km / ${fuelKm}km/L × ${gasPrice}円/L`,     val: hkFuel     },
+    { label: `宿泊費（${N}泊）`,               note: accInfo.note,                                        val: accTotal   },
+    { label: `食事代（${N}日間）`,             note: `${mealDay.toLocaleString()}円/日 × ${N}日`,         val: mealTotal  },
+    { label: `観光・アクティビティ（${N}日間）`,note: `${actDay.toLocaleString()}円/日 × ${N}日`,         val: actTotal   },
+    { label: 'フェリー内 食事・売店',       note: '往復分',                                            val: ferryMeal  },
+    { label: 'お土産代',                     note: '旅行全体（一括）',                                   val: souvenir   }
+  ];
+  document.getElementById('detailBody').innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.label}</td>
+      <td>${yen(r.val)}</td>
+    </tr>
+    <tr>
+      <td class="note" colspan="2">${r.note}</td>
+    </tr>`
+  ).join('');
+
+  // Stats
+  document.getElementById('mKm').textContent        = hkKm.toLocaleString() + ' km';
+  document.getElementById('mLiter').textContent     = Math.round(hkKm / fuelKm) + ' L';
+  document.getElementById('mPerDay').textContent    = yen(grand / (N + 2));
+  document.getElementById('mFerryRatio').textContent = Math.round(ferryTotal / grand * 100) + ' %';
+
+  // 日程の自動表示
+  document.getElementById('scheduleInfo').innerHTML =
+    `<div>🛳 往路 大洗発：<b>${fmtDate(depDate)}</b> → <b>${outPeriod}期間</b></div>` +
+    `<div>🏍 苫小牧着：${fmtDate(arrTomakomai)}（ツーリング初日）</div>` +
+    `<div>🛳 復路 苫小牧発：<b>${fmtDate(retDate)}</b> → <b>${retPeriod}期間</b></div>` +
+    `<div>🏁 大洗帰着：${fmtDate(arrOarai)}（全${N + 2}日間）</div>` +
+    (dateWarn ? `<div style="color:var(--acc);margin-top:0.3rem;">⚠ 一部の日付が運賃設定期間（4/1〜9/30）外です。公式サイトで要確認。</div>` : '');
+
+  // 動的ラベル
+  document.getElementById('accLabel').textContent = `🏠 宿泊（北海道 ${N}泊）`;
+  document.getElementById('headerSub').textContent = `大洗⇔苫小牧フェリー往復（2日）＋ 北海道ツーリング${N}日間 ＝ 全${N + 2}日間（1名・バイク）`;
+
+  // Notice
+  const notices = ['フェリー料金は商船三井さんふらわあ「夕方便」公式運賃（2026/4/1〜9/30）に基づく往路・復路の合計です。'];
+  notices.push('期間は出発日と滞在日数から自動判定（大洗発・苫小牧発で期間カレンダーが異なります）。');
+  if (outPeriod === 'E' || retPeriod === 'E') notices.push('E期間（お盆ピーク）を含むため早期売り切れ注意。早めの予約が必須です。');
+  else if (outPeriod === 'D' || retPeriod === 'D') notices.push('D期間（繁忙期）を含むため混雑・早期売り切れに注意。');
+  if (accStyle === 'rider') notices.push('ライダーハウスは寝袋・マット持参が基本です。');
+  notices.push('燃料・宿泊・食事は2026年6月時点の目安。高速道路不使用（下道）の想定。最終的な金額は公式サイトで要確認。');
+  document.getElementById('notice').textContent = notices.join('　');
+
+  saveLocal();
+}
+
+function showTab(name) {
+  document.querySelectorAll('.panel').forEach(p => {
+    p.classList.toggle('is-active', p.dataset.panel === name);
+  });
+  document.querySelectorAll('.tab').forEach(t => {
+    t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false');
+  });
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => showTab(t.dataset.tab));
+});
+// JSONファイル読み込みの紐付け
+document.getElementById('importFile').addEventListener('change', function() {
+  if (this.files[0]) importJSON(this.files[0]);
+  this.value = '';
+});
+// 初期表示パネル（モバイルで非表示のうち最初の1つを有効化）
+showTab('settings');
+
+// 前回設定を自動復元（localStorage）。なければデフォルトで計算。
+if (!loadLocal()) calc();
+
+// ── 起動演出（スプラッシュ）制御 ──
+(function() {
+  const splash = document.getElementById('splash');
+  if (!splash) return;
+  document.body.classList.add('ready');
+  let done = false;
+  function dismiss() {
+    if (done) return;
+    done = true;
+    splash.classList.add('skip');
+    setTimeout(() => splash.remove(), 400);
+  }
+  // 通常はアニメーション終了後に自動で消える（出そろい約2.5秒＋静止2.5秒＋フェード）
+  setTimeout(dismiss, 5800);
+  // タップ／クリックでスキップ
+  splash.addEventListener('click', dismiss);
+  splash.addEventListener('touchstart', dismiss, { passive: true });
+})();
+</script>
+</body>
+</html>
