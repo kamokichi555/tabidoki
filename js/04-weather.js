@@ -8,7 +8,7 @@
 
 /* --- 自動生成: モジュール依存のインポート --- */
 import { S, data } from './01-state.js';
-import { LSK, SK, WMO, WX_GEOCODE_INTERVAL_MS } from './00-constants.js';
+import { LSK, SK, WMO, WX_GEOCODE_INTERVAL_MS, WX_FAST_CONCURRENCY } from './00-constants.js';
 import { buildGeoTargets, hasCachedCoords, hasGeo, pClass, esc, escJsAttr, geoMatchLevel } from './02-utils.js';
 import { currentDayFlat } from './06-day.js';
 import { renderRide, showInfoToast, updateClock } from './07-render.js';
@@ -45,7 +45,12 @@ export function _lsSetItem(key,val){
 }
 
 export const GEO_SK='touring_geo';
-export const GEO_MAX=80; // LRU上限
+/* LRU上限。1地点につきキャッシュされる実キーは「最初に解決した1クエリ」のみ
+   （doFetchStop/_gpsPrefetchCoords とも resolve 後に break する）ため、実上限は地点数とほぼ等しい。
+   設計上の最大は 7日×20地点=140地点。これを下回る値（旧80）だと、最大規模の行程では
+   毎リフレッシュで未命中地点のGSIジオコーディングが再発し、公開時のGSI負荷増につながる。
+   140を確実に上回り、編集中の滞留分の余裕も見て300とする（1件≈80B＝計24KB程度でlocalStorage上問題なし）。 */
+export const GEO_MAX=300;
 export const geoCache=(()=>{try{return JSON.parse(localStorage.getItem(GEO_SK))||{};}catch(e){return{};}})();
 export function _geoCacheGet(q){const e=geoCache[q];if(!e)return null;e.ts=Date.now();return e;}
 export function _geoCacheSet(q,lat,lon,title){geoCache[q]={lat,lon,title:title||null,ts:Date.now()};_saveGeoCache();}
@@ -570,9 +575,15 @@ export async function runWxQueue(){
   try{
     while(wxQueueFast.length||wxQueue.length){
       if(myGen!==wxGen) return; // 世代が進んだ → このループは破棄（新ループに引き継ぐ）
-      // fastキュー：坐標キャッシュ済み→全件並列（Open-Meteoのみのでレート制限なし）
-      if(wxQueueFast.length){
-        const batch=wxQueueFast.splice(0);
+      // fastキュー：座標解決済み→並列取得（Open-Meteoのみ＝GSIレート制限の対象外）。
+      // 同時in-flightを WX_FAST_CONCURRENCY 件に制限しつつ、内側ループで fastを「全部」捌いてから slowへ進む。
+      // ・全件一括並列だと最大行程(140地点)で140並列のバーストになり上流(Open-Meteo/wttr.in)に負荷をかけるため上限を設ける。
+      // ・内側whileで完全に空にするのは、fast(キャッシュ済み)をslowのGSI間隔(WX_GEOCODE_INTERVAL_MS)で
+      //   待たせない従来挙動を保つため（旧コードは splice(0) で1イテレーションに全fastを捌いていた）。
+      // 根拠と上限値は 00-constants.js の WX_FAST_CONCURRENCY を参照。
+      while(wxQueueFast.length){
+        if(myGen!==wxGen) return; // 世代が進んだ → このループは破棄（新ループに引き継ぐ）
+        const batch=wxQueueFast.splice(0,WX_FAST_CONCURRENCY);
         await Promise.allSettled(batch.map(item=>
           doFetchStop(item.stop,item.date)
             .catch(()=>{wxStopRes[item.stop.id]={error:true,date:item.date,time:Date.now()};})

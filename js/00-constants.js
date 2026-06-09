@@ -63,3 +63,12 @@ export const BACKUP_INTERVAL_MS=5*60*1000;
    ※実座標/キャッシュ済みの地点が通るfastキューには適用されない。旧Nominatim(1req/s)は撤去済み。
    公開規模やGSI状況に応じて調整するのはこの1箇所のみ。 */
 export const WX_GEOCODE_INTERVAL_MS=1100;
+/* ── 天気: fastキュー（座標解決済み地点）の同時取得数の上限 ──
+   座標がキャッシュ/実座標で確定済みの地点はジオコーディング不要のため fastキューで並列取得する。
+   従来は1チャンクで全件同時にfetchしていたが、最大行程（7日×20地点=140地点）を走行モードで
+   一括取得すると140並列のバーストになり、Open-Meteoの短期レート制限(429)→wttr.inへ連鎖し
+   上流に負荷をかける恐れがある。そこで同時in-flight地点数をこの値で制限する（チャンク処理）。
+   ※1地点につきOpen-Meteoへ2系統(jma_seamless/既定)を並列で投げるため、実HTTP同時数は約2×この値。
+   　slowキュー(GSI)は別途 WX_GEOCODE_INTERVAL_MS で1件ずつ直列化しているため対象外。
+   公開規模やレート制限の状況に応じて調整するのはこの1箇所のみ。 */
+export const WX_FAST_CONCURRENCY=8;
