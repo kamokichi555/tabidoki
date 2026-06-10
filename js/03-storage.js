@@ -272,10 +272,9 @@ export function openSaveModal(){
     id:'save-modal-overlay',
     closeId:'save-modal-close',
     title:'💾 行程を保存',
-    hint:'💡 「共有して保存」からGoogleドライブやLINEにも送れます',
+    hint:'💡 保存したJSONはGoogleドライブやメールで他の端末にも渡せます',
     items:[
       {id:'save-modal-local',icon:'📄',label:'端末に保存',sub:'ダウンロードフォルダへJSON保存',arrow:'↓',onClick:saveJSON},
-      {id:'save-modal-share',icon:'📤',label:'共有して保存',sub:'ドライブ・LINE・Keep等に送る',arrow:'›',onClick:_saveViaShare},
     ],
   });
 }
@@ -292,31 +291,6 @@ export function openLoadModal(){
       {id:'load-modal-restore',icon:'🕐',label:'前回の行程を復元',sub:'端末に自動保存されたデータを読込',arrow:'↺',onClick:restoreFromStorage},
     ],
   });
-}
-
-/* ── 共有シート用にJSONテキストを生成（地点ゼロならnull） ── */
-function _getShareJson(){
-  _flushTitle();
-  const totalStops=_totalStops();
-  if(totalStops===0){showInfoToast('⚠️ 地点が登録されていません',3500);return null;}
-  data.currentStopId=S.manualCurrentId;
-  data.version=DEFAULT.version;
-  return {json:JSON.stringify(data,null,2),title:_safeFilename(data.title||'ツーリング行程')};
-}
-
-/* ── 共有シート経由でJSONを保存（Android等。Driveアプリ/LINE/Keep等を選べる） ── */
-async function _saveViaShare(){
-  const r=_getShareJson(); if(!r) return;
-  const file=new File([r.json],`${r.title}.json`,{type:'application/json'});
-  if(navigator.canShare&&navigator.canShare({files:[file]})){
-    try{
-      await navigator.share({files:[file],title:r.title});
-    }catch(e){
-      if(e?.name!=='AbortError') showInfoToast('⚠️ 共有できませんでした',3000);
-    }
-  }else{
-    showInfoToast('⚠️ このブラウザではファイル共有に対応していません（端末に保存をお使いください）',3800);
-  }
 }
 
 export function saveJSON(){
