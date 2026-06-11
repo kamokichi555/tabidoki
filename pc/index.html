@@ -63,6 +63,12 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 .stop-row.sel .stop-time{color:var(--amber)}
 .stop-fuel{font-size:11px;color:var(--amber);flex:none}
 .stop-tag-nogeo{font-size:10px;color:var(--text3);border:1px solid var(--border2);border-radius:4px;padding:0 5px;flex:none}
+#list-summary{display:none;align-items:center;gap:8px;margin:6px 8px 0;padding:8px 11px;background:rgba(224,122,63,.15);border:1px solid rgba(224,122,63,.42);border-radius:7px}
+#list-summary .sum-warn{font-size:12px;color:#F0C9A0;flex:1}
+.sum-btn{background:var(--amber);color:#1A1A12;font-size:12px;font-weight:700;border:none;padding:5px 13px;border-radius:6px;cursor:pointer;white-space:nowrap}
+.sum-btn:hover{filter:brightness(1.08)}.sum-btn:disabled{opacity:.6;cursor:default}
+.row-fill{display:flex;align-items:center;gap:3px;background:rgba(199,162,74,.16);color:#E6D9B0;border:1px solid rgba(199,162,74,.5);font-size:11px;padding:3px 9px;border-radius:6px;flex:none;cursor:pointer}
+.row-fill:hover{background:rgba(199,162,74,.3)}.row-fill:disabled{opacity:.6;cursor:default}
 .add-stop{margin:8px 10px 0;padding:8px;border:1px dashed var(--border2);border-radius:var(--r);width:calc(100% - 20px);color:var(--text3);font-size:12px}
 .add-stop:hover{background:var(--bg2);color:var(--text2)}
 #pane-map{position:relative;min-width:0}
@@ -125,6 +131,7 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 <div id="desk">
   <div id="pane-list">
     <div class="day-tabs" id="day-tabs"></div>
+    <div id="list-summary"></div>
     <div id="stop-list"></div>
     <button class="add-stop">＋ 地点を追加</button>
   </div>
@@ -203,8 +210,7 @@ function rebuildMap(){
   if(line.length)map.fitBounds(L.latLngBounds(line),{padding:[46,46],maxZoom:13});
   document.getElementById('map-info').textContent=`${stopsOf().length}地点 / ${dayLabel(curDay)}`;
   const warn=document.getElementById('map-warn');
-  const fillable=stopsOf().filter(s=>!coordOf(s)&&(s.addr||'').trim()).length;
-  if(nogeo){warn.style.display='flex';warn.innerHTML=`⚠ ${nogeo}件が座標未設定（住所のみ）${fillable?`<button id="btn-backfill" class="warn-btn">地図に配置（${fillable}件）</button>`:''}`;const bb=document.getElementById('btn-backfill');if(bb)bb.onclick=backfillAll;}
+  if(nogeo){warn.style.display='flex';warn.innerHTML=`⚠ ${nogeo}件が座標未設定（左の「配置」で地図に追加）`;}
   else warn.style.display='none';
 }
 
@@ -215,14 +221,27 @@ function renderTabs(){
 function renderList(){
   document.getElementById('stop-list').innerHTML=stopsOf().map((s,i)=>{
     const has=!!coordOf(s);
+    const fillable=!has&&!!(s.addr||'').trim();
     const dur=stayDur(s.arr,s.dep);
     const t=s.arr&&s.dep?`${s.arr} – ${s.dep} ${dur}`:s.dep?`出発 ${s.dep}`:s.arr?`到着 ${s.arr}`:'';
+    const trail = has ? '' : (fillable
+      ? `<button class="row-fill" data-fill="${s.id}">📍配置</button>`
+      : '<span class="stop-tag-nogeo">座標なし</span>');
     return `<div class="stop-row${s.id===selId?' sel':''}" data-id="${s.id}">
       <span class="stop-grip">⠿</span><span class="stop-num${has?'':' nogeo'}">${i+1}</span>
       <div class="stop-main"><div class="stop-name">${esc(s.name)}</div><div class="stop-time">${esc(t)}</div></div>
-      ${s.fuel?'<span class="stop-fuel">⛽</span>':''}${has?'':'<span class="stop-tag-nogeo">座標なし</span>'}${geoConf[s.id]?'<span class="stop-tag-warn">要確認</span>':''}
+      ${s.fuel?'<span class="stop-fuel">⛽</span>':''}${trail}${geoConf[s.id]?'<span class="stop-tag-warn">要確認</span>':''}
     </div>`;
   }).join('');
+}
+/* 左リスト上部の「未配置 N件 ＋ まとめて配置」サマリーバー（案1：操作を問題の隣へ） */
+function renderSummary(){
+  const el=document.getElementById('list-summary');
+  const n=stopsOf().filter(s=>!coordOf(s)&&(s.addr||'').trim()).length;
+  if(!n){el.style.display='none';el.innerHTML='';return;}
+  el.style.display='flex';
+  el.innerHTML=`<span class="sum-warn">⚠ 未配置 ${n}件（住所のみ）</span><button id="sum-fill" class="sum-btn">まとめて配置</button>`;
+  document.getElementById('sum-fill').onclick=backfillAll;
 }
 function renderEdit(){
   const body=document.getElementById('edit-body'),title=document.getElementById('edit-title');
@@ -242,7 +261,7 @@ function renderEdit(){
   document.getElementById('f-do-save').onclick=saveStop;
   document.getElementById('f-do-del').onclick=delStop;
 }
-function render(){renderTabs();renderList();renderEdit();rebuildMap();document.getElementById('hd-title').textContent=data.title||'（無題の行程）';}
+function render(){renderTabs();renderList();renderSummary();renderEdit();rebuildMap();document.getElementById('hd-title').textContent=data.title||'（無題の行程）';}
 
 function select(id){selId=id;render();const m=markers[id];if(m)map.panTo(m.getLatLng());}
 function switchDay(i){if(i===curDay)return;curDay=i;selId=null;render();}
@@ -270,7 +289,7 @@ async function backfillGeo(stop){
 }
 /* 全「座標なし」地点を直列で補完（GSI過負荷を避け、天気と同じ送信間隔で間引く）。 */
 async function backfillAll(){
-  const btn=document.getElementById('btn-backfill');
+  const btn=document.getElementById('sum-fill');
   const todo=stopsOf().filter(s=>!coordOf(s)&&(s.addr||'').trim());
   if(!todo.length)return;
   let ok=0,warnN=0,fail=0,done=0;
@@ -285,10 +304,20 @@ async function backfillAll(){
   render();
   alert(`地図に配置：成功 ${ok}件`+(warnN?` / 要確認 ${warnN}件（地名が住所と掠るだけ。ピンをドラッグで修正可）`:'')+(fail?` / 不可 ${fail}件（住所から座標を特定できず）`:''));
 }
+/* 1地点だけ補完（行の「配置」ボタン）。完了後その地点を選択して地図を寄せる。 */
+async function backfillOne(id,btn){
+  const s=stopsOf().find(x=>x.id===id); if(!s)return;
+  if(btn){btn.disabled=true;btn.textContent='…';}
+  const lv=await backfillGeo(s);
+  if(lv==='partial'||lv==='mismatch')geoConf[id]=lv; else delete geoConf[id];
+  selId=id; render();
+  const m=markers[id]; if(m)map.panTo(m.getLatLng());
+  if(lv==='fail')alert('住所から座標を特定できませんでした。座標を手入力するか、地図にピンを置いてください。');
+}
 
 /* イベント委譲 */
 document.getElementById('day-tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.add){alert('日程追加はスケルトン未実装（本実装で 06-day.addDay に接続）');return;}switchDay(+b.dataset.day);};
-document.getElementById('stop-list').onclick=e=>{const r=e.target.closest('.stop-row');if(r)select(r.dataset.id);};
+document.getElementById('stop-list').onclick=e=>{const fb=e.target.closest('.row-fill');if(fb){e.stopPropagation();backfillOne(fb.dataset.fill,fb);return;}const r=e.target.closest('.stop-row');if(r)select(r.dataset.id);};
 document.getElementById('btn-close').onclick=()=>{selId=null;render();};
 document.getElementById('btn-load').onclick=()=>document.getElementById('file-in').click();
 document.getElementById('btn-save').onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${(data.title||'旅刻行程')}.json`;a.click();URL.revokeObjectURL(a.href);};
