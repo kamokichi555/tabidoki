@@ -13,6 +13,10 @@ import { buildGeoTargets, hasGeo, pClass, esc, escJsAttr, geoMatchLevel } from '
 import { currentDayFlat } from './06-day.js';
 import { renderRide, showInfoToast, updateClock } from './07-render.js';
 import { _dbgLog } from './12-debug.js';
+/* ジオコーディング＋ジオキャッシュは js/_geo.js（純粋・PC版と共有）へ切り出した。
+   14-gps / _expose が weather 経由で参照する geoCache/_geoCacheGet/_geoCacheSet は再exportで互換維持。 */
+import { GEO_SK, GEO_MAX, geoCache, _geoCacheGet, _geoCacheSet, _saveGeoCache, _geocodeGSI, _setGeoPersist } from './_geo.js';
+export { geoCache, _geoCacheGet, _geoCacheSet };
 /* ══ 天気キャッシュ ══
    geoCache   : クエリ文字列 → {lat,lon}  ※localStorageに永続化
    fcastCache : "lat2,lon2_date" → {wcode,tmax,tmin,precip,time}
@@ -44,29 +48,12 @@ export function _lsSetItem(key,val){
   }
 }
 
-export const GEO_SK='touring_geo';
-/* LRU上限。1地点につきキャッシュされる実キーは「最初に解決した1クエリ」のみ
-   （doFetchStop/_gpsPrefetchCoords とも resolve 後に break する）ため、実上限は地点数とほぼ等しい。
-   設計上の最大は 7日×20地点=140地点。これを下回る値（旧80）だと、最大規模の行程では
-   毎リフレッシュで未命中地点のGSIジオコーディングが再発し、公開時のGSI負荷増につながる。
-   140を確実に上回り、編集中の滞留分の余裕も見て300とする（1件≈80B＝計24KB程度でlocalStorage上問題なし）。 */
-export const GEO_MAX=300;
-export const geoCache=(()=>{try{return JSON.parse(localStorage.getItem(GEO_SK))||{};}catch(e){return{};}})();
-export function _geoCacheGet(q){const e=geoCache[q];if(!e)return null;e.ts=Date.now();return e;}
-/* 住所からのジオクエリ候補のいずれかがキャッシュ済み座標を持つか（旧 02-utils から移設）。
-   buildGeoTargets は純粋関数として 02-utils に残し、_geoCacheGet に依存するこの判定だけ
-   weather 側に置くことで、02-utils を weather 非依存の純粋コアに保つ。 */
+_setGeoPersist(_lsSetItem); // geoCache永続化に容量管理付き保存(_lsSetItem)を注入（モバイルの退避挙動を維持）
+
+/* GEO_SK / GEO_MAX / geoCache / _geoCacheGet / _geoCacheSet / _saveGeoCache / _geocodeGSI は
+   js/_geo.js へ切り出し（PC版と共有する純粋ジオコーディングモジュール）。
+   weather 固有の hasCachedCoords（buildGeoTargets×_geoCacheGet 合成）のみここに残す。 */
 export function hasCachedCoords(addr){return buildGeoTargets(addr).some(q=>!!_geoCacheGet(q));}
-export function _geoCacheSet(q,lat,lon,title){geoCache[q]={lat,lon,title:title||null,ts:Date.now()};_saveGeoCache();}
-export function _saveGeoCache(){try{
-  const keys=Object.keys(geoCache);
-  if(keys.length>GEO_MAX){
-    // LRU: tsが古い順に削除
-    keys.sort((a,b)=>(geoCache[a].ts||0)-(geoCache[b].ts||0))
-      .slice(0,keys.length-GEO_MAX).forEach(k=>delete geoCache[k]);
-  }
-  _lsSetItem(GEO_SK,JSON.stringify(geoCache));
-}catch(e){}}
 export const FCST_SK='touring_fcast';
 export const fcastCache=(()=>{try{return JSON.parse(sessionStorage.getItem(FCST_SK))||{};}catch(e){return{};}})();
 export function _saveFcastCache(){try{sessionStorage.setItem(FCST_SK,JSON.stringify(fcastCache));}catch(e){}}
@@ -439,30 +426,7 @@ export async function _fetchForecast(stop,lat,lon,date){
 }
 
 /* ── ジオコーディング（国土地理院GSIを使用。Nominatimは現在未使用＝下のフォールバックを外したため） ── */
-export async function _geocodeGSI(q){
-  // 国土地理院 住所検索API（日本住所専用・CORS完全対応・APIキー不要）
-  const ctrl=new AbortController();
-  const t=setTimeout(()=>ctrl.abort(),6000);
-  try{
-    const r=await fetch(
-      `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(q)}`,
-      {signal:ctrl.signal}
-    );
-    clearTimeout(t);
-    if(r.ok){
-      const j=await r.json();
-      if(j&&j.length>0){
-        // GeoJSON形式: coordinates[0]=lon, coordinates[1]=lat
-        const lon=parseFloat(j[0].geometry.coordinates[0]);
-        const lat=parseFloat(j[0].geometry.coordinates[1]);
-        // title=GSIがマッチしたと主張する地名（化け座標の判定材料）, count=候補件数
-        const title=(j[0].properties&&j[0].properties.title)||null;
-        if(!isNaN(lat)&&!isNaN(lon)) return {lat,lon,title,count:j.length};
-      }
-    }
-  }catch(e){clearTimeout(t);}
-  return null;
-}
+/* _geocodeGSI は js/_geo.js へ移設（このファイル冒頭で import 済み）。 */
 // ※現在は未使用（_geocodeParallel から呼んでいない）。公開ポリシー対策でGSIのみ運用中。
 //   個人利用で精度を上げたい場合は _geocodeParallel のコメントを参照して復活できる。
 export async function _geocodeNominatim(q){
