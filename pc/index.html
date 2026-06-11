@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<!--
+  旅刻 PC版 — 編集・俯瞰デスク（本番配置版：共有コア import）
+  ・データ層は ../js/00-constants.js, ../js/02-utils.js を import して共有
+    → _migrateData / _sanitizeImportedData / parseCoord 等をモバイル版と同一ロジックで実行
+    → JSON互換が自動で保証される（PCで作った行程をモバイルでそのまま開ける）
+  ・地図：地理院タイル（標準/淡色/写真）  出典 © 国土地理院
+  ※ ESMの import を使うため file:// では動きません。GitHub Pages配信、または
+     リポジトリ直下で `python3 -m http.server` 等で配信し /pc/ を開いてください。
+  Copyright © 鴨吉 All Rights Reserved.
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旅刻 PC — 編集・俯瞰デスク</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Boku&family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0F1110;--bg2:#1C1F1C;--bg3:#2A2F2A;
+  --text:#F2F2E6;--text2:#B8BCA8;--text3:#8A9082;
+  --border:rgba(199,194,154,.16);--border2:rgba(199,194,154,.34);
+  --amber:#C7A24A;--amber-bg:rgba(199,162,74,.12);
+  --green:#A6C06E;--red:#E07A3F;--r:7px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;font-size:14px;line-height:1.6;overflow:hidden}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+header{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:#141714;border-bottom:1px solid var(--border)}
+.hd-left{display:flex;align-items:center;gap:12px}
+.hd-logo{font-family:'Yuji Boku','Hiragino Mincho ProN',serif;font-size:22px;letter-spacing:.12em;color:#EBE6D7}
+.hd-badge{font-size:11px;color:var(--text3);letter-spacing:.18em;border:1px solid var(--border2);padding:1px 7px;border-radius:5px}
+.hd-title{font-size:13px;color:var(--text2);max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hd-right{display:flex;align-items:center;gap:6px}
+.hd-right button{font-size:17px;color:var(--text2);padding:6px 9px;border-radius:var(--r)}
+.hd-right button:hover{background:var(--bg3)}
+.mode-toggle{display:inline-flex;border:1px solid var(--border2);border-radius:var(--r);overflow:hidden;margin-right:6px}
+.mode-toggle button{font-size:14px;padding:5px 12px;color:var(--text3)}
+.mode-toggle button.on{background:var(--amber);color:#1A1A12}
+#desk{display:grid;grid-template-columns:340px 1fr 330px;height:calc(100% - 48px)}
+#pane-list{border-right:1px solid var(--border);display:flex;flex-direction:column;min-width:0}
+.day-tabs{display:flex;gap:5px;padding:9px 10px;border-bottom:1px solid var(--border);overflow-x:auto}
+.day-tab{font-size:12px;padding:4px 13px;border-radius:6px;color:var(--text3);border:1px solid transparent;white-space:nowrap}
+.day-tab.on{background:var(--amber);color:#1A1A12}
+.day-tab:not(.on){border-color:var(--border)}
+.day-tab:not(.on):hover{background:var(--bg2)}
+#stop-list{flex:1;overflow-y:auto;padding:6px 6px 12px}
+.stop-row{display:flex;align-items:center;gap:9px;padding:9px 9px;border-radius:var(--r);cursor:pointer;border:1px solid transparent}
+.stop-row:hover{background:var(--bg2)}
+.stop-row.sel{background:var(--amber-bg);border-color:rgba(199,162,74,.5)}
+.stop-grip{color:#5A5F55;font-size:13px;cursor:grab;user-select:none;letter-spacing:-2px}
+.stop-num{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:var(--bg3);color:var(--text2);border:1.5px solid var(--text3)}
+.stop-row.sel .stop-num{background:var(--amber);color:#1A1A12;border-color:#F2E6C2}
+.stop-num.nogeo{border-style:dashed;color:var(--text3)}
+.stop-main{flex:1;min-width:0}
+.stop-name{font-size:14px;color:#EBE6D7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stop-row.sel .stop-name{color:var(--text)}
+.stop-time{font-size:11px;color:var(--text3)}
+.stop-row.sel .stop-time{color:var(--amber)}
+.stop-fuel{font-size:11px;color:var(--amber);flex:none}
+.stop-tag-nogeo{font-size:10px;color:var(--text3);border:1px solid var(--border2);border-radius:4px;padding:0 5px;flex:none}
+.add-stop{margin:8px 10px 0;padding:8px;border:1px dashed var(--border2);border-radius:var(--r);width:calc(100% - 20px);color:var(--text3);font-size:12px}
+.add-stop:hover{background:var(--bg2);color:var(--text2)}
+#pane-map{position:relative;min-width:0}
+#map{position:absolute;inset:0;background:#1A1D1A}
+.map-overlay{position:absolute;z-index:1000;font-size:11px}
+.map-info{top:10px;left:10px;background:rgba(20,23,20,.85);border:1px solid var(--border2);color:var(--text2);padding:4px 10px;border-radius:6px}
+.map-layers{top:10px;right:10px;display:flex;border:1px solid var(--border2);border-radius:6px;overflow:hidden}
+.map-layers button{font-size:11px;padding:4px 10px;background:rgba(20,23,20,.85);color:var(--text3)}
+.map-layers button.on{background:var(--amber);color:#1A1A12}
+.map-warn{bottom:10px;left:10px;right:10px;background:rgba(224,122,63,.14);border:1px solid rgba(224,122,63,.5);color:#F0B89A;padding:4px 10px;border-radius:6px;display:none}
+#pane-edit{border-left:1px solid var(--border);display:flex;flex-direction:column;min-width:0;overflow-y:auto}
+.edit-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)}
+.edit-head span{font-size:12px;color:var(--text3);letter-spacing:.12em}
+.edit-body{padding:12px 14px;display:flex;flex-direction:column;gap:12px}
+.fld label{display:block;font-size:11px;color:var(--text3);margin-bottom:4px}
+.fld input,.fld textarea{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:inherit;font-size:14px;padding:7px 10px;outline:none}
+.fld input:focus,.fld textarea:focus{border-color:var(--amber)}
+.fld .hint{font-size:10px;color:var(--text3);margin-top:3px}
+.fld .hint.ok{color:var(--green)}.fld .hint.warn{color:var(--red)}
+.fld-row{display:flex;gap:8px}.fld-row .fld{flex:1}
+.fld input[type=time]{text-align:center}
+.fld textarea{resize:vertical;min-height:64px;line-height:1.6}
+.edit-actions{display:flex;gap:8px;margin-top:2px}
+.btn-save{flex:1;background:var(--amber);color:#1A1A12;font-size:13px;font-weight:700;padding:9px;border-radius:var(--r)}
+.btn-save:hover{filter:brightness(1.08)}
+.btn-del{background:var(--bg2);border:1px solid var(--border);color:var(--red);font-size:14px;padding:9px 13px;border-radius:var(--r)}
+.btn-del:hover{background:var(--bg3)}
+.edit-empty{padding:48px 20px;text-align:center;color:var(--text3);font-size:13px;line-height:1.8}
+.leaflet-container{font-family:inherit}
+.leaflet-control-attribution{background:rgba(20,23,20,.8)!important;color:var(--text3)!important;font-size:10px!important}
+.leaflet-control-attribution a{color:var(--text2)!important}
+.leaflet-control-zoom a{background:rgba(20,23,20,.9)!important;color:var(--text2)!important;border-color:var(--border2)!important}
+.leaflet-control-zoom a:hover{background:var(--bg3)!important}
+.pin{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:'BIZ UDPGothic',sans-serif;background:#2A2F2A;color:#EBE6D7;border:2px solid #8A9082;box-shadow:0 1px 4px rgba(0,0,0,.6)}
+.pin.sel{background:#C7A24A;color:#1A1A12;border-color:#F2E6C2;width:32px;height:32px;font-size:15px}
+@media (max-width:1100px){#desk{grid-template-columns:300px 1fr 300px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd-left">
+    <span class="hd-logo">旅刻</span>
+    <span class="hd-badge">PC / DESK</span>
+    <span class="hd-title" id="hd-title">—</span>
+  </div>
+  <div class="hd-right">
+    <span class="mode-toggle"><button class="on" title="編集モード">✏️ 編集</button><button title="走行モード">🏍️ 走行</button></span>
+    <button title="保存（JSON）" id="btn-save">💾</button>
+    <button title="読込（JSON）" id="btn-load">📂</button>
+    <button title="共有" id="btn-share">📋</button>
+    <button title="設定">⚙️</button>
+  </div>
+</header>
+<input type="file" id="file-in" accept=".json,application/json" style="display:none">
+<div id="desk">
+  <div id="pane-list">
+    <div class="day-tabs" id="day-tabs"></div>
+    <div id="stop-list"></div>
+    <button class="add-stop">＋ 地点を追加</button>
+  </div>
+  <div id="pane-map">
+    <div id="map"></div>
+    <div class="map-overlay map-info" id="map-info">—</div>
+    <div class="map-overlay map-layers">
+      <button class="on" data-layer="std">標準</button>
+      <button data-layer="pale">淡色</button>
+      <button data-layer="photo">写真</button>
+    </div>
+    <div class="map-overlay map-warn" id="map-warn"></div>
+  </div>
+  <div id="pane-edit">
+    <div class="edit-head"><span id="edit-title">地点を編集</span><button title="閉じる" id="btn-close" style="color:var(--text3)">✕</button></div>
+    <div class="edit-body" id="edit-body"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script type="module">
+/* ── 共有コアを import（モバイル版と同一ロジック） ──
+   ※ 02-utils.js は weather 非依存の純粋コアにリファクタ済み。00-constants と 02-utils だけを読む。 */
+import { DEFAULT } from '../js/00-constants.js';
+import { _migrateData, _sanitizeImportedData, parseCoord, hasGeo, stayDur, esc } from '../js/02-utils.js';
+
+/* サンプル（mk8-v1 形式 → _migrateData で最新スキーマへ移行されることも実演） */
+const _SAMPLE_DATA={
+  "version":"mk8-v1","title":"神奈川〜山梨 日帰りツーリング","currentStopId":null,
+  "days":[{"label":"1日目\n神奈川→山梨","date":"","routeUrl":"","stops":[
+    {"id":"s001","name":"横浜 出発","addr":"神奈川県横浜市西区","arr":"","dep":"08:00","note":"早めに出発。下道で","fuel":false},
+    {"id":"s002","name":"宮ヶ瀬湖","addr":"35.5298, 139.2297","arr":"09:30","dep":"10:00","note":"湖畔で休憩","fuel":false},
+    {"id":"s003","name":"道志みち（国道413号）","addr":"35.5035, 139.1120","arr":"10:30","dep":"10:35","note":"ワインディングを満喫","fuel":false},
+    {"id":"s004","name":"道の駅 どうし","addr":"35.5035, 138.9899","arr":"11:15","dep":"12:15","note":"鹿カレーや地元野菜","fuel":false},
+    {"id":"s005","name":"山中湖","addr":"35.4186, 138.8775","arr":"12:50","dep":"13:30","note":"富士山の眺望ポイント","fuel":false},
+    {"id":"s006","name":"富士山パノラマロープウェイ","addr":"35.5038, 138.7744","arr":"14:00","dep":"14:30","note":"河口湖周辺","fuel":false},
+    {"id":"s007","name":"道の駅 なるさわ","addr":"35.4779, 138.6922","arr":"15:00","dep":"15:30","note":"ここで給油チェック","fuel":true},
+    {"id":"s008","name":"横浜 帰着","addr":"35.4660, 139.6221","arr":"18:00","dep":"","note":"中央道・相模原IC経由","fuel":false}
+  ]}]
+};
+
+let data, curDay=0, selId=null;
+const stopsOf=()=>data.days[curDay]?.stops||[];
+const coordOf=s=>hasGeo(s)?{lat:s.geo.lat,lon:s.geo.lon}:parseCoord(s.addr); // 取込後はsanitizeがgeoを確定済み
+
+/* 取り込み共通：移行→サニタイズ（geoのバックフィルもここで実行される） */
+function loadData(p){ _migrateData(p); _sanitizeImportedData(p); data=p; curDay=0; selId=null; render(); }
+
+/* ── 地図：地理院タイル ── */
+const GSI_ATTR='地図：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院（地理院タイル）</a>';
+const layers={
+  std:  L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',{attribution:GSI_ATTR,maxZoom:18}),
+  pale: L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png',{attribution:GSI_ATTR,maxZoom:18}),
+  photo:L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg',{attribution:GSI_ATTR,maxZoom:18}),
+};
+const map=L.map('map',{zoomControl:true,layers:[layers.std]}).setView([35.5,139.0],10);
+let curLayer='std';
+document.querySelectorAll('.map-layers button').forEach(b=>{b.onclick=()=>{const k=b.dataset.layer;if(k===curLayer)return;map.removeLayer(layers[curLayer]);map.addLayer(layers[k]);curLayer=k;document.querySelectorAll('.map-layers button').forEach(x=>x.classList.toggle('on',x===b));};});
+
+let markers={}, route=null;
+function pinIcon(n,sel){return L.divIcon({className:'',html:`<div class="pin${sel?' sel':''}">${n}</div>`,iconSize:sel?[32,32]:[26,26],iconAnchor:sel?[16,16]:[13,13]});}
+function rebuildMap(){
+  Object.values(markers).forEach(m=>map.removeLayer(m));markers={};
+  if(route){map.removeLayer(route);route=null;}
+  const line=[];let nogeo=0;
+  stopsOf().forEach((s,i)=>{
+    const c=coordOf(s); if(!c){nogeo++;return;}
+    line.push([c.lat,c.lon]);
+    const m=L.marker([c.lat,c.lon],{icon:pinIcon(i+1,s.id===selId),draggable:true}).addTo(map);
+    m.on('click',()=>select(s.id));
+    m.on('dragend',()=>{const p=m.getLatLng();s.geo={lat:+p.lat.toFixed(6),lon:+p.lng.toFixed(6)};s.addr=`${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`;rebuildMap();if(s.id===selId)renderEdit();});
+    markers[s.id]=m;
+  });
+  if(line.length>1)route=L.polyline(line,{color:'#C7A24A',weight:3,opacity:.85}).addTo(map);
+  if(line.length)map.fitBounds(L.latLngBounds(line),{padding:[46,46],maxZoom:13});
+  document.getElementById('map-info').textContent=`${stopsOf().length}地点 / ${dayLabel(curDay)}`;
+  const warn=document.getElementById('map-warn');
+  if(nogeo){warn.style.display='block';warn.textContent=`⚠ ${nogeo}件が座標未設定（住所のみ）。本実装ではジオコーディングで地図に配置します。`;}
+  else warn.style.display='none';
+}
+
+function dayLabel(i){const d=data.days[i];const lb=(d.label||'').split('\n')[0];return lb||(d.date||`${i+1}日目`);}
+function renderTabs(){
+  document.getElementById('day-tabs').innerHTML=data.days.map((d,i)=>`<button class="day-tab${i===curDay?' on':''}" data-day="${i}">${esc(dayLabel(i))}</button>`).join('')+`<button class="day-tab" data-add="1" style="font-size:14px;padding:2px 9px" title="日程を追加">＋</button>`;
+}
+function renderList(){
+  document.getElementById('stop-list').innerHTML=stopsOf().map((s,i)=>{
+    const has=!!coordOf(s);
+    const dur=stayDur(s.arr,s.dep);
+    const t=s.arr&&s.dep?`${s.arr} – ${s.dep} ${dur}`:s.dep?`出発 ${s.dep}`:s.arr?`到着 ${s.arr}`:'';
+    return `<div class="stop-row${s.id===selId?' sel':''}" data-id="${s.id}">
+      <span class="stop-grip">⠿</span><span class="stop-num${has?'':' nogeo'}">${i+1}</span>
+      <div class="stop-main"><div class="stop-name">${esc(s.name)}</div><div class="stop-time">${esc(t)}</div></div>
+      ${s.fuel?'<span class="stop-fuel">⛽</span>':''}${has?'':'<span class="stop-tag-nogeo">座標なし</span>'}
+    </div>`;
+  }).join('');
+}
+function renderEdit(){
+  const body=document.getElementById('edit-body'),title=document.getElementById('edit-title');
+  const s=stopsOf().find(x=>x.id===selId);
+  if(!s){title.textContent='地点を編集';body.innerHTML=`<div class="edit-empty">左のリストかピンから<br>地点を選択してください</div>`;return;}
+  const i=stopsOf().indexOf(s),c=coordOf(s);
+  title.textContent=`地点を編集 ${'①②③④⑤⑥⑦⑧⑨⑩⑪⑫'[i]||(i+1)}`;
+  body.innerHTML=`
+    <div class="fld"><label>地点名</label><input id="f-name" value="${esc(s.name)}"></div>
+    <div class="fld"><label>📍 住所 / 座標（「緯度, 経度」で地図に反映）</label><input id="f-addr" value="${esc(s.addr||'')}">
+      <div class="hint ${c?'ok':'warn'}" id="f-addr-hint">${c?`座標 ${c.lat.toFixed(5)}, ${c.lon.toFixed(5)} → 地図に表示中`:'住所テキスト（座標未確定・地図外）'}</div></div>
+    <div class="fld-row"><div class="fld"><label>到着</label><input id="f-arr" type="time" value="${s.arr||''}"></div><div class="fld"><label>出発</label><input id="f-dep" type="time" value="${s.dep||''}"></div></div>
+    <div class="fld"><label>メモ</label><textarea id="f-note">${esc(s.note||'')}</textarea></div>
+    <div class="fld"><label>給油</label><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2)"><input type="checkbox" id="f-fuel" ${s.fuel?'checked':''} style="width:auto"> ⛽ 給油ポイント</label></div>
+    <div class="edit-actions"><button class="btn-save" id="f-do-save">保存</button><button class="btn-del" id="f-do-del" title="削除">🗑️</button></div>`;
+  document.getElementById('f-addr').addEventListener('input',e=>{const cc=parseCoord(e.target.value),h=document.getElementById('f-addr-hint');h.className='hint '+(cc?'ok':'warn');h.textContent=cc?`座標 ${cc.lat.toFixed(5)}, ${cc.lon.toFixed(5)} → 保存で地図に反映`:'住所テキスト（座標未確定・地図外）';});
+  document.getElementById('f-do-save').onclick=saveStop;
+  document.getElementById('f-do-del').onclick=delStop;
+}
+function render(){renderTabs();renderList();renderEdit();rebuildMap();document.getElementById('hd-title').textContent=data.title||'（無題の行程）';}
+
+function select(id){selId=id;render();const m=markers[id];if(m)map.panTo(m.getLatLng());}
+function switchDay(i){if(i===curDay)return;curDay=i;selId=null;render();}
+function saveStop(){const s=stopsOf().find(x=>x.id===selId);if(!s)return;s.name=document.getElementById('f-name').value;s.addr=document.getElementById('f-addr').value;s.arr=document.getElementById('f-arr').value;s.dep=document.getElementById('f-dep').value;s.note=document.getElementById('f-note').value;s.fuel=document.getElementById('f-fuel').checked;const g=parseCoord(s.addr);s.geo=g||(hasGeo(s)?s.geo:null);render();}
+function delStop(){const a=stopsOf();const idx=a.findIndex(x=>x.id===selId);if(idx>=0){a.splice(idx,1);selId=null;render();}}
+
+/* イベント委譲 */
+document.getElementById('day-tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.add){alert('日程追加はスケルトン未実装（本実装で 06-day.addDay に接続）');return;}switchDay(+b.dataset.day);};
+document.getElementById('stop-list').onclick=e=>{const r=e.target.closest('.stop-row');if(r)select(r.dataset.id);};
+document.getElementById('btn-close').onclick=()=>{selId=null;render();};
+document.getElementById('btn-load').onclick=()=>document.getElementById('file-in').click();
+document.getElementById('btn-save').onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${(data.title||'旅刻行程')}.json`;a.click();URL.revokeObjectURL(a.href);};
+document.getElementById('btn-share').onclick=()=>{navigator.clipboard?.writeText(JSON.stringify(data)).then(()=>alert('JSONをクリップボードにコピーしました'),()=>alert('コピーに失敗'));};
+document.getElementById('file-in').addEventListener('change',ev=>{const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const p=JSON.parse(r.result);if(!p||!Array.isArray(p.days))throw new Error('days配列がありません');loadData(p);}catch(e){alert('読み込み失敗：'+e.message);}};r.readAsText(f);ev.target.value='';});
+
+/* 起動：localStorage 'touring_data'（モバイル版と同一キー・同一オリジンで共有）→ なければサンプル */
+let init=null;
+try{const raw=localStorage.getItem('touring_data');const p=raw&&JSON.parse(raw);if(p&&Array.isArray(p.days))init=p;}catch(e){}
+loadData(init||structuredClone(_SAMPLE_DATA));
+
+/* PC用Service Worker（scope /pc/） */
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script>
+</body>
+</html>
