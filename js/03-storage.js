@@ -288,9 +288,68 @@ export function openLoadModal(){
     hint:'⚠️ 読み込むと現在の行程は上書きされます',
     items:[
       {id:'load-modal-local',icon:'📄',label:'端末から読み込む',sub:'JSONファイルを選択',arrow:'↑',onClick:loadJSON},
+      {id:'load-modal-paste',icon:'📋',label:'貼り付けて読み込む',sub:'Google Keep等からコピーしたJSON',arrow:'↑',onClick:openPasteImport},
       {id:'load-modal-restore',icon:'🕐',label:'前回の行程を復元',sub:'端末に自動保存されたデータを読込',arrow:'↺',onClick:restoreFromStorage},
     ],
   });
+}
+
+/* ══ 貼り付け取り込み（Google Keep等からコピーしたJSON文字列を読み込む） ══
+   ファイルを介さずテキストを直接受け取り、既存の取り込みパイプライン
+   (_applyImportedData) にそのまま流す。新規ロジックは持たない。 */
+export function openPasteImport(){
+  _closeAllOverlays();
+  const id='paste-import-overlay';
+  const ov=document.createElement('div');
+  ov.id=id;
+  Object.assign(ov.style,{position:'fixed',inset:'0',zIndex:'999999',background:'rgba(0,0,0,.82)',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'});
+  ov.innerHTML=`<div style="background:var(--bg2);border:1.5px solid var(--border2);border-radius:16px;padding:20px;width:100%;max-width:440px;max-height:92dvh;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <span style="font-weight:700;font-size:16px">📋 貼り付けて読み込む</span>
+      <button id="${id}-close" style="border:none;background:none;font-size:24px;padding:2px 8px;color:var(--text3)">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--text3);flex-shrink:0">Google Keep等でコピーした行程JSONを貼り付けてください</div>
+    <textarea id="${id}-area" placeholder='{"version":...,"days":[...]}' style="flex:1;min-height:180px;resize:vertical;background:var(--bg3);border:1.5px solid var(--border2);border-radius:10px;color:var(--text2);font-size:13px;line-height:1.6;padding:12px;font-family:ui-monospace,Menlo,Consolas,monospace"></textarea>
+    <button id="${id}-paste" style="width:100%;justify-content:center;padding:11px;font-size:14px;flex-shrink:0;background:var(--bg3)">📋 クリップボードから貼り付け</button>
+    <button id="${id}-go" style="width:100%;justify-content:center;padding:13px;font-size:16px;flex-shrink:0">取り込む</button>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)_closeOverlay(id);}); // 背景タップで閉じる
+  _lowerHeaderForOverlay();
+  document.body.appendChild(ov);
+  const area=document.getElementById(id+'-area');
+  document.getElementById(id+'-close').onclick=()=>_closeOverlay(id);
+  setTimeout(()=>area.focus(),50);
+
+  // クリップボードから直接（任意・失敗時は手貼りに誘導）
+  const pasteBtn=document.getElementById(id+'-paste');
+  if(pasteBtn) pasteBtn.onclick=async()=>{
+    try{
+      const t=await navigator.clipboard.readText();
+      if(t){area.value=t;}
+      area.focus();
+    }catch(e){
+      showInfoToast('⚠️ クリップボードを自動取得できませんでした。欄を長押しして貼り付けてください',3500);
+      area.focus();
+    }
+  };
+
+  // 取り込み実行
+  document.getElementById(id+'-go').onclick=()=>{
+    const raw=(area.value||'').trim();
+    if(!raw){showInfoToast('⚠️ JSONを貼り付けてください',3000);return;}
+    let p;
+    try{ p=JSON.parse(raw); }
+    catch(err){ showInfoToast('⚠️ JSONとして解釈できませんでした。コピー範囲をご確認ください',3500); return; } // 欄は残して再挑戦できる
+    // 最低限の形式チェック（_applyImportedData と同条件）。ここで弾けば貼り付け内容を保持したまま直せる
+    if(!p||typeof p!=='object'||!Array.isArray(p.days)){
+      showInfoToast('⚠️ 行程データの形式ではありません（days配列がありません）',3500);return;
+    }
+    // 上書き確認はこの場で取り、_applyImportedData には skipConfirm で渡す（確認の二重化を防ぐ。loadJSON と同じ作法）
+    if(_hasAnyStops()&&!confirm('現在の行程は上書きされます。続けますか？')) return; // キャンセル時は欄を残す
+    _closeOverlay(id);
+    try{ _applyImportedData(p,'貼り付けた行程',true); } // 以降は移行・サニタイズ・保存・再描画まで既存処理が担当
+    catch(err){ showAppError(EC.LOAD,err); }
+  };
 }
 
 export function saveJSON(){
