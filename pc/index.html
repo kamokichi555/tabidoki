@@ -14,7 +14,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>旅刻 PC — 編集・俯瞰デスク</title>
-<link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -301,8 +300,9 @@ let init=null;
 try{const raw=localStorage.getItem('touring_data');const p=raw&&JSON.parse(raw);if(p&&Array.isArray(p.days))init=p;}catch(e){}
 loadData(init||structuredClone(_SAMPLE_DATA));
 
-/* PC用Service Worker（scope /pc/） */
-if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+/* PC版（編集・俯瞰デスク）は計画用の常時オンライン前提のため Service Worker は登録しない。
+   ※ モバイル版SW（scope /tabidoki/）が /pc/ を巻き込まないよう、リリース時は sw.js の
+     CACHE_NAME を必ずバンプして旧キャッシュを破棄すること。 */
 </script>
 </body>
 </html>
