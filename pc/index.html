@@ -97,7 +97,7 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 .fld .hint.ok{color:var(--green)}.fld .hint.warn{color:var(--red)}
 .fld-row{display:flex;gap:8px}.fld-row .fld{flex:1}
 .fld input[type=time]{text-align:center}
-.fld textarea{resize:vertical;min-height:64px;line-height:1.6}
+.fld textarea{resize:none;min-height:64px;line-height:1.6;overflow:hidden}
 .edit-actions{display:flex;gap:8px;margin-top:2px}
 .btn-save{flex:1;background:var(--amber);color:#1A1A12;font-size:13px;font-weight:700;padding:9px;border-radius:var(--r)}
 .btn-save:hover{filter:brightness(1.08)}
@@ -261,6 +261,7 @@ function renderEdit(){
     <div class="fld"><label>給油</label><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2)"><input type="checkbox" id="f-fuel" ${s.fuel?'checked':''} style="width:auto"> ⛽ 給油ポイント</label></div>
     <div class="edit-actions"><button class="btn-save" id="f-do-save">保存</button><button class="btn-del" id="f-do-del" title="削除">🗑️</button></div>`;
   document.getElementById('f-addr').addEventListener('input',e=>{const cc=parseCoord(e.target.value),h=document.getElementById('f-addr-hint');h.className='hint '+(cc?'ok':'warn');h.textContent=cc?`座標 ${cc.lat.toFixed(5)}, ${cc.lon.toFixed(5)} → 保存で地図に反映`:'住所テキスト（座標未確定・地図外）';});
+  const noteEl=document.getElementById('f-note');const growNote=()=>{noteEl.style.height='auto';noteEl.style.height=noteEl.scrollHeight+'px';};growNote();noteEl.addEventListener('input',growNote);
   document.getElementById('f-do-save').onclick=saveStop;
   document.getElementById('f-do-del').onclick=delStop;
 }
