@@ -6,7 +6,7 @@
    ・外部API(天気/ジオ/施設)には介入しない
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
-const CACHE_NAME = 'tabidoki-mk18-v55'; // ← リリースごとにバンプして旧キャッシュを破棄（ESM化以降はこれが唯一のキャッシュ無効化手段）。末尾vNNは index.html スプラッシュの版表示と必ず一致させること
+const CACHE_NAME = 'tabidoki-mk18-v56'; // ← リリースごとにバンプして旧キャッシュを破棄（ESM化以降はこれが唯一のキャッシュ無効化手段）。末尾vNNは index.html スプラッシュの版表示と必ず一致させること
 const CACHE_FILES = [
   './',
   './index.html',
