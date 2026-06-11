@@ -6,7 +6,7 @@
    ・外部API(天気/ジオ/施設)には介入しない
    Copyright © 鴨吉 All Rights Reserved.
    ══════════════════════════════════════════════════════ */
-const CACHE_NAME = 'tabidoki-mk18-v58'; // ← リリースごとにバンプして旧キャッシュを破棄（ESM化以降はこれが唯一のキャッシュ無効化手段）。末尾vNNは index.html スプラッシュの版表示と必ず一致させること
+const CACHE_NAME = 'tabidoki-mk18-v58'; // ← リリースごとにバンプして旧キャッシュを破棄（ESM化以降はこれが唯一のキャッシュ無効化手段）。末尾vNN はスプラッシュに自動表示される（下部 GET_VERSION 応答）ので手動同期は不要
 const CACHE_FILES = [
   './',
   './index.html',
@@ -60,6 +60,19 @@ self.addEventListener('activate', event => {
       .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+// 版問い合わせ：スプラッシュからの postMessage に対し、稼働中の SW が自分の CACHE_NAME を返す。
+// これにより index.html 側はバージョンをベタ書きせず、実際に動いているキャッシュ版を表示できる（手動同期の廃止）。
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'GET_VERSION') {
+    const m = CACHE_NAME.match(/v\d+$/i);
+    event.ports[0] && event.ports[0].postMessage({
+      type: 'VERSION',
+      version: m ? m[0] : CACHE_NAME, // 例: "v58"（末尾のVNNだけ）
+      cache: CACHE_NAME              // 例: "tabidoki-mk18-v58"（デバッグ用フル名）
+    });
+  }
 });
 
 self.addEventListener('fetch', event => {

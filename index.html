@@ -35,8 +35,8 @@
     <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
       <img class="splash-title-img" src="icons/splash-title.png?v=16" alt="旅刻">
             <div style="font-size:clamp(11px,3vw,15px);color:rgba(240,235,215,.75);letter-spacing:.22em;font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;font-weight:700;animation:splash-in .6s ease .65s both">mk18</div>
-            <!-- ビルド版（バンプ）。リリースごとに sw.js の CACHE_NAME 末尾 vNN と同じ値へ手動更新すること -->
-            <div style="font-size:clamp(10px,2.6vw,13px);color:rgba(240,235,215,.6);letter-spacing:.22em;font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;font-weight:700;animation:splash-in .6s ease .68s both">v58</div>
+            <!-- ビルド版：稼働中SWの CACHE_NAME 末尾 vNN を下部スクリプトで自動表示（手動更新は不要）。下の "v58" はSW応答前のフォールバック初期値 -->
+            <div id="app-ver" style="font-size:clamp(10px,2.6vw,13px);color:rgba(240,235,215,.6);letter-spacing:.22em;font-family:'BIZ UDPGothic',-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;font-weight:700;animation:splash-in .6s ease .68s both">v58</div>
     </div>
     <div style="width:28px"></div>
     <div style="writing-mode:vertical-rl;text-orientation:mixed;font-family:'Yuji Boku','Kaisei HarunoUmi','Hiragino Mincho ProN','Yu Mincho',serif;color:rgba(235,230,215,.88);text-shadow:2px 2px 4px rgba(0,0,0,.95),0 0 20px rgba(0,0,0,.8);animation:splash-in .6s ease .7s both;position:relative;z-index:1;line-height:1.6">
@@ -295,7 +295,24 @@
 <div id="info-toast" style="display:none;position:fixed;top:calc(var(--hh,62px) + 10px);left:50%;transform:translateX(-50%);z-index:10002;width:calc(100% - 28px);max-width:440px;background:var(--bg2);border:1.5px solid var(--border2);border-radius:14px;padding:14px 18px;box-shadow:0 4px 24px rgba(0,0,0,.5);animation:toast-in .22s cubic-bezier(.2,0,.2,1);text-align:center;font-size:15px;font-weight:700;color:var(--text)">
 </div>
 <div id="dbg-badge" onclick="openSplashSettings()" title="デバッグログ"><span id="dbg-badge-text">🐛</span></div>
-<script>if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');</script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js');
+  // スプラッシュ版表示を、稼働中SWの CACHE_NAME 末尾 vNN から自動反映（手動同期の廃止）
+  (function(){
+    var el=document.getElementById('app-ver');
+    if(!el)return;
+    function ask(sw){
+      if(!sw)return;
+      var ch=new MessageChannel();
+      ch.port1.onmessage=function(e){ if(e.data&&e.data.type==='VERSION')el.textContent=e.data.version; };
+      sw.postMessage({type:'GET_VERSION'},[ch.port2]);
+    }
+    navigator.serviceWorker.ready.then(function(reg){ ask(reg.active); });
+    navigator.serviceWorker.addEventListener('controllerchange',function(){ ask(navigator.serviceWorker.controller); }); // 更新で新SWに切替時も追従
+  })();
+}
+</script>
 <!-- 起動ロックを無効化：本体(js/13-init.js)を直接起動する -->
 <script type="module" src="js/13-init.js"></script>
 <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "2f2d3229bba14f57a519f1e1c46d71c3"}'></script><!-- End Cloudflare Web Analytics -->
