@@ -73,7 +73,11 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 .map-layers{top:10px;right:10px;display:flex;border:1px solid var(--border2);border-radius:6px;overflow:hidden}
 .map-layers button{font-size:11px;padding:4px 10px;background:rgba(20,23,20,.85);color:var(--text3)}
 .map-layers button.on{background:var(--amber);color:#1A1A12}
-.map-warn{bottom:10px;left:10px;right:10px;background:rgba(224,122,63,.14);border:1px solid rgba(224,122,63,.5);color:#F0B89A;padding:4px 10px;border-radius:6px;display:none}
+.map-warn{bottom:10px;left:10px;right:10px;background:rgba(224,122,63,.14);border:1px solid rgba(224,122,63,.5);color:#F0B89A;padding:4px 10px;border-radius:6px;display:none;align-items:center}
+.warn-btn{margin-left:auto;background:rgba(224,122,63,.28);border:1px solid rgba(224,122,63,.6);color:#F6D2BF;font-size:11px;padding:2px 11px;border-radius:5px;white-space:nowrap}
+.warn-btn:hover{background:rgba(224,122,63,.45)}
+.warn-btn:disabled{opacity:.6;cursor:default}
+.stop-tag-warn{font-size:10px;color:#E0A23F;border:1px solid rgba(224,162,63,.5);border-radius:4px;padding:0 5px;flex:none}
 #pane-edit{border-left:1px solid var(--border);display:flex;flex-direction:column;min-width:0;overflow-y:auto}
 .edit-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)}
 .edit-head span{font-size:12px;color:var(--text3);letter-spacing:.12em}
@@ -99,6 +103,7 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 .leaflet-control-zoom a:hover{background:var(--bg3)!important}
 .pin{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:'BIZ UDPGothic',sans-serif;background:#2A2F2A;color:#EBE6D7;border:2px solid #8A9082;box-shadow:0 1px 4px rgba(0,0,0,.6)}
 .pin.sel{background:#C7A24A;color:#1A1A12;border-color:#F2E6C2;width:32px;height:32px;font-size:15px}
+.pin.lowconf{border-style:dashed;border-color:#E0A23F}
 @media (max-width:1100px){#desk{grid-template-columns:300px 1fr 300px}}
 </style>
 </head>
@@ -144,8 +149,9 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 <script type="module">
 /* ── 共有コアを import（モバイル版と同一ロジック） ──
    ※ 02-utils.js は weather 非依存の純粋コアにリファクタ済み。00-constants と 02-utils だけを読む。 */
-import { DEFAULT } from '../js/00-constants.js';
-import { _migrateData, _sanitizeImportedData, parseCoord, hasGeo, stayDur, esc } from '../js/02-utils.js';
+import { DEFAULT, WX_GEOCODE_INTERVAL_MS } from '../js/00-constants.js';
+import { _migrateData, _sanitizeImportedData, parseCoord, hasGeo, stayDur, esc, buildGeoTargets, geoMatchLevel } from '../js/02-utils.js';
+import { _geocodeGSI, _geoCacheGet, _geoCacheSet } from '../js/_geo.js';
 
 /* サンプル（mk8-v1 形式 → _migrateData で最新スキーマへ移行されることも実演） */
 const _SAMPLE_DATA={
@@ -162,12 +168,12 @@ const _SAMPLE_DATA={
   ]}]
 };
 
-let data, curDay=0, selId=null;
+let data, curDay=0, selId=null, geoConf={}; // geoConf: id→'partial'/'mismatch'（補完後の要確認マーク）
 const stopsOf=()=>data.days[curDay]?.stops||[];
 const coordOf=s=>hasGeo(s)?{lat:s.geo.lat,lon:s.geo.lon}:parseCoord(s.addr); // 取込後はsanitizeがgeoを確定済み
 
 /* 取り込み共通：移行→サニタイズ（geoのバックフィルもここで実行される） */
-function loadData(p){ _migrateData(p); _sanitizeImportedData(p); data=p; curDay=0; selId=null; render(); }
+function loadData(p){ _migrateData(p); _sanitizeImportedData(p); data=p; curDay=0; selId=null; geoConf={}; render(); }
 
 /* ── 地図：地理院タイル ── */
 const GSI_ATTR='地図：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院（地理院タイル）</a>';
@@ -181,7 +187,7 @@ let curLayer='std';
 document.querySelectorAll('.map-layers button').forEach(b=>{b.onclick=()=>{const k=b.dataset.layer;if(k===curLayer)return;map.removeLayer(layers[curLayer]);map.addLayer(layers[k]);curLayer=k;document.querySelectorAll('.map-layers button').forEach(x=>x.classList.toggle('on',x===b));};});
 
 let markers={}, route=null;
-function pinIcon(n,sel){return L.divIcon({className:'',html:`<div class="pin${sel?' sel':''}">${n}</div>`,iconSize:sel?[32,32]:[26,26],iconAnchor:sel?[16,16]:[13,13]});}
+function pinIcon(n,sel,lc){return L.divIcon({className:'',html:`<div class="pin${sel?' sel':''}${lc?' lowconf':''}">${n}</div>`,iconSize:sel?[32,32]:[26,26],iconAnchor:sel?[16,16]:[13,13]});}
 function rebuildMap(){
   Object.values(markers).forEach(m=>map.removeLayer(m));markers={};
   if(route){map.removeLayer(route);route=null;}
@@ -189,16 +195,17 @@ function rebuildMap(){
   stopsOf().forEach((s,i)=>{
     const c=coordOf(s); if(!c){nogeo++;return;}
     line.push([c.lat,c.lon]);
-    const m=L.marker([c.lat,c.lon],{icon:pinIcon(i+1,s.id===selId),draggable:true}).addTo(map);
+    const m=L.marker([c.lat,c.lon],{icon:pinIcon(i+1,s.id===selId,!!geoConf[s.id]),draggable:true}).addTo(map);
     m.on('click',()=>select(s.id));
-    m.on('dragend',()=>{const p=m.getLatLng();s.geo={lat:+p.lat.toFixed(6),lon:+p.lng.toFixed(6)};s.addr=`${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`;rebuildMap();if(s.id===selId)renderEdit();});
+    m.on('dragend',()=>{const p=m.getLatLng();s.geo={lat:+p.lat.toFixed(6),lon:+p.lng.toFixed(6)};s.addr=`${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`;delete geoConf[s.id];rebuildMap();if(s.id===selId)renderEdit();});
     markers[s.id]=m;
   });
   if(line.length>1)route=L.polyline(line,{color:'#C7A24A',weight:3,opacity:.85}).addTo(map);
   if(line.length)map.fitBounds(L.latLngBounds(line),{padding:[46,46],maxZoom:13});
   document.getElementById('map-info').textContent=`${stopsOf().length}地点 / ${dayLabel(curDay)}`;
   const warn=document.getElementById('map-warn');
-  if(nogeo){warn.style.display='block';warn.textContent=`⚠ ${nogeo}件が座標未設定（住所のみ）。本実装ではジオコーディングで地図に配置します。`;}
+  const fillable=stopsOf().filter(s=>!coordOf(s)&&(s.addr||'').trim()).length;
+  if(nogeo){warn.style.display='flex';warn.innerHTML=`⚠ ${nogeo}件が座標未設定（住所のみ）${fillable?`<button id="btn-backfill" class="warn-btn">地図に配置（${fillable}件）</button>`:''}`;const bb=document.getElementById('btn-backfill');if(bb)bb.onclick=backfillAll;}
   else warn.style.display='none';
 }
 
@@ -214,7 +221,7 @@ function renderList(){
     return `<div class="stop-row${s.id===selId?' sel':''}" data-id="${s.id}">
       <span class="stop-grip">⠿</span><span class="stop-num${has?'':' nogeo'}">${i+1}</span>
       <div class="stop-main"><div class="stop-name">${esc(s.name)}</div><div class="stop-time">${esc(t)}</div></div>
-      ${s.fuel?'<span class="stop-fuel">⛽</span>':''}${has?'':'<span class="stop-tag-nogeo">座標なし</span>'}
+      ${s.fuel?'<span class="stop-fuel">⛽</span>':''}${has?'':'<span class="stop-tag-nogeo">座標なし</span>'}${geoConf[s.id]?'<span class="stop-tag-warn">要確認</span>':''}
     </div>`;
   }).join('');
 }
@@ -242,6 +249,43 @@ function select(id){selId=id;render();const m=markers[id];if(m)map.panTo(m.getLa
 function switchDay(i){if(i===curDay)return;curDay=i;selId=null;render();}
 function saveStop(){const s=stopsOf().find(x=>x.id===selId);if(!s)return;s.name=document.getElementById('f-name').value;s.addr=document.getElementById('f-addr').value;s.arr=document.getElementById('f-arr').value;s.dep=document.getElementById('f-dep').value;s.note=document.getElementById('f-note').value;s.fuel=document.getElementById('f-fuel').checked;const g=parseCoord(s.addr);s.geo=g||(hasGeo(s)?s.geo:null);render();}
 function delStop(){const a=stopsOf();const idx=a.findIndex(x=>x.id===selId);if(idx>=0){a.splice(idx,1);selId=null;render();}}
+
+/* ── ジオコーディング補完（住所→座標）。共有コア _geo.js / 02-utils を流用 ──
+   1件: 住所→クエリ候補(buildGeoTargets)→キャッシュ優先→GSI→geoで確定。
+        戻り値は一致度(geoMatchLevel): exact/partial/mismatch/unknown、引けなければ 'fail'。 */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function backfillGeo(stop){
+  const addr=(stop.addr||'').trim();
+  if(hasGeo(stop)||parseCoord(addr)) return 'ok'; // 既に座標あり
+  if(!addr) return 'fail';                          // 住所すら無い
+  for(const q of buildGeoTargets(addr)){
+    const cached=_geoCacheGet(q);
+    const hit=cached||await _geocodeGSI(q);          // キャッシュ優先→国土地理院
+    if(hit){
+      if(!cached)_geoCacheSet(q,hit.lat,hit.lon,hit.title); // 天気と共有キャッシュを温める
+      stop.geo={lat:hit.lat,lon:hit.lon};            // addrはそのまま、geoに確定
+      return geoMatchLevel(addr,hit.title);          // 一致度で「要確認」を判定
+    }
+  }
+  return 'fail';
+}
+/* 全「座標なし」地点を直列で補完（GSI過負荷を避け、天気と同じ送信間隔で間引く）。 */
+async function backfillAll(){
+  const btn=document.getElementById('btn-backfill');
+  const todo=stopsOf().filter(s=>!coordOf(s)&&(s.addr||'').trim());
+  if(!todo.length)return;
+  let ok=0,warnN=0,fail=0,done=0;
+  for(const s of todo){
+    if(btn){btn.disabled=true;btn.textContent=`照会中… ${++done}/${todo.length}`;}
+    const lv=await backfillGeo(s);
+    if(lv==='partial'||lv==='mismatch'){warnN++;geoConf[s.id]=lv;}
+    else if(lv==='fail')fail++;
+    else ok++; // exact / unknown / ok
+    await sleep(WX_GEOCODE_INTERVAL_MS||350);
+  }
+  render();
+  alert(`地図に配置：成功 ${ok}件`+(warnN?` / 要確認 ${warnN}件（地名が住所と掠るだけ。ピンをドラッグで修正可）`:'')+(fail?` / 不可 ${fail}件（住所から座標を特定できず）`:''));
+}
 
 /* イベント委譲 */
 document.getElementById('day-tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.add){alert('日程追加はスケルトン未実装（本実装で 06-day.addDay に接続）');return;}switchDay(+b.dataset.day);};
