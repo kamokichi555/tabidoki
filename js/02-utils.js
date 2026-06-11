@@ -6,9 +6,12 @@
    ══════════════════════════════════════════════════════ */
 // @ts-check
 
-/* --- 自動生成: モジュール依存のインポート --- */
+/* --- モジュール依存のインポート ---
+   ※ このファイルは「DOM非依存・依存は00-constants.jsのみ」を契約とする（ヘッダー参照）。
+     以前あった 04-weather.js からの _geoCacheGet import は、weather→render の依存グラフ全体を
+     引き込み、PC版など別エントリからの再利用を妨げていたため撤去。
+     唯一の利用者だった hasCachedCoords は 04-weather.js 側へ移設済み。 */
 import { DEFAULT, LIMIT } from './00-constants.js';
-import { _geoCacheGet } from './04-weather.js';
 
 
 export function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
@@ -25,7 +28,8 @@ export function buildGeoTargets(addr){
   const cityOnly=(cleanAddr.match(/^(.+?[都道府県].+?[市区町村])/)||[])[1]||'';
   return [geoQuery,...(cityOnly&&cityOnly!==geoQuery?[cityOnly]:[])];
 }
-export function hasCachedCoords(addr){return buildGeoTargets(addr).some(q=>!!_geoCacheGet(q));}
+/* hasCachedCoords は _geoCacheGet（04-weather）に依存するため 04-weather.js へ移設した。
+   このファイルを weather から切り離し、PC版等の別エントリから純粋コアとして import 可能にするため。 */
 /* ── GSIジオコーディングの一致レベル判定 ──
    入力q（住所文字列）と、GSIが「ここにマッチした」と返した地名title の一致度を3段階で返す。
    返り値:

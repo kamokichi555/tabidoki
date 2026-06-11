@@ -9,7 +9,7 @@
 /* --- 自動生成: モジュール依存のインポート --- */
 import { S, data } from './01-state.js';
 import { LSK, SK, WMO, WX_GEOCODE_INTERVAL_MS, WX_FAST_CONCURRENCY } from './00-constants.js';
-import { buildGeoTargets, hasCachedCoords, hasGeo, pClass, esc, escJsAttr, geoMatchLevel } from './02-utils.js';
+import { buildGeoTargets, hasGeo, pClass, esc, escJsAttr, geoMatchLevel } from './02-utils.js';
 import { currentDayFlat } from './06-day.js';
 import { renderRide, showInfoToast, updateClock } from './07-render.js';
 import { _dbgLog } from './12-debug.js';
@@ -53,6 +53,10 @@ export const GEO_SK='touring_geo';
 export const GEO_MAX=300;
 export const geoCache=(()=>{try{return JSON.parse(localStorage.getItem(GEO_SK))||{};}catch(e){return{};}})();
 export function _geoCacheGet(q){const e=geoCache[q];if(!e)return null;e.ts=Date.now();return e;}
+/* 住所からのジオクエリ候補のいずれかがキャッシュ済み座標を持つか（旧 02-utils から移設）。
+   buildGeoTargets は純粋関数として 02-utils に残し、_geoCacheGet に依存するこの判定だけ
+   weather 側に置くことで、02-utils を weather 非依存の純粋コアに保つ。 */
+export function hasCachedCoords(addr){return buildGeoTargets(addr).some(q=>!!_geoCacheGet(q));}
 export function _geoCacheSet(q,lat,lon,title){geoCache[q]={lat,lon,title:title||null,ts:Date.now()};_saveGeoCache();}
 export function _saveGeoCache(){try{
   const keys=Object.keys(geoCache);
