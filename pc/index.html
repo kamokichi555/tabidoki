@@ -53,6 +53,9 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 .stop-row:hover{background:var(--bg2)}
 .stop-row.sel{background:var(--amber-bg);border-color:rgba(199,162,74,.5)}
 .stop-grip{color:#5A5F55;font-size:13px;cursor:grab;user-select:none;letter-spacing:-2px}
+.stop-row.dragging{opacity:.4}
+.stop-row.drop-before{box-shadow:inset 0 2px 0 0 var(--amber)}
+.stop-row.drop-after{box-shadow:inset 0 -2px 0 0 var(--amber)}
 .stop-num{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:var(--bg3);color:var(--text2);border:1.5px solid var(--text3)}
 .stop-row.sel .stop-num{background:var(--amber);color:#1A1A12;border-color:#F2E6C2}
 .stop-num.nogeo{border-style:dashed;color:var(--text3)}
@@ -227,7 +230,7 @@ function renderList(){
     const trail = has ? '' : (fillable
       ? `<button class="row-fill" data-fill="${s.id}">📍配置</button>`
       : '<span class="stop-tag-nogeo">座標なし</span>');
-    return `<div class="stop-row${s.id===selId?' sel':''}" data-id="${s.id}">
+    return `<div class="stop-row${s.id===selId?' sel':''}" data-id="${s.id}" data-idx="${i}" draggable="true">
       <span class="stop-grip">⠿</span><span class="stop-num${has?'':' nogeo'}">${i+1}</span>
       <div class="stop-main"><div class="stop-name">${esc(s.name)}</div><div class="stop-time">${esc(t)}</div></div>
       ${s.fuel?'<span class="stop-fuel">⛽</span>':''}${trail}${geoConf[s.id]?'<span class="stop-tag-warn">要確認</span>':''}
@@ -318,6 +321,23 @@ async function backfillOne(id,btn){
 /* イベント委譲 */
 document.getElementById('day-tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.add){alert('日程追加はスケルトン未実装（本実装で 06-day.addDay に接続）');return;}switchDay(+b.dataset.day);};
 document.getElementById('stop-list').onclick=e=>{const fb=e.target.closest('.row-fill');if(fb){e.stopPropagation();backfillOne(fb.dataset.fill,fb);return;}const r=e.target.closest('.stop-row');if(r)select(r.dataset.id);};
+
+/* ── マウスでのドラッグ並べ替え（HTML5 DnD）。配列を入れ替えるだけ（時刻は絶対値のまま据え置き＝旅刻の設計に一致） ── */
+let dragId=null;
+function moveStop(fromId,toIndex){
+  const a=stopsOf();const from=a.findIndex(s=>s.id===fromId);if(from<0)return;
+  const [item]=a.splice(from,1);
+  if(from<toIndex)toIndex--;                       // 先頭側を抜いた分インデックスを補正
+  a.splice(Math.max(0,Math.min(a.length,toIndex)),0,item);
+  render();
+}
+function clearDropMark(){document.querySelectorAll('.stop-row.drop-before,.stop-row.drop-after').forEach(r=>r.classList.remove('drop-before','drop-after'));}
+const _isBefore=(row,e)=>{const r=row.getBoundingClientRect();return e.clientY < r.top + r.height/2;};
+const SL=document.getElementById('stop-list');
+SL.addEventListener('dragstart',e=>{const r=e.target.closest('.stop-row');if(!r)return;dragId=r.dataset.id;e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',dragId);}catch(_){}r.classList.add('dragging');});
+SL.addEventListener('dragend',e=>{const r=e.target.closest('.stop-row');if(r)r.classList.remove('dragging');clearDropMark();dragId=null;});
+SL.addEventListener('dragover',e=>{if(!dragId)return;e.preventDefault();e.dataTransfer.dropEffect='move';const r=e.target.closest('.stop-row');if(!r||r.dataset.id===dragId){clearDropMark();return;}clearDropMark();r.classList.add(_isBefore(r,e)?'drop-before':'drop-after');});
+SL.addEventListener('drop',e=>{if(!dragId)return;e.preventDefault();const r=e.target.closest('.stop-row');const id=dragId;clearDropMark();if(!r||r.dataset.id===id)return;const to=(+r.dataset.idx)+(_isBefore(r,e)?0:1);moveStop(id,to);});
 document.getElementById('btn-close').onclick=()=>{selId=null;render();};
 document.getElementById('btn-load').onclick=()=>document.getElementById('file-in').click();
 document.getElementById('btn-save').onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${(data.title||'旅刻行程')}.json`;a.click();URL.revokeObjectURL(a.href);};
