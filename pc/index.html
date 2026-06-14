@@ -68,6 +68,12 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 .stop-row.sel .stop-name{color:var(--text)}
 .stop-time{font-size:11px;color:var(--text3)}
 .stop-row.sel .stop-time{color:var(--amber)}
+/* 地点間の移動時間（モバイル版 .move-dur-label と同デザイン：中央ラベル＋左右ハーフライン、距離で色分け） */
+.move-dur-label{display:flex;align-items:center;gap:8px;margin:5px 9px;font-size:11.5px;font-weight:700;letter-spacing:.02em;color:#C7C29A}
+.move-dur-label::before,.move-dur-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.move-dur-label.lv1{color:var(--amber)}
+.move-dur-label.lv2{color:var(--red);animation:blink 1s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
 .stop-fuel{font-size:11px;color:var(--amber);flex:none}
 .stop-tag-nogeo{font-size:10px;color:var(--text3);border:1px solid var(--border2);border-radius:4px;padding:0 5px;flex:none}
 #list-summary{display:none;align-items:center;gap:8px;margin:6px 8px 0;padding:8px 11px;background:rgba(224,122,63,.15);border:1px solid rgba(224,122,63,.42);border-radius:7px}
@@ -163,7 +169,7 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 /* ── 共有コアを import（モバイル版と同一ロジック） ──
    ※ 02-utils.js は weather 非依存の純粋コアにリファクタ済み。00-constants と 02-utils だけを読む。 */
 import { DEFAULT, WX_GEOCODE_INTERVAL_MS } from '../js/00-constants.js';
-import { _migrateData, _sanitizeImportedData, parseCoord, hasGeo, stayDur, esc, buildGeoTargets, geoMatchLevel } from '../js/02-utils.js';
+import { _migrateData, _sanitizeImportedData, parseCoord, hasGeo, stayDur, moveDur, moveDurLevel, esc, buildGeoTargets, geoMatchLevel } from '../js/02-utils.js';
 import { _geocodeGSI, _geoCacheGet, _geoCacheSet } from '../js/_geo.js';
 
 /* サンプル（mk8-v1 形式 → _migrateData で最新スキーマへ移行されることも実演） */
@@ -240,7 +246,8 @@ function renderTabs(){
   document.getElementById('day-tabs').innerHTML=data.days.map((d,i)=>`<button class="day-tab${i===curDay?' on':''}" data-day="${i}"><span class="dt-main">${esc(dayLabel(i))}</span>${dateSubHtml(d.date)}</button>`).join('')+`<button class="day-tab" data-add="1" style="font-size:14px;padding:2px 9px;justify-content:center" title="日程を追加">＋</button>`;
 }
 function renderList(){
-  document.getElementById('stop-list').innerHTML=stopsOf().map((s,i)=>{
+  const ss=stopsOf();
+  document.getElementById('stop-list').innerHTML=ss.map((s,i)=>{
     const has=!!coordOf(s);
     const fillable=!has&&!!(s.addr||'').trim();
     const dur=stayDur(s.arr,s.dep);
@@ -248,11 +255,15 @@ function renderList(){
     const trail = has ? '' : (fillable
       ? `<button class="row-fill" data-fill="${s.id}">📍配置</button>`
       : '<span class="stop-tag-nogeo">座標なし</span>');
+    const isLast=i===ss.length-1;
+    const mdur=isLast?'':moveDur(s.dep,ss[i+1].arr);
+    const mlv =isLast?-1:moveDurLevel(s.dep,ss[i+1].arr);
+    const move=mdur?`<div class="move-dur-label${mlv>=0?' lv'+mlv:''}">→ 次まで ${mdur}</div>`:'';
     return `<div class="stop-row${s.id===selId?' sel':''}" data-id="${s.id}" data-idx="${i}" draggable="true">
       <span class="stop-grip">⠿</span><span class="stop-num${has?'':' nogeo'}">${i+1}</span>
       <div class="stop-main"><div class="stop-name">${esc(s.name)}</div><div class="stop-time">${esc(t)}</div></div>
       ${s.fuel?'<span class="stop-fuel">⛽</span>':''}${trail}${geoConf[s.id]?'<span class="stop-tag-warn">要確認</span>':''}
-    </div>`;
+    </div>${move}`;
   }).join('');
 }
 /* 左リスト上部の「未配置 N件 ＋ まとめて配置」サマリーバー（案1：操作を問題の隣へ） */
