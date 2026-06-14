@@ -44,10 +44,14 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 #desk{display:grid;grid-template-columns:340px 1fr 330px;height:calc(100% - 48px)}
 #pane-list{border-right:1px solid var(--border);display:flex;flex-direction:column;min-width:0}
 .day-tabs{display:flex;gap:5px;padding:9px 10px;border-bottom:1px solid var(--border);overflow-x:auto}
-.day-tab{font-size:12px;padding:4px 13px;border-radius:6px;color:var(--text3);border:1px solid transparent;white-space:nowrap}
+.day-tab{font-size:12px;padding:4px 13px;border-radius:6px;color:var(--text3);border:1px solid transparent;white-space:nowrap;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.25}
 .day-tab.on{background:var(--amber);color:#1A1A12}
 .day-tab:not(.on){border-color:var(--border)}
 .day-tab:not(.on):hover{background:var(--bg2)}
+.dt-sub{font-size:10px;opacity:.78;letter-spacing:.02em}
+.day-tab .dt-sat{color:#6E9CC0}
+.day-tab .dt-sun{color:var(--red)}
+.day-tab.on .dt-sub,.day-tab.on .dt-sat,.day-tab.on .dt-sun{color:#1A1A12;opacity:.72}
 #stop-list{flex:1;overflow-y:auto;padding:6px 6px 12px}
 .stop-row{display:flex;align-items:center;gap:9px;padding:9px 9px;border-radius:var(--r);cursor:pointer;border:1px solid transparent}
 .stop-row:hover{background:var(--bg2)}
@@ -165,7 +169,7 @@ import { _geocodeGSI, _geoCacheGet, _geoCacheSet } from '../js/_geo.js';
 /* サンプル（mk8-v1 形式 → _migrateData で最新スキーマへ移行されることも実演） */
 const _SAMPLE_DATA={
   "version":"mk8-v1","title":"神奈川〜山梨 日帰りツーリング","currentStopId":null,
-  "days":[{"label":"1日目\n神奈川→山梨","date":"","routeUrl":"","stops":[
+  "days":[{"label":"1日目\n神奈川→山梨","date":"2026-06-13","routeUrl":"","stops":[
     {"id":"s001","name":"横浜 出発","addr":"神奈川県横浜市西区","arr":"","dep":"08:00","note":"早めに出発。下道で","fuel":false},
     {"id":"s002","name":"宮ヶ瀬湖","addr":"35.5298, 139.2297","arr":"09:30","dep":"10:00","note":"湖畔で休憩","fuel":false},
     {"id":"s003","name":"道志みち（国道413号）","addr":"35.5035, 139.1120","arr":"10:30","dep":"10:35","note":"ワインディングを満喫","fuel":false},
@@ -218,8 +222,22 @@ function rebuildMap(){
 }
 
 function dayLabel(i){const d=data.days[i];const lb=(d.label||'').split('\n')[0];return lb||(d.date||`${i+1}日目`);}
+const WD=['日','月','火','水','木','金','土'];
+/* date文字列 → Date（YYYY-MM-DD等はローカル日付として解釈し、タイムゾーンずれを防ぐ） */
+function parseDate(ds){
+  if(!ds)return null;
+  const m=String(ds).match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+  const t=m?new Date(+m[1],+m[2]-1,+m[3]):new Date(ds);
+  return isNaN(t)?null:t;
+}
+/* 「6/14（土）」形式。曜日は土=青/日=赤に色分け */
+function dateSubHtml(ds){
+  const t=parseDate(ds); if(!t)return '';
+  const wd=t.getDay(), cls=wd===0?' dt-sun':wd===6?' dt-sat':'';
+  return `<span class="dt-sub${cls}">${t.getMonth()+1}/${t.getDate()}（${WD[wd]}）</span>`;
+}
 function renderTabs(){
-  document.getElementById('day-tabs').innerHTML=data.days.map((d,i)=>`<button class="day-tab${i===curDay?' on':''}" data-day="${i}">${esc(dayLabel(i))}</button>`).join('')+`<button class="day-tab" data-add="1" style="font-size:14px;padding:2px 9px" title="日程を追加">＋</button>`;
+  document.getElementById('day-tabs').innerHTML=data.days.map((d,i)=>`<button class="day-tab${i===curDay?' on':''}" data-day="${i}"><span class="dt-main">${esc(dayLabel(i))}</span>${dateSubHtml(d.date)}</button>`).join('')+`<button class="day-tab" data-add="1" style="font-size:14px;padding:2px 9px;justify-content:center" title="日程を追加">＋</button>`;
 }
 function renderList(){
   document.getElementById('stop-list').innerHTML=stopsOf().map((s,i)=>{
