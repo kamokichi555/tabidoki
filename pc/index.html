@@ -168,7 +168,7 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 <script type="module">
 /* ── 共有コアを import（モバイル版と同一ロジック） ──
    ※ 02-utils.js は weather 非依存の純粋コアにリファクタ済み。00-constants と 02-utils だけを読む。 */
-import { DEFAULT, WX_GEOCODE_INTERVAL_MS } from '../js/00-constants.js';
+import { DEFAULT, SK, WX_GEOCODE_INTERVAL_MS } from '../js/00-constants.js';
 import { _migrateData, _sanitizeImportedData, parseCoord, hasGeo, stayDur, moveDur, moveDurLevel, esc, buildGeoTargets, geoMatchLevel } from '../js/02-utils.js';
 import { _geocodeGSI, _geoCacheGet, _geoCacheSet } from '../js/_geo.js';
 
@@ -194,6 +194,21 @@ const coordOf=s=>hasGeo(s)?{lat:s.geo.lat,lon:s.geo.lon}:parseCoord(s.addr); // 
 /* 取り込み共通：移行→サニタイズ（geoのバックフィルもここで実行される） */
 function loadData(p){ _migrateData(p); _sanitizeImportedData(p); data=p; curDay=0; selId=null; geoConf={}; render(); }
 
+/* ── 永続化：編集を localStorage 'touring_data'（SK）へ書き戻す ──
+   モバイル版 03-storage.save() と同一キー・同一形式（JSON.stringify(data)）。
+   save() を直接 import しない理由：03-storage は 04-weather（DOM/タイマ依存）を芋づるで引き込み、
+   PC版が意図的に切り離した依存グラフを復活させてしまうため。ここは同形式の最小実装に留める。
+   data をまるごと保存するので、PC編集パネルが触らない log/actArr/actDep 等モバイル専用項目も round-trip で温存される。
+   ※世代バックアップ(LSK.backup)はモバイル側に委ねる（同一オリジン・同一キーを共有するため保護は効く）。 */
+function persist(){
+  try{
+    data.version=DEFAULT.version;        // モバイルの読み込み(_migrateData)と整合
+    localStorage.setItem(SK,JSON.stringify(data));
+  }catch(e){
+    alert('保存に失敗しました。ブラウザのストレージ容量が不足している可能性があります。\n'+((e&&e.message)||e));
+  }
+}
+
 /* ── 地図：地理院タイル ── */
 const GSI_ATTR='地図：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院（地理院タイル）</a>';
 const layers={
@@ -216,7 +231,7 @@ function rebuildMap(){
     line.push([c.lat,c.lon]);
     const m=L.marker([c.lat,c.lon],{icon:pinIcon(i+1,s.id===selId,!!geoConf[s.id]),draggable:true}).addTo(map);
     m.on('click',()=>select(s.id));
-    m.on('dragend',()=>{const p=m.getLatLng();s.geo={lat:+p.lat.toFixed(6),lon:+p.lng.toFixed(6)};s.addr=`${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`;delete geoConf[s.id];rebuildMap();if(s.id===selId)renderEdit();});
+    m.on('dragend',()=>{const p=m.getLatLng();s.geo={lat:+p.lat.toFixed(6),lon:+p.lng.toFixed(6)};s.addr=`${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`;delete geoConf[s.id];persist();rebuildMap();if(s.id===selId)renderEdit();});
     markers[s.id]=m;
   });
   if(line.length>1)route=L.polyline(line,{color:'#C7A24A',weight:3,opacity:.85}).addTo(map);
@@ -298,8 +313,8 @@ function render(){renderTabs();renderList();renderSummary();renderEdit();rebuild
 
 function select(id){selId=id;render();const m=markers[id];if(m)map.panTo(m.getLatLng());}
 function switchDay(i){if(i===curDay)return;curDay=i;selId=null;render();}
-function saveStop(){const s=stopsOf().find(x=>x.id===selId);if(!s)return;s.name=document.getElementById('f-name').value;s.addr=document.getElementById('f-addr').value;s.arr=document.getElementById('f-arr').value;s.dep=document.getElementById('f-dep').value;s.note=document.getElementById('f-note').value;s.fuel=document.getElementById('f-fuel').checked;const g=parseCoord(s.addr);s.geo=g||(hasGeo(s)?s.geo:null);render();}
-function delStop(){const a=stopsOf();const idx=a.findIndex(x=>x.id===selId);if(idx>=0){a.splice(idx,1);selId=null;render();}}
+function saveStop(){const s=stopsOf().find(x=>x.id===selId);if(!s)return;s.name=document.getElementById('f-name').value;s.addr=document.getElementById('f-addr').value;s.arr=document.getElementById('f-arr').value;s.dep=document.getElementById('f-dep').value;s.note=document.getElementById('f-note').value;s.fuel=document.getElementById('f-fuel').checked;const g=parseCoord(s.addr);s.geo=g||(hasGeo(s)?s.geo:null);persist();render();const b=document.getElementById('f-do-save');if(b){const o=b.textContent;b.textContent='保存しました ✓';b.disabled=true;setTimeout(()=>{b.textContent=o;b.disabled=false;},1100);}}
+function delStop(){const a=stopsOf();const idx=a.findIndex(x=>x.id===selId);if(idx>=0){a.splice(idx,1);selId=null;persist();render();}}
 
 /* ── ジオコーディング補完（住所→座標）。共有コア _geo.js / 02-utils を流用 ──
    1件: 住所→クエリ候補(buildGeoTargets)→キャッシュ優先→GSI→geoで確定。
@@ -334,7 +349,7 @@ async function backfillAll(){
     else ok++; // exact / unknown / ok
     await sleep(WX_GEOCODE_INTERVAL_MS||350);
   }
-  render();
+  persist();render();
   alert(`地図に配置：成功 ${ok}件`+(warnN?` / 要確認 ${warnN}件（地名が住所と掠るだけ。ピンをドラッグで修正可）`:'')+(fail?` / 不可 ${fail}件（住所から座標を特定できず）`:''));
 }
 /* 1地点だけ補完（行の「配置」ボタン）。完了後その地点を選択して地図を寄せる。 */
@@ -343,7 +358,7 @@ async function backfillOne(id,btn){
   if(btn){btn.disabled=true;btn.textContent='…';}
   const lv=await backfillGeo(s);
   if(lv==='partial'||lv==='mismatch')geoConf[id]=lv; else delete geoConf[id];
-  selId=id; render();
+  selId=id; persist();render();
   const m=markers[id]; if(m)map.panTo(m.getLatLng());
   if(lv==='fail')alert('住所から座標を特定できませんでした。座標を手入力するか、地図にピンを置いてください。');
 }
@@ -359,7 +374,7 @@ function moveStop(fromId,toIndex){
   const [item]=a.splice(from,1);
   if(from<toIndex)toIndex--;                       // 先頭側を抜いた分インデックスを補正
   a.splice(Math.max(0,Math.min(a.length,toIndex)),0,item);
-  render();
+  persist();render();
 }
 function clearDropMark(){document.querySelectorAll('.stop-row.drop-before,.stop-row.drop-after').forEach(r=>r.classList.remove('drop-before','drop-after'));}
 const _isBefore=(row,e)=>{const r=row.getBoundingClientRect();return e.clientY < r.top + r.height/2;};
@@ -376,7 +391,7 @@ document.getElementById('file-in').addEventListener('change',ev=>{const f=ev.tar
 
 /* 起動：localStorage 'touring_data'（モバイル版と同一キー・同一オリジンで共有）→ なければサンプル */
 let init=null;
-try{const raw=localStorage.getItem('touring_data');const p=raw&&JSON.parse(raw);if(p&&Array.isArray(p.days))init=p;}catch(e){}
+try{const raw=localStorage.getItem(SK);const p=raw&&JSON.parse(raw);if(p&&Array.isArray(p.days))init=p;}catch(e){}
 loadData(init||structuredClone(_SAMPLE_DATA));
 
 /* PC版（編集・俯瞰デスク）は計画用の常時オンライン前提のため Service Worker は登録しない。
