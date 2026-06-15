@@ -313,9 +313,13 @@ function declutterPins(){
   for(let a=0;a<arr.length;a++){
     if(used[a])continue;
     const g=[arr[a]]; used[a]=true;
-    for(let b=a+1;b<arr.length;b++){
-      if(used[b])continue;
-      if(g.some(x=>Math.hypot(x.px.x-arr[b].px.x,x.px.y-arr[b].px.y)<TH)){g.push(arr[b]);used[b]=true;}
+    let grew=true;
+    while(grew){                                       // 仲間が増えなくなるまで繰り返す（鎖状の近接も取りこぼさない）
+      grew=false;
+      for(let b=0;b<arr.length;b++){
+        if(used[b])continue;
+        if(g.some(x=>Math.hypot(x.px.x-arr[b].px.x,x.px.y-arr[b].px.y)<TH)){g.push(arr[b]);used[b]=true;grew=true;}
+      }
     }
     groups.push(g);
   }
