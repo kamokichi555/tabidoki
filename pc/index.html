@@ -162,8 +162,8 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 <script type="module">
 /* ── 共有コアを import（モバイル版と同一ロジック） ──
    ※ 02-utils.js は weather 非依存の純粋コアにリファクタ済み。00-constants と 02-utils だけを読む。 */
-import { DEFAULT, SK, WX_GEOCODE_INTERVAL_MS } from '../js/00-constants.js';
-import { _migrateData, _sanitizeImportedData, parseCoord, hasGeo, stayDur, moveDur, moveDurLevel, esc, buildGeoTargets, geoMatchLevel } from '../js/02-utils.js';
+import { DEFAULT, SK, WX_GEOCODE_INTERVAL_MS, LIMIT } from '../js/00-constants.js';
+import { _migrateData, _sanitizeImportedData, parseCoord, hasGeo, stayDur, moveDur, moveDurLevel, esc, buildGeoTargets, geoMatchLevel, _newStopId } from '../js/02-utils.js';
 import { _geocodeGSI, _geoCacheGet, _geoCacheSet } from '../js/_geo.js';
 
 /* サンプル（mk8-v1 形式 → _migrateData で最新スキーマへ移行されることも実演） */
@@ -182,11 +182,12 @@ const _SAMPLE_DATA={
 };
 
 let data, curDay=0, selId=null, geoConf={}; // geoConf: id→'partial'/'mismatch'（補完後の要確認マーク）
+let freshAddId=null;                        // 追加直後・未保存の地点ID（保存せず離脱したら破棄＝モバイルの「保存で確定」に合わせる）
 const stopsOf=()=>data.days[curDay]?.stops||[];
 const coordOf=s=>hasGeo(s)?{lat:s.geo.lat,lon:s.geo.lon}:parseCoord(s.addr); // 取込後はsanitizeがgeoを確定済み
 
 /* 取り込み共通：移行→サニタイズ（geoのバックフィルもここで実行される） */
-function loadData(p){ _migrateData(p); _sanitizeImportedData(p); data=p; curDay=0; selId=null; geoConf={}; render(); }
+function loadData(p){ _migrateData(p); _sanitizeImportedData(p); data=p; curDay=0; selId=null; geoConf={}; freshAddId=null; render(); }
 
 /* ── 永続化：編集を localStorage 'touring_data'（SK）へ書き戻す ──
    モバイル版 03-storage.save() と同一キー・同一形式（JSON.stringify(data)）。
@@ -413,7 +414,7 @@ function renderList(){
     const move=mdur?`<div class="move-dur-label${mlv>=0?' lv'+mlv:''}">→ 次まで ${mdur}</div>`:'';
     const head=`<div class="sr-head">
         <span class="stop-grip">⠿</span><span class="stop-num${has?'':' nogeo'}">${i+1}</span>
-        <div class="stop-main"><div class="stop-name">${esc(s.name)}</div><div class="stop-time">${esc(t)}</div></div>
+        <div class="stop-main"><div class="stop-name">${s.name?esc(s.name):'<span style="color:var(--text3)">（名称未設定）</span>'}</div><div class="stop-time">${esc(t)}</div></div>
         ${s.fuel?'<span class="stop-fuel">⛽</span>':''}${tail}
       </div>`;
     const body=isSel?`<div class="sr-edit">${editFormHtml(s)}</div>`:'';
@@ -453,10 +454,35 @@ function wireEditForm(){
 }
 function render(){renderTabs();renderList();renderSummary();rebuildMap();document.getElementById('hd-title').textContent=data.title||'（無題の行程）';}
 
-function select(id){selId=id;render();const m=markers[id];if(m)map.panTo(m.getLatLng());}
-function switchDay(i){if(i===curDay)return;curDay=i;selId=null;render();}
-function saveStop(){const s=stopsOf().find(x=>x.id===selId);if(!s)return;s.name=document.getElementById('f-name').value;s.addr=document.getElementById('f-addr').value;s.arr=document.getElementById('f-arr').value;s.dep=document.getElementById('f-dep').value;s.note=document.getElementById('f-note').value;s.fuel=document.getElementById('f-fuel').checked;const g=parseCoord(s.addr);s.geo=g||(hasGeo(s)?s.geo:null);persist();render();const b=document.getElementById('f-do-save');if(b){const o=b.textContent;b.textContent='保存しました ✓';b.disabled=true;setTimeout(()=>{b.textContent=o;b.disabled=false;},1100);}}
-function delStop(){const a=stopsOf();const idx=a.findIndex(x=>x.id===selId);if(idx>=0){a.splice(idx,1);selId=null;persist();render();}}
+function select(id){maybeDiscardFresh(id);selId=id;render();const m=markers[id];if(m)map.panTo(m.getLatLng());}
+function switchDay(i){if(i===curDay)return;maybeDiscardFresh();curDay=i;selId=null;render();}
+function saveStop(){const s=stopsOf().find(x=>x.id===selId);if(!s)return;const _nm=document.getElementById('f-name');if(!(_nm.value||'').trim()){_nm.focus();const eb=document.getElementById('f-do-save');if(eb){eb.textContent='地点名を入力';eb.disabled=true;setTimeout(()=>{eb.textContent='保存';eb.disabled=false;},1300);}return;}s.name=_nm.value;s.addr=document.getElementById('f-addr').value;s.arr=document.getElementById('f-arr').value;s.dep=document.getElementById('f-dep').value;s.note=document.getElementById('f-note').value;s.fuel=document.getElementById('f-fuel').checked;const g=parseCoord(s.addr);s.geo=g||(hasGeo(s)?s.geo:null);freshAddId=null;persist();render();const b=document.getElementById('f-do-save');if(b){const o=b.textContent;b.textContent='保存しました ✓';b.disabled=true;setTimeout(()=>{b.textContent=o;b.disabled=false;},1100);}}
+function delStop(){const a=stopsOf();const idx=a.findIndex(x=>x.id===selId);if(idx>=0){a.splice(idx,1);selId=null;freshAddId=null;persist();render();}}
+/* ── 地点を追加（モバイル05-stop.jsの追加挙動に合わせる）──
+   ・_newStopId()で採番（モバイルと同一）。LIMIT.stopsPerDay(=20)で上限。末尾に追加し自動整列しない（B案）。
+   ・PCはインライン編集なので、追加後すぐ選択＝展開してその場で編集。保存するまでは未確定（freshAddId）で、
+     保存せず別地点/別日へ移ると破棄＝モバイルで追加フォームを閉じたら何も作られないのと同じ。 */
+function addStop(){
+  maybeDiscardFresh();                                   // 直前の未保存の新規地点があれば破棄
+  const ss=stopsOf();
+  if(ss.length>=LIMIT.stopsPerDay){alert(`地点は1日${LIMIT.stopsPerDay}件までです`);return;}
+  const id=_newStopId();
+  ss.push({id,name:'',addr:'',arr:'',dep:'',note:'',log:'',actArr:'',actDep:'',fuel:false}); // モバイルと同じ生成形
+  freshAddId=id; selId=id;                                // 末尾に追加→選択（＝インラインで編集状態）。保存まで永続化しない
+  render();
+  requestAnimationFrame(()=>{                             // 追加地点へスクロール＋名前欄にフォーカス（モバイルの追加後スクロールに相当）
+    const el=document.querySelector(`.stop-row[data-id="${id}"]`);
+    if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
+    const nm=document.getElementById('f-name'); if(nm)nm.focus();
+  });
+}
+/* 未保存の新規地点を破棄（keepId が freshAddId のときは破棄しない）。離脱時に呼ぶ。 */
+function maybeDiscardFresh(keepId){
+  if(freshAddId==null||freshAddId===keepId)return;
+  const a=stopsOf(), i=a.findIndex(x=>x.id===freshAddId);
+  if(i>=0){a.splice(i,1);persist();}
+  freshAddId=null;
+}
 
 /* ── ジオコーディング補完（住所→座標）。共有コア _geo.js / 02-utils を流用 ──
    1件: 住所→クエリ候補(buildGeoTargets)→キャッシュ優先→GSI→geoで確定。
@@ -496,6 +522,7 @@ async function backfillAll(){
 }
 /* 1地点だけ補完（行の「配置」ボタン）。完了後その地点を選択して地図を寄せる。 */
 async function backfillOne(id,btn){
+  maybeDiscardFresh(id);
   const s=stopsOf().find(x=>x.id===id); if(!s)return;
   if(btn){btn.disabled=true;btn.textContent='…';}
   const lv=await backfillGeo(s);
@@ -512,7 +539,7 @@ document.getElementById('stop-list').onclick=e=>{
   if(e.target.closest('.sr-edit'))return;                 // 編集フォーム内のクリックは再描画しない（入力フォーカス維持）
   const head=e.target.closest('.sr-head');if(!head)return;
   const id=head.closest('.stop-row').dataset.id;
-  if(id===selId){selId=null;render();}                    // 展開中の見出しを再クリック→閉じる
+  if(id===selId){maybeDiscardFresh();selId=null;render();}    // 展開中の見出しを再クリック→閉じる（新規なら破棄）
   else select(id);
 };
 
@@ -532,6 +559,7 @@ SL.addEventListener('dragstart',e=>{const r=e.target.closest('.stop-row');if(!r)
 SL.addEventListener('dragend',e=>{const r=e.target.closest('.stop-row');if(r)r.classList.remove('dragging');clearDropMark();dragId=null;});
 SL.addEventListener('dragover',e=>{if(!dragId)return;e.preventDefault();e.dataTransfer.dropEffect='move';const r=e.target.closest('.stop-row');if(!r||r.dataset.id===dragId){clearDropMark();return;}clearDropMark();r.classList.add(_isBefore(r,e)?'drop-before':'drop-after');});
 SL.addEventListener('drop',e=>{if(!dragId)return;e.preventDefault();const r=e.target.closest('.stop-row');const id=dragId;clearDropMark();if(!r||r.dataset.id===id)return;const to=(+r.dataset.idx)+(_isBefore(r,e)?0:1);moveStop(id,to);});
+document.querySelector('.add-stop').onclick=addStop;
 document.getElementById('btn-load').onclick=()=>document.getElementById('file-in').click();
 document.getElementById('btn-save').onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${(data.title||'旅刻行程')}.json`;a.click();URL.revokeObjectURL(a.href);};
 document.getElementById('btn-share').onclick=()=>{navigator.clipboard?.writeText(JSON.stringify(data)).then(()=>alert('JSONをクリップボードにコピーしました'),()=>alert('コピーに失敗'));};
