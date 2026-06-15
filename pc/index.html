@@ -38,12 +38,9 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 .hd-right{display:flex;align-items:center;gap:6px}
 .hd-right button{font-size:17px;color:var(--text2);padding:6px 9px;border-radius:var(--r)}
 .hd-right button:hover{background:var(--bg3)}
-.mode-toggle{display:inline-flex;border:1px solid var(--border2);border-radius:var(--r);overflow:hidden;margin-right:6px}
-.mode-toggle button{font-size:14px;padding:5px 12px;color:var(--text3)}
-.mode-toggle button.on{background:var(--amber);color:#1A1A12}
 #desk{display:grid;grid-template-columns:340px 1fr 330px;grid-template-rows:minmax(0,1fr);height:calc(100% - 48px);overflow:hidden}
 #pane-list{border-right:1px solid var(--border);display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
-.day-tabs{display:flex;gap:5px;padding:9px 10px;border-bottom:1px solid var(--border);overflow-x:auto}
+.day-tabs{display:flex;flex-wrap:wrap;gap:5px;padding:9px 10px;border-bottom:1px solid var(--border)}
 .day-tab{font-size:12px;padding:4px 13px;border-radius:6px;color:var(--text3);border:1px solid transparent;white-space:nowrap;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.25}
 .day-tab.on{background:var(--amber);color:#1A1A12}
 .day-tab:not(.on){border-color:var(--border)}
@@ -73,6 +70,11 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 .move-dur-label::before,.move-dur-label::after{content:'';flex:1;height:1px;background:var(--border)}
 .move-dur-label.lv1{color:var(--amber)}
 .move-dur-label.lv2{color:var(--red);animation:blink 1s ease-in-out infinite}
+/* 地図：区間ラベル（中点に 移動時間・直線距離。色分けはリストと共通 lv1=amber/lv2=red） */
+.seg-label{display:inline-block;white-space:nowrap;transform:translate(-50%,-50%);font-size:10.5px;font-weight:700;letter-spacing:.02em;color:#C7C29A;background:rgba(20,23,20,.82);border:1px solid var(--border2);padding:1px 6px;border-radius:5px;box-shadow:0 1px 3px rgba(0,0,0,.5);pointer-events:none}
+.seg-label .sl-km{color:var(--text3);font-weight:400}
+.seg-label.lv1{color:var(--amber)}
+.seg-label.lv2{color:var(--red)}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
 .stop-fuel{font-size:11px;color:var(--amber);flex:none}
 .stop-tag-nogeo{font-size:10px;color:var(--text3);border:1px solid var(--border2);border-radius:4px;padding:0 5px;flex:none}
@@ -133,7 +135,6 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
     <span class="hd-title" id="hd-title">—</span>
   </div>
   <div class="hd-right">
-    <span class="mode-toggle"><button class="on" title="編集モード">✏️ 編集</button><button title="走行モード">🏍️ 走行</button></span>
     <button title="保存（JSON）" id="btn-save">💾</button>
     <button title="読込（JSON）" id="btn-load">📂</button>
     <button title="共有" id="btn-share">📋</button>
@@ -220,21 +221,37 @@ const map=L.map('map',{zoomControl:true,layers:[layers.std]}).setView([35.5,139.
 let curLayer='std';
 document.querySelectorAll('.map-layers button').forEach(b=>{b.onclick=()=>{const k=b.dataset.layer;if(k===curLayer)return;map.removeLayer(layers[curLayer]);map.addLayer(layers[k]);curLayer=k;document.querySelectorAll('.map-layers button').forEach(x=>x.classList.toggle('on',x===b));};});
 
-let markers={}, route=null;
+let markers={}, route=null, segLabels=[];
 function pinIcon(n,sel,lc){return L.divIcon({className:'',html:`<div class="pin${sel?' sel':''}${lc?' lowconf':''}">${n}</div>`,iconSize:sel?[32,32]:[26,26],iconAnchor:sel?[16,16]:[13,13]});}
+/* 2点間の直線距離(km)：ハバサイン式 */
+function segKm(a,b){const R=6371,r=d=>d*Math.PI/180;const dLa=r(b.lat-a.lat),dLo=r(b.lon-a.lon);const h=Math.sin(dLa/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+function fmtKm(km){return km>=10?Math.round(km)+'km':km>=1?km.toFixed(1)+'km':Math.round(km*1000)+'m';}
+/* 区間ラベル（中点）：移動時間はリストと同じ moveDur/Level を使用。距離は直線。lv1/2 で色分け */
+function segLabelIcon(html,lv){return L.divIcon({className:'',html:`<div class="seg-label${lv>=1?' lv'+lv:''}">${html}</div>`,iconSize:[0,0],iconAnchor:[0,0]});}
 function rebuildMap(){
   Object.values(markers).forEach(m=>map.removeLayer(m));markers={};
   if(route){map.removeLayer(route);route=null;}
-  const line=[];let nogeo=0;
+  segLabels.forEach(m=>map.removeLayer(m));segLabels=[];
+  const line=[],plotted=[];let nogeo=0;
   stopsOf().forEach((s,i)=>{
     const c=coordOf(s); if(!c){nogeo++;return;}
     line.push([c.lat,c.lon]);
+    plotted.push({lat:c.lat,lon:c.lon,stop:s});
     const m=L.marker([c.lat,c.lon],{icon:pinIcon(i+1,s.id===selId,!!geoConf[s.id]),draggable:true}).addTo(map);
     m.on('click',()=>select(s.id));
     m.on('dragend',()=>{const p=m.getLatLng();s.geo={lat:+p.lat.toFixed(6),lon:+p.lng.toFixed(6)};s.addr=`${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`;delete geoConf[s.id];persist();rebuildMap();if(s.id===selId)renderEdit();});
     markers[s.id]=m;
   });
   if(line.length>1)route=L.polyline(line,{color:'#C7A24A',weight:3,opacity:.85}).addTo(map);
+  /* 描画した各区間（地図上で隣り合うピン同士）の中点に 移動時間・直線距離 を表示 */
+  for(let k=0;k<plotted.length-1;k++){
+    const a=plotted[k],b=plotted[k+1];
+    const md=moveDur(a.stop.dep,b.stop.arr), lv=moveDurLevel(a.stop.dep,b.stop.arr);
+    const km=`<span class="sl-km">${fmtKm(segKm(a,b))}</span>`;
+    const html=md?`${esc(md)} ・ ${km}`:km;
+    const mid=[(a.lat+b.lat)/2,(a.lon+b.lon)/2];
+    segLabels.push(L.marker(mid,{icon:segLabelIcon(html,md?lv:-1),interactive:false,keyboard:false}).addTo(map));
+  }
   if(line.length)map.fitBounds(L.latLngBounds(line),{padding:[46,46],maxZoom:13});
   document.getElementById('map-info').textContent=`${stopsOf().length}地点 / ${dayLabel(curDay)}`;
   const warn=document.getElementById('map-warn');
