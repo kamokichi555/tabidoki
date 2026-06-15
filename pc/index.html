@@ -71,7 +71,7 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 .move-dur-label.lv1{color:var(--amber)}
 .move-dur-label.lv2{color:var(--red);animation:blink 1s ease-in-out infinite}
 /* 地図：区間ラベル（中点に 移動時間・直線距離。色分けはリストと共通 lv1=amber/lv2=red） */
-.seg-label{display:inline-block;white-space:nowrap;transform:translate(-50%,-50%);font-size:10.5px;font-weight:700;letter-spacing:.02em;color:#C7C29A;background:rgba(20,23,20,.82);border:1px solid var(--border2);padding:1px 6px;border-radius:5px;box-shadow:0 1px 3px rgba(0,0,0,.5);pointer-events:none}
+.seg-label{display:inline-block;white-space:nowrap;transform:translate(-50%,-50%);font-size:10.5px;font-weight:700;letter-spacing:.02em;color:#D8D3AB;background:rgba(20,23,20,.94);border:1px solid var(--border2);padding:3px 9px;border-radius:7px;box-shadow:0 3px 9px rgba(0,0,0,.55);pointer-events:none}
 .seg-label .sl-km{color:var(--text3);font-weight:400}
 .seg-label.lv1{color:var(--amber)}
 .seg-label.lv2{color:var(--red)}
@@ -221,17 +221,75 @@ const map=L.map('map',{zoomControl:true,layers:[layers.std]}).setView([35.5,139.
 let curLayer='std';
 document.querySelectorAll('.map-layers button').forEach(b=>{b.onclick=()=>{const k=b.dataset.layer;if(k===curLayer)return;map.removeLayer(layers[curLayer]);map.addLayer(layers[k]);curLayer=k;document.querySelectorAll('.map-layers button').forEach(x=>x.classList.toggle('on',x===b));};});
 
-let markers={}, route=null, segLabels=[];
+let markers={}, route=null, segLabels=[], segLines=[], segPlotted=[], segMeta=[];
 function pinIcon(n,sel,lc){return L.divIcon({className:'',html:`<div class="pin${sel?' sel':''}${lc?' lowconf':''}">${n}</div>`,iconSize:sel?[32,32]:[26,26],iconAnchor:sel?[16,16]:[13,13]});}
 /* 2点間の直線距離(km)：ハバサイン式 */
 function segKm(a,b){const R=6371,r=d=>d*Math.PI/180;const dLa=r(b.lat-a.lat),dLo=r(b.lon-a.lon);const h=Math.sin(dLa/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
 function fmtKm(km){return km>=10?Math.round(km)+'km':km>=1?km.toFixed(1)+'km':Math.round(km*1000)+'m';}
 /* 区間ラベル（中点）：移動時間はリストと同じ moveDur/Level を使用。距離は直線。lv1/2 で色分け */
 function segLabelIcon(html,lv){return L.divIcon({className:'',html:`<div class="seg-label${lv>=1?' lv'+lv:''}">${html}</div>`,iconSize:[0,0],iconAnchor:[0,0]});}
+/* ── 区間ラベルの配置：ピクセル空間で「ルート線・ピン・ラベル同士」に重ならない位置まで退避 ──
+   ・各ラベルは中点のすぐ脇から出発し、被る分だけ外へ押し出す（退避量はラベルごとに自動）
+   ・引き出し線＋中点ドットで、どの区間のラベルか保持
+   ・ズーム/パンでピクセル関係が変わるため moveend/zoomend で再実行 */
+const _segCtx=document.createElement('canvas').getContext('2d');
+function layoutSegLabels(){
+  segLabels.forEach(m=>map.removeLayer(m));segLabels=[];
+  segLines.forEach(m=>map.removeLayer(m));segLines=[];
+  if(segPlotted.length<2)return;
+  const PAD=7, LINEPAD=5, EDGE=4, START=10, ITERS=300;
+  const sz=map.getSize(), BW=sz.x, BH=sz.y;
+  const px=segPlotted.map(p=>map.latLngToContainerPoint([p.lat,p.lon]));
+  _segCtx.font="700 10.5px 'BIZ UDPGothic',sans-serif";
+  const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+  const closest=(P,A,B)=>{const vx=B.x-A.x,vy=B.y-A.y;let t=((P.x-A.x)*vx+(P.y-A.y)*vy)/((vx*vx+vy*vy)||1);t=clamp(t,0,1);return{x:A.x+t*vx,y:A.y+t*vy};};
+  /* ラベル初期配置：区間に直交する外側（画面上向き寄り）へ少し */
+  const labels=[];
+  for(let k=0;k<px.length-1;k++){
+    const a=px[k],b=px[k+1], mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+    let dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1, nx=-dy/len,ny=dx/len; if(ny>0){nx=-nx;ny=-ny;}
+    const meta=segMeta[k], w=Math.ceil(_segCtx.measureText(meta.plain).width)+22, h=22;
+    labels.push({mx,my,x:mx+nx*START,y:my+ny*START,w,h,meta});
+  }
+  const pins=px.map(p=>({x:p.x,y:p.y,w:30,h:30,fixed:true}));
+  const items=[...labels,...pins];
+  const segs=[];for(let k=0;k<px.length-1;k++)segs.push([px[k],px[k+1]]);
+  for(let it=0;it<ITERS;it++){
+    let moved=false;
+    /* ① ルート線から退避（最近区間に対し、その向きでボックスがクリアするまで） */
+    for(const Lb of labels){
+      let best=null,bd=Infinity;
+      for(const[A,B]of segs){const c=closest(Lb,A,B);const dd=(Lb.x-c.x)**2+(Lb.y-c.y)**2;if(dd<bd){bd=dd;best=c;}}
+      let dx=Lb.x-best.x,dy=Lb.y-best.y,dist=Math.hypot(dx,dy); if(dist<1e-6){dx=0;dy=-1;dist=1;}
+      const ux=dx/dist,uy=dy/dist, need=Math.abs(Lb.w/2*ux)+Math.abs(Lb.h/2*uy)+LINEPAD;
+      if(dist<need){Lb.x+=ux*(need-dist);Lb.y+=uy*(need-dist);moved=true;}
+    }
+    /* ② ラベル同士＋ピンの分離 */
+    for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){
+      const A=items[i],B=items[j]; if(A.fixed&&B.fixed)continue;
+      const ox=(A.w+B.w)/2+PAD-Math.abs(A.x-B.x), oy=(A.h+B.h)/2+PAD-Math.abs(A.y-B.y);
+      if(ox>0&&oy>0){
+        const useX=ox<oy,amt=useX?ox:oy,wA=A.fixed?0:(B.fixed?1:.5),wB=B.fixed?0:(A.fixed?1:.5);
+        if(useX){const d=A.x<=B.x?-1:1;A.x+=d*amt*wA;B.x-=d*amt*wB;}
+        else    {const d=A.y<=B.y?-1:1;A.y+=d*amt*wA;B.y-=d*amt*wB;}
+        moved=true;
+      }
+    }
+    for(const Lb of labels){Lb.x=clamp(Lb.x,Lb.w/2+EDGE,BW-Lb.w/2-EDGE);Lb.y=clamp(Lb.y,Lb.h/2+EDGE,BH-Lb.h/2-EDGE);}
+    if(!moved)break;
+  }
+  /* 描画：引き出し線 → 中点ドット → ラベル */
+  for(const Lb of labels){
+    const midLL=map.containerPointToLatLng([Lb.mx,Lb.my]), labLL=map.containerPointToLatLng([Lb.x,Lb.y]);
+    segLines.push(L.polyline([midLL,labLL],{color:'#9C9678',weight:1,opacity:.7,interactive:false}).addTo(map));
+    segLines.push(L.circleMarker(midLL,{radius:3,color:'#1A1A12',weight:1.2,fillColor:'#C7A24A',fillOpacity:1,interactive:false}).addTo(map));
+    segLabels.push(L.marker(labLL,{icon:segLabelIcon(Lb.meta.html,Lb.meta.lv),interactive:false,keyboard:false}).addTo(map));
+  }
+}
+map.on('moveend zoomend',layoutSegLabels);
 function rebuildMap(){
   Object.values(markers).forEach(m=>map.removeLayer(m));markers={};
   if(route){map.removeLayer(route);route=null;}
-  segLabels.forEach(m=>map.removeLayer(m));segLabels=[];
   const line=[],plotted=[];let nogeo=0;
   stopsOf().forEach((s,i)=>{
     const c=coordOf(s); if(!c){nogeo++;return;}
@@ -243,16 +301,16 @@ function rebuildMap(){
     markers[s.id]=m;
   });
   if(line.length>1)route=L.polyline(line,{color:'#C7A24A',weight:3,opacity:.85}).addTo(map);
-  /* 描画した各区間（地図上で隣り合うピン同士）の中点に 移動時間・直線距離 を表示 */
+  /* 区間メタ（移動時間・直線距離）はズーム非依存なのでここで確定。配置は layoutSegLabels がピクセル空間で実施 */
+  segPlotted=plotted.map(p=>({lat:p.lat,lon:p.lon}));
+  segMeta=[];
   for(let k=0;k<plotted.length-1;k++){
     const a=plotted[k],b=plotted[k+1];
-    const md=moveDur(a.stop.dep,b.stop.arr), lv=moveDurLevel(a.stop.dep,b.stop.arr);
-    const km=`<span class="sl-km">${fmtKm(segKm(a,b))}</span>`;
-    const html=md?`${esc(md)} ・ ${km}`:km;
-    const mid=[(a.lat+b.lat)/2,(a.lon+b.lon)/2];
-    segLabels.push(L.marker(mid,{icon:segLabelIcon(html,md?lv:-1),interactive:false,keyboard:false}).addTo(map));
+    const md=moveDur(a.stop.dep,b.stop.arr), lv=moveDurLevel(a.stop.dep,b.stop.arr), km=fmtKm(segKm(a,b));
+    segMeta.push({plain:(md?md+' ・ ':'')+km, html:(md?esc(md)+' ・ ':'')+`<span class="sl-km">${km}</span>`, lv:md?lv:-1});
   }
   if(line.length)map.fitBounds(L.latLngBounds(line),{padding:[46,46],maxZoom:13});
+  layoutSegLabels();
   document.getElementById('map-info').textContent=`${stopsOf().length}地点 / ${dayLabel(curDay)}`;
   const warn=document.getElementById('map-warn');
   if(nogeo){warn.style.display='flex';warn.innerHTML=`⚠ ${nogeo}件が座標未設定（左の「配置」で地図に追加）`;}
