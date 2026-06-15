@@ -243,13 +243,16 @@ function layoutSegLabels(){
   _segCtx.font="700 10.5px 'BIZ UDPGothic',sans-serif";
   const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
   const closest=(P,A,B)=>{const vx=B.x-A.x,vy=B.y-A.y;let t=((P.x-A.x)*vx+(P.y-A.y)*vy)/((vx*vx+vy*vy)||1);t=clamp(t,0,1);return{x:A.x+t*vx,y:A.y+t*vy};};
-  /* ラベル初期配置：区間に直交する外側（画面上向き寄り）へ少し */
+  /* ルート全体の重心。各区間の法線は「重心から離れる向き＝外側」を必ず採用 */
+  let Cx=0,Cy=0; px.forEach(p=>{Cx+=p.x;Cy+=p.y;}); Cx/=px.length; Cy/=px.length;
   const labels=[];
   for(let k=0;k<px.length-1;k++){
     const a=px[k],b=px[k+1], mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
-    let dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1, nx=-dy/len,ny=dx/len; if(ny>0){nx=-nx;ny=-ny;}
+    let dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1, nx=-dy/len,ny=dx/len;
+    const dot=nx*(mx-Cx)+ny*(my-Cy);                 // >0 なら外向き
+    if(dot<0 || (dot===0 && ny>0)){nx=-nx;ny=-ny;}    // 内向きは反転（退化時は上向き）
     const meta=segMeta[k], w=Math.ceil(_segCtx.measureText(meta.plain).width)+22, h=22;
-    labels.push({mx,my,x:mx+nx*START,y:my+ny*START,w,h,meta});
+    labels.push({mx,my,ox:nx,oy:ny,x:mx+nx*START,y:my+ny*START,w,h,meta});
   }
   const pins=px.map(p=>({x:p.x,y:p.y,w:30,h:30,fixed:true}));
   const items=[...labels,...pins];
@@ -260,7 +263,7 @@ function layoutSegLabels(){
     for(const Lb of labels){
       let best=null,bd=Infinity;
       for(const[A,B]of segs){const c=closest(Lb,A,B);const dd=(Lb.x-c.x)**2+(Lb.y-c.y)**2;if(dd<bd){bd=dd;best=c;}}
-      let dx=Lb.x-best.x,dy=Lb.y-best.y,dist=Math.hypot(dx,dy); if(dist<1e-6){dx=0;dy=-1;dist=1;}
+      let dx=Lb.x-best.x,dy=Lb.y-best.y,dist=Math.hypot(dx,dy); if(dist<1e-6){dx=Lb.ox;dy=Lb.oy;dist=1;}
       const ux=dx/dist,uy=dy/dist, need=Math.abs(Lb.w/2*ux)+Math.abs(Lb.h/2*uy)+LINEPAD;
       if(dist<need){Lb.x+=ux*(need-dist);Lb.y+=uy*(need-dist);moved=true;}
     }
@@ -276,6 +279,12 @@ function layoutSegLabels(){
       }
     }
     for(const Lb of labels){Lb.x=clamp(Lb.x,Lb.w/2+EDGE,BW-Lb.w/2-EDGE);Lb.y=clamp(Lb.y,Lb.h/2+EDGE,BH-Lb.h/2-EDGE);}
+    /* ③ 必ず外側：自区間の中点から外向き法線方向に、線をクリアする量まで引き戻す（最後に実施して内側回り込みを禁止） */
+    for(const Lb of labels){
+      const signed=(Lb.x-Lb.mx)*Lb.ox+(Lb.y-Lb.my)*Lb.oy;
+      const need=Math.abs(Lb.w/2*Lb.ox)+Math.abs(Lb.h/2*Lb.oy)+LINEPAD;
+      if(signed<need){const d=need-signed; Lb.x+=Lb.ox*d; Lb.y+=Lb.oy*d; moved=true;}
+    }
     if(!moved)break;
   }
   /* 描画：引き出し線 → 中点ドット → ラベル */
