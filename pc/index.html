@@ -41,7 +41,7 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 #desk{display:grid;grid-template-columns:380px 1fr;grid-template-rows:minmax(0,1fr);height:calc(100% - 48px);overflow:hidden}
 #pane-list{border-right:1px solid var(--border);display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
 .day-tabs{display:flex;flex-wrap:wrap;gap:5px;padding:9px 10px;border-bottom:1px solid var(--border)}
-.day-tab{font-size:12px;padding:4px 13px;border-radius:6px;color:var(--text3);border:1px solid transparent;white-space:nowrap;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.25}
+.day-tab{position:relative;font-size:12px;padding:4px 13px;border-radius:6px;color:var(--text3);border:1px solid transparent;white-space:nowrap;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.25}
 .day-tab.on{background:var(--amber);color:#1A1A12}
 .day-tab:not(.on){border-color:var(--border)}
 .day-tab:not(.on):hover{background:var(--bg2)}
@@ -49,6 +49,10 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 .day-tab .dt-sat{color:#6E9CC0}
 .day-tab .dt-sun{color:var(--red)}
 .day-tab.on .dt-sub,.day-tab.on .dt-sat,.day-tab.on .dt-sun{color:#1A1A12;opacity:.72}
+/* アクティブ日タブの右上に出る「この日程を削除」✕（モバイルの「現在日を削除」と同じ意味） */
+.day-tab.on{padding-right:21px}
+.dt-del{position:absolute;top:1px;right:2px;width:15px;height:15px;display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;border-radius:4px;color:#1A1A12;opacity:.5}
+.dt-del:hover{opacity:1;background:rgba(0,0,0,.2)}
 #stop-list{flex:1;min-height:0;overflow-y:auto;padding:6px 6px 12px}
 .stop-row{border-radius:var(--r);border:1px solid transparent}
 .sr-head{display:flex;align-items:center;gap:9px;padding:9px;cursor:pointer}
@@ -392,7 +396,7 @@ function dateSubHtml(ds){
   return `<span class="dt-sub${cls}">${t.getMonth()+1}/${t.getDate()}（${WD[wd]}）</span>`;
 }
 function renderTabs(){
-  document.getElementById('day-tabs').innerHTML=data.days.map((d,i)=>`<button class="day-tab${i===curDay?' on':''}" data-day="${i}"><span class="dt-main">${esc(dayLabel(i))}</span>${dateSubHtml(d.date)}</button>`).join('')+`<button class="day-tab" data-add="1" style="font-size:14px;padding:2px 9px;justify-content:center" title="日程を追加">＋</button>`;
+  document.getElementById('day-tabs').innerHTML=data.days.map((d,i)=>`<button class="day-tab${i===curDay?' on':''}" data-day="${i}"><span class="dt-main">${esc(dayLabel(i))}</span>${dateSubHtml(d.date)}${i===curDay?'<span class="dt-del" title="この日程を削除">✕</span>':''}</button>`).join('')+`<button class="day-tab" data-add="1" style="font-size:14px;padding:2px 9px;justify-content:center" title="日程を追加">＋</button>`;
 }
 function renderList(){
   const ss=stopsOf();
@@ -456,6 +460,63 @@ function render(){renderTabs();renderList();renderSummary();rebuildMap();documen
 
 function select(id){maybeDiscardFresh(id);selId=id;render();const m=markers[id];if(m)map.panTo(m.getLatLng());}
 function switchDay(i){if(i===curDay)return;maybeDiscardFresh();curDay=i;selId=null;render();}
+
+/* ── 日程追加（モバイル 06-day.addDay 準拠。PC版は 06-day を import しない方針のため同一ロジックを最小移植）──
+   ・最大7日。前日の日付があれば +1日を自動付与（既存日と重複するなら空）。
+   ・前日の最終地点を新日の先頭に引き継ぐ（名前・住所・座標geoのみ。時刻/メモ/実績はリセット）。
+     ※geoを落とすと座標文字列の住所を誤ジオコーディングしに行くため、モバイル同様に複製する。
+   ・日付が付いたら日付順に整列（_sortDaysPC が現在日をオブジェクト同一性で維持）。 */
+function addDay(){
+  maybeDiscardFresh();                                       // 編集中の未保存新規地点を破棄（モバイルの編集保護に相当）
+  const MAX_DAYS=7;
+  if(data.days.length>=MAX_DAYS){alert(`最大${MAX_DAYS}日間までです`);return;}
+  const prev=data.days[data.days.length-1];
+  let nextDate='';
+  if(prev?.date){const _d=new Date(prev.date+'T12:00:00');if(!isNaN(_d.getTime())){_d.setDate(_d.getDate()+1);nextDate=_d.toISOString().slice(0,10);}} // 正午起点でTZ日付ずれを回避
+  if(nextDate&&data.days.some(d=>d.date===nextDate))nextDate='';   // 日付重複は空に
+  const prevLast=prev?.stops?.length?prev.stops[prev.stops.length-1]:null;
+  const inheritStop=prevLast?[{
+    id:_newStopId(), name:prevLast.name, addr:prevLast.addr,
+    arr:'',dep:'',note:'',log:'',actArr:'',actDep:'',fuel:false,
+    geo:prevLast.geo?{lat:prevLast.geo.lat,lon:prevLast.geo.lon}:null,
+  }]:[];                                                         // モバイルと同一の生成形
+  data.days.push({date:nextDate,routeUrl:'',stops:inheritStop});
+  curDay=data.days.length-1;
+  if(nextDate)_sortDaysPC();                                     // 日付ありなら整列（現在日は維持）
+  selId=null; freshAddId=null;
+  persist();render();
+}
+/* 日付順に整列。空日付は末尾。現在日(curDay)はオブジェクト参照で追従（モバイル _sortDays と同方針）。 */
+function _sortDaysPC(){
+  const keep=data.days[curDay];
+  data.days.sort((a,b)=>{
+    if(!a.date&&!b.date)return 0;
+    if(!a.date)return 1;
+    if(!b.date)return -1;
+    return a.date<b.date?-1:a.date>b.date?1:0;
+  });
+  curDay=data.days.indexOf(keep); if(curDay<0)curDay=0;
+}
+/* ── 日程削除（モバイル 06-day.deleteCurrentDay 準拠。現在日を削除）──
+   ・残り1日のときは「全地点を削除＝全リセット」（日付/ルートURL/ツーリング名も空に）の確認。地点ゼロなら何もしない。
+   ・複数日のときは確認のうえ現在日を splice し、現在日を隣（前寄り）へ移す。 */
+function deleteDay(){
+  maybeDiscardFresh();
+  if(data.days.length<=1){
+    const day=data.days[0];
+    if(!day.stops.length){alert('地点がありません');return;}
+    if(!confirm('登録されている地点をすべて削除しますか？'))return;
+    day.stops=[]; day.date=''; day.routeUrl=''; delete day.label; data.title=''; // 全リセット（モバイルと同じくツーリング名も空に）
+    selId=null; freshAddId=null; geoConf={};
+    persist();render();
+    return;
+  }
+  if(!confirm(`「${dayLabel(curDay)}」を削除しますか？`))return;
+  data.days.splice(curDay,1);
+  curDay=Math.max(0,curDay-1);
+  selId=null; freshAddId=null;
+  persist();render();
+}
 function saveStop(){const s=stopsOf().find(x=>x.id===selId);if(!s)return;const _nm=document.getElementById('f-name');if(!(_nm.value||'').trim()){_nm.focus();const eb=document.getElementById('f-do-save');if(eb){eb.textContent='地点名を入力';eb.disabled=true;setTimeout(()=>{eb.textContent='保存';eb.disabled=false;},1300);}return;}s.name=_nm.value;s.addr=document.getElementById('f-addr').value;s.arr=document.getElementById('f-arr').value;s.dep=document.getElementById('f-dep').value;s.note=document.getElementById('f-note').value;s.fuel=document.getElementById('f-fuel').checked;const g=parseCoord(s.addr);s.geo=g||(hasGeo(s)?s.geo:null);freshAddId=null;persist();render();const b=document.getElementById('f-do-save');if(b){const o=b.textContent;b.textContent='保存しました ✓';b.disabled=true;setTimeout(()=>{b.textContent=o;b.disabled=false;},1100);}}
 function delStop(){const a=stopsOf();const idx=a.findIndex(x=>x.id===selId);if(idx>=0){a.splice(idx,1);selId=null;freshAddId=null;persist();render();}}
 /* ── 地点を追加（モバイル05-stop.jsの追加挙動に合わせる）──
@@ -533,7 +594,7 @@ async function backfillOne(id,btn){
 }
 
 /* イベント委譲 */
-document.getElementById('day-tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.add){alert('日程追加はスケルトン未実装（本実装で 06-day.addDay に接続）');return;}switchDay(+b.dataset.day);};
+document.getElementById('day-tabs').onclick=e=>{if(e.target.closest('.dt-del')){deleteDay();return;}const b=e.target.closest('button');if(!b)return;if(b.dataset.add){addDay();return;}switchDay(+b.dataset.day);};
 document.getElementById('stop-list').onclick=e=>{
   const fb=e.target.closest('.row-fill');if(fb){e.stopPropagation();backfillOne(fb.dataset.fill,fb);return;}
   if(e.target.closest('.sr-edit'))return;                 // 編集フォーム内のクリックは再描画しない（入力フォーカス維持）
