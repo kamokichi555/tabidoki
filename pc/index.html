@@ -38,7 +38,7 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 .hd-right{display:flex;align-items:center;gap:6px}
 .hd-right button{font-size:17px;color:var(--text2);padding:6px 9px;border-radius:var(--r)}
 .hd-right button:hover{background:var(--bg3)}
-#desk{display:grid;grid-template-columns:340px 1fr 330px;grid-template-rows:minmax(0,1fr);height:calc(100% - 48px);overflow:hidden}
+#desk{display:grid;grid-template-columns:380px 1fr;grid-template-rows:minmax(0,1fr);height:calc(100% - 48px);overflow:hidden}
 #pane-list{border-right:1px solid var(--border);display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
 .day-tabs{display:flex;flex-wrap:wrap;gap:5px;padding:9px 10px;border-bottom:1px solid var(--border)}
 .day-tab{font-size:12px;padding:4px 13px;border-radius:6px;color:var(--text3);border:1px solid transparent;white-space:nowrap;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.25}
@@ -50,7 +50,12 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 .day-tab .dt-sun{color:var(--red)}
 .day-tab.on .dt-sub,.day-tab.on .dt-sat,.day-tab.on .dt-sun{color:#1A1A12;opacity:.72}
 #stop-list{flex:1;min-height:0;overflow-y:auto;padding:6px 6px 12px}
-.stop-row{display:flex;align-items:center;gap:9px;padding:9px 9px;border-radius:var(--r);cursor:pointer;border:1px solid transparent}
+.stop-row{border-radius:var(--r);border:1px solid transparent}
+.sr-head{display:flex;align-items:center;gap:9px;padding:9px;cursor:pointer}
+.sr-edit{padding:2px 11px 12px;display:flex;flex-direction:column;gap:12px}
+.sr-toggle{color:var(--text3);font-size:13px;flex:none;padding:0 4px;border-radius:5px}
+.sr-toggle:hover{background:var(--bg3);color:var(--text2)}
+.stop-row.expanded .stop-grip{visibility:hidden}
 .stop-row:hover{background:var(--bg2)}
 .stop-row.sel{background:var(--amber-bg);border-color:rgba(199,162,74,.5)}
 .stop-grip{color:#5A5F55;font-size:13px;cursor:grab;user-select:none;letter-spacing:-2px}
@@ -94,14 +99,7 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 .map-layers button{font-size:11px;padding:4px 10px;background:rgba(20,23,20,.85);color:var(--text3)}
 .map-layers button.on{background:var(--amber);color:#1A1A12}
 .map-warn{bottom:10px;left:10px;right:10px;background:rgba(224,122,63,.14);border:1px solid rgba(224,122,63,.5);color:#F0B89A;padding:4px 10px;border-radius:6px;display:none;align-items:center}
-.warn-btn{margin-left:auto;background:rgba(224,122,63,.28);border:1px solid rgba(224,122,63,.6);color:#F6D2BF;font-size:11px;padding:2px 11px;border-radius:5px;white-space:nowrap}
-.warn-btn:hover{background:rgba(224,122,63,.45)}
-.warn-btn:disabled{opacity:.6;cursor:default}
 .stop-tag-warn{font-size:10px;color:#E0A23F;border:1px solid rgba(224,162,63,.5);border-radius:4px;padding:0 5px;flex:none}
-#pane-edit{border-left:1px solid var(--border);display:flex;flex-direction:column;min-width:0;overflow-y:auto}
-.edit-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)}
-.edit-head span{font-size:12px;color:var(--text3);letter-spacing:.12em}
-.edit-body{padding:12px 14px;display:flex;flex-direction:column;gap:12px}
 .fld label{display:block;font-size:11px;color:var(--text3);margin-bottom:4px}
 .fld input,.fld textarea{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:inherit;font-size:14px;padding:7px 10px;outline:none}
 .fld input:focus,.fld textarea:focus{border-color:var(--amber)}
@@ -115,7 +113,6 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 .btn-save:hover{filter:brightness(1.08)}
 .btn-del{background:var(--bg2);border:1px solid var(--border);color:var(--red);font-size:14px;padding:9px 13px;border-radius:var(--r)}
 .btn-del:hover{background:var(--bg3)}
-.edit-empty{padding:48px 20px;text-align:center;color:var(--text3);font-size:13px;line-height:1.8}
 .leaflet-container{font-family:inherit}
 .leaflet-control-attribution{background:rgba(20,23,20,.8)!important;color:var(--text3)!important;font-size:10px!important}
 .leaflet-control-attribution a{color:var(--text2)!important}
@@ -124,7 +121,7 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
 .pin{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:'BIZ UDPGothic',sans-serif;background:#2A2F2A;color:#EBE6D7;border:2px solid #8A9082;box-shadow:0 1px 4px rgba(0,0,0,.6)}
 .pin.sel{background:#C7A24A;color:#1A1A12;border-color:#F2E6C2;width:32px;height:32px;font-size:15px}
 .pin.lowconf{border-style:dashed;border-color:#E0A23F}
-@media (max-width:1100px){#desk{grid-template-columns:300px 1fr 300px}}
+@media (max-width:1100px){#desk{grid-template-columns:320px 1fr}}
 </style>
 </head>
 <body>
@@ -158,10 +155,6 @@ header{height:48px;display:flex;align-items:center;justify-content:space-between
       <button data-layer="photo">写真</button>
     </div>
     <div class="map-overlay map-warn" id="map-warn"></div>
-  </div>
-  <div id="pane-edit">
-    <div class="edit-head"><span id="edit-title">地点を編集</span><button title="閉じる" id="btn-close" style="color:var(--text3)">✕</button></div>
-    <div class="edit-body" id="edit-body"></div>
   </div>
 </div>
 
@@ -219,18 +212,30 @@ const layers={
 };
 const map=L.map('map',{zoomControl:true,layers:[layers.std]}).setView([35.5,139.0],10);
 let curLayer='std';
-document.querySelectorAll('.map-layers button').forEach(b=>{b.onclick=()=>{const k=b.dataset.layer;if(k===curLayer)return;map.removeLayer(layers[curLayer]);map.addLayer(layers[k]);curLayer=k;document.querySelectorAll('.map-layers button').forEach(x=>x.classList.toggle('on',x===b));};});
+/* 背景特性に合わせたルート/区間ラベルの線色。タイルは別オリジンでcanvas画素を読めないため、
+   各地図の典型的な配色から「最も視認しやすい色」を決め打ちで割り当てる。
+   std=色数の多い明地図→マゼンタ / pale=ほぼ白→濃ブルー / photo=航空写真(暗・緑茶)→ビビッド黄 */
+function routeColorsFor(k){return ({
+  std:  {line:'#E5007E',dotStroke:'#3A0020',cas:'rgba(15,17,16,.55)'},
+  pale: {line:'#1438C8',dotStroke:'#0A1A55',cas:'rgba(15,17,16,.5)'},
+  photo:{line:'#FFD60A',dotStroke:'#3A2E00',cas:'rgba(255,255,255,.65)'},
+})[k]||{line:'#C7A24A',dotStroke:'#1A1A12',cas:'rgba(15,17,16,.5)'};}
+let routeColors=routeColorsFor(curLayer);
+document.querySelectorAll('.map-layers button').forEach(b=>{b.onclick=()=>{const k=b.dataset.layer;if(k===curLayer)return;map.removeLayer(layers[curLayer]);map.addLayer(layers[k]);curLayer=k;routeColors=routeColorsFor(k);if(routeCas)routeCas.setStyle({color:routeColors.cas});if(route)route.setStyle({color:routeColors.line});layoutSegLabels();document.querySelectorAll('.map-layers button').forEach(x=>x.classList.toggle('on',x===b));};});
 
-let markers={}, route=null, segLabels=[], segLines=[], segPlotted=[], segMeta=[];
+let markers={}, route=null, routeCas=null, pinLeaders=[], segLabels=[], segLines=[], segPlotted=[], segMeta=[];
 function pinIcon(n,sel,lc){return L.divIcon({className:'',html:`<div class="pin${sel?' sel':''}${lc?' lowconf':''}">${n}</div>`,iconSize:sel?[32,32]:[26,26],iconAnchor:sel?[16,16]:[13,13]});}
 /* 2点間の直線距離(km)：ハバサイン式 */
 function segKm(a,b){const R=6371,r=d=>d*Math.PI/180;const dLa=r(b.lat-a.lat),dLo=r(b.lon-a.lon);const h=Math.sin(dLa/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
 function fmtKm(km){return km>=10?Math.round(km)+'km':km>=1?km.toFixed(1)+'km':Math.round(km*1000)+'m';}
 /* 区間ラベル（中点）：移動時間はリストと同じ moveDur/Level を使用。距離は直線。lv1/2 で色分け */
 function segLabelIcon(html,lv){return L.divIcon({className:'',html:`<div class="seg-label${lv>=1?' lv'+lv:''}">${html}</div>`,iconSize:[0,0],iconAnchor:[0,0]});}
+/* 進行方向の矢じり（区間中点・a→bの画面角度で回転）。色はルート色に追従。区間ラベルのリーダー接続点も兼ねる。 */
+function dirArrowIcon(deg){return L.divIcon({className:'',iconSize:[16,16],iconAnchor:[8,8],
+  html:`<div style="width:16px;height:16px;transform:rotate(${deg}deg);transform-origin:50% 50%"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M5,4 L14,8 L5,12 Z" fill="${routeColors.line}" stroke="${routeColors.dotStroke}" stroke-width="1.3" stroke-linejoin="round"/></svg></div>`});}
 /* ── 区間ラベルの配置：ピクセル空間で「ルート線・ピン・ラベル同士」に重ならない位置まで退避 ──
    ・各ラベルは中点のすぐ脇から出発し、被る分だけ外へ押し出す（退避量はラベルごとに自動）
-   ・引き出し線＋中点ドットで、どの区間のラベルか保持
+   ・引き出し線＋進行方向の矢じりで、どの区間のラベルか保持
    ・ズーム/パンでピクセル関係が変わるため moveend/zoomend で再実行 */
 const _segCtx=document.createElement('canvas').getContext('2d');
 function layoutSegLabels(){
@@ -252,7 +257,7 @@ function layoutSegLabels(){
     const dot=nx*(mx-Cx)+ny*(my-Cy);                 // >0 なら外向き
     if(dot<0 || (dot===0 && ny>0)){nx=-nx;ny=-ny;}    // 内向きは反転（退化時は上向き）
     const meta=segMeta[k], w=Math.ceil(_segCtx.measureText(meta.plain).width)+22, h=22;
-    labels.push({mx,my,ox:nx,oy:ny,x:mx+nx*START,y:my+ny*START,w,h,meta});
+    labels.push({mx,my,ox:nx,oy:ny,x:mx+nx*START,y:my+ny*START,w,h,meta,deg:Math.atan2(dy,dx)*180/Math.PI});
   }
   const pins=px.map(p=>({x:p.x,y:p.y,w:30,h:30,fixed:true}));
   const items=[...labels,...pins];
@@ -287,29 +292,68 @@ function layoutSegLabels(){
     }
     if(!moved)break;
   }
-  /* 描画：引き出し線 → 中点ドット → ラベル */
+  /* 描画：引き出し線 → 進行方向の矢じり → ラベル */
   for(const Lb of labels){
     const midLL=map.containerPointToLatLng([Lb.mx,Lb.my]), labLL=map.containerPointToLatLng([Lb.x,Lb.y]);
-    segLines.push(L.polyline([midLL,labLL],{color:'#9C9678',weight:1,opacity:.7,interactive:false}).addTo(map));
-    segLines.push(L.circleMarker(midLL,{radius:3,color:'#1A1A12',weight:1.2,fillColor:'#C7A24A',fillOpacity:1,interactive:false}).addTo(map));
+    segLines.push(L.polyline([midLL,labLL],{color:routeColors.line,weight:1,opacity:.55,interactive:false}).addTo(map));
+    segLabels.push(L.marker(midLL,{icon:dirArrowIcon(Lb.deg),interactive:false,keyboard:false,zIndexOffset:-100}).addTo(map));
     segLabels.push(L.marker(labLL,{icon:segLabelIcon(Lb.meta.html,Lb.meta.lv),interactive:false,keyboard:false}).addTo(map));
   }
 }
-map.on('moveend zoomend',layoutSegLabels);
+/* ── 案A：重なるピンのファンアウト（ピクセル空間で重なり検出→本来位置を中心に扇状へ退避） ──
+   ・各マーカーは true座標を m._anchor に保持。重なる群れだけ円周上にずらし、本来位置へ引き出し線＋金ドット。
+   ・ズームで自然に離れれば群れが解けて元位置に戻る（moveend/zoomendで再計算）。
+   ・「始点＝終点」など完全同座標(距離0)でも全ピンが見えて個別クリック可能になる。 */
+function declutterPins(){
+  pinLeaders.forEach(l=>map.removeLayer(l)); pinLeaders=[];
+  const arr=[];
+  stopsOf().forEach((s)=>{const m=markers[s.id]; if(!m||!m._anchor)return; arr.push({i:m._idx,m,ll:m._anchor,px:map.latLngToContainerPoint(m._anchor)});});
+  if(!arr.length)return;
+  const TH=22, used=new Array(arr.length).fill(false), groups=[];
+  for(let a=0;a<arr.length;a++){
+    if(used[a])continue;
+    const g=[arr[a]]; used[a]=true;
+    for(let b=a+1;b<arr.length;b++){
+      if(used[b])continue;
+      if(g.some(x=>Math.hypot(x.px.x-arr[b].px.x,x.px.y-arr[b].px.y)<TH)){g.push(arr[b]);used[b]=true;}
+    }
+    groups.push(g);
+  }
+  for(const g of groups){
+    if(g.length<2){g[0].m.setLatLng(g[0].ll);continue;} // 単独：本来位置へ
+    g.sort((p,q)=>p.i-q.i);                              // 番号順に円周配置
+    let cx=0,cy=0; g.forEach(x=>{cx+=x.px.x;cy+=x.px.y;}); cx/=g.length; cy/=g.length;
+    const R=Math.max(16,Math.ceil(g.length*5));
+    g.forEach((x,k)=>{
+      const ang=-Math.PI/2 + k*2*Math.PI/g.length;       // 上始まりで等間隔
+      const offLL=map.containerPointToLatLng([cx+R*Math.cos(ang), cy+R*Math.sin(ang)]);
+      x.m.setLatLng(offLL);
+      pinLeaders.push(L.polyline([x.ll,offLL],{color:'#8A9082',weight:1.4,opacity:.85,interactive:false}).addTo(map));
+      pinLeaders.push(L.circleMarker(x.ll,{radius:3,color:'#1A1A12',weight:1.1,fillColor:'#C7A24A',fillOpacity:1,interactive:false}).addTo(map));
+    });
+  }
+}
+map.on('moveend zoomend',()=>{declutterPins();layoutSegLabels();});
 function rebuildMap(){
   Object.values(markers).forEach(m=>map.removeLayer(m));markers={};
   if(route){map.removeLayer(route);route=null;}
+  if(routeCas){map.removeLayer(routeCas);routeCas=null;}
   const line=[],plotted=[];let nogeo=0;
   stopsOf().forEach((s,i)=>{
     const c=coordOf(s); if(!c){nogeo++;return;}
     line.push([c.lat,c.lon]);
     plotted.push({lat:c.lat,lon:c.lon,stop:s});
     const m=L.marker([c.lat,c.lon],{icon:pinIcon(i+1,s.id===selId,!!geoConf[s.id]),draggable:true}).addTo(map);
+    m._anchor=L.latLng(c.lat,c.lon); m._idx=i;                 // 本来位置と番号（declutter用）
+    m.on('dragstart',()=>{if(m._anchor)m.setLatLng(m._anchor);}); // 退避中でも本来位置からドラッグ
     m.on('click',()=>select(s.id));
-    m.on('dragend',()=>{const p=m.getLatLng();s.geo={lat:+p.lat.toFixed(6),lon:+p.lng.toFixed(6)};s.addr=`${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`;delete geoConf[s.id];persist();rebuildMap();if(s.id===selId)renderEdit();});
+    m.on('dragend',()=>{const p=m.getLatLng();s.geo={lat:+p.lat.toFixed(6),lon:+p.lng.toFixed(6)};s.addr=`${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`;delete geoConf[s.id];persist();render();});
     markers[s.id]=m;
   });
-  if(line.length>1)route=L.polyline(line,{color:'#C7A24A',weight:3,opacity:.85}).addTo(map);
+  if(line.length>1){
+    routeCas=L.polyline(line,{color:routeColors.cas,weight:7,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(map); // 縁取り（下）
+    route   =L.polyline(line,{color:routeColors.line,weight:4,opacity:.95,lineCap:'round',lineJoin:'round'}).addTo(map);              // 本線（上）
+  }
   /* 区間メタ（移動時間・直線距離）はズーム非依存なのでここで確定。配置は layoutSegLabels がピクセル空間で実施 */
   segPlotted=plotted.map(p=>({lat:p.lat,lon:p.lon}));
   segMeta=[];
@@ -319,6 +363,7 @@ function rebuildMap(){
     segMeta.push({plain:(md?md+' ・ ':'')+km, html:(md?esc(md)+' ・ ':'')+`<span class="sl-km">${km}</span>`, lv:md?lv:-1});
   }
   if(line.length)map.fitBounds(L.latLngBounds(line),{padding:[46,46],maxZoom:13});
+  declutterPins();
   layoutSegLabels();
   document.getElementById('map-info').textContent=`${stopsOf().length}地点 / ${dayLabel(curDay)}`;
   const warn=document.getElementById('map-warn');
@@ -347,23 +392,30 @@ function renderTabs(){
 function renderList(){
   const ss=stopsOf();
   document.getElementById('stop-list').innerHTML=ss.map((s,i)=>{
+    const isSel=s.id===selId;
     const has=!!coordOf(s);
     const fillable=!has&&!!(s.addr||'').trim();
     const dur=stayDur(s.arr,s.dep);
     const t=s.arr&&s.dep?`${s.arr} – ${s.dep} ${dur}`:s.dep?`出発 ${s.dep}`:s.arr?`到着 ${s.arr}`:'';
-    const trail = has ? '' : (fillable
-      ? `<button class="row-fill" data-fill="${s.id}">📍配置</button>`
-      : '<span class="stop-tag-nogeo">座標なし</span>');
+    const fill=fillable?`<button class="row-fill" data-fill="${s.id}">📍配置</button>`:'';
+    const warn=geoConf[s.id]?'<span class="stop-tag-warn">要確認</span>':'';
+    /* 選択中＝展開：見出し右端は「配置(座標なし時のみ)＋閉じる✕」。通常行＝配置/座標なしタグ＋要確認 */
+    const tail=isSel
+      ? `${fill}${warn}<span class="sr-toggle" title="閉じる">✕</span>`
+      : `${has?'':(fillable?fill:'<span class="stop-tag-nogeo">座標なし</span>')}${warn}`;
     const isLast=i===ss.length-1;
     const mdur=isLast?'':moveDur(s.dep,ss[i+1].arr);
     const mlv =isLast?-1:moveDurLevel(s.dep,ss[i+1].arr);
     const move=mdur?`<div class="move-dur-label${mlv>=0?' lv'+mlv:''}">→ 次まで ${mdur}</div>`:'';
-    return `<div class="stop-row${s.id===selId?' sel':''}" data-id="${s.id}" data-idx="${i}" draggable="true">
-      <span class="stop-grip">⠿</span><span class="stop-num${has?'':' nogeo'}">${i+1}</span>
-      <div class="stop-main"><div class="stop-name">${esc(s.name)}</div><div class="stop-time">${esc(t)}</div></div>
-      ${s.fuel?'<span class="stop-fuel">⛽</span>':''}${trail}${geoConf[s.id]?'<span class="stop-tag-warn">要確認</span>':''}
-    </div>${move}`;
+    const head=`<div class="sr-head">
+        <span class="stop-grip">⠿</span><span class="stop-num${has?'':' nogeo'}">${i+1}</span>
+        <div class="stop-main"><div class="stop-name">${esc(s.name)}</div><div class="stop-time">${esc(t)}</div></div>
+        ${s.fuel?'<span class="stop-fuel">⛽</span>':''}${tail}
+      </div>`;
+    const body=isSel?`<div class="sr-edit">${editFormHtml(s)}</div>`:'';
+    return `<div class="stop-row${isSel?' sel expanded':''}" data-id="${s.id}" data-idx="${i}" draggable="${isSel?'false':'true'}">${head}${body}</div>${move}`;
   }).join('');
+  if(ss.some(s=>s.id===selId))wireEditForm();
 }
 /* 左リスト上部の「未配置 N件 ＋ まとめて配置」サマリーバー（案1：操作を問題の隣へ） */
 function renderSummary(){
@@ -374,13 +426,11 @@ function renderSummary(){
   el.innerHTML=`<span class="sum-warn">⚠ 未配置 ${n}件（住所のみ）</span><button id="sum-fill" class="sum-btn">まとめて配置</button>`;
   document.getElementById('sum-fill').onclick=backfillAll;
 }
-function renderEdit(){
-  const body=document.getElementById('edit-body'),title=document.getElementById('edit-title');
-  const s=stopsOf().find(x=>x.id===selId);
-  if(!s){title.textContent='地点を編集';body.innerHTML=`<div class="edit-empty">左のリストかピンから<br>地点を選択してください</div>`;return;}
-  const i=stopsOf().indexOf(s),c=coordOf(s);
-  title.textContent=`地点を編集 ${'①②③④⑤⑥⑦⑧⑨⑩⑪⑫'[i]||(i+1)}`;
-  body.innerHTML=`
+/* 選択地点のインライン編集フォーム（旧 #pane-edit の中身を左リスト内へ移設）。
+   IDは f-name/f-addr/… のまま（同時に開く行は1つだけなので一意）。メモは上限なしオートグロー。 */
+function editFormHtml(s){
+  const c=coordOf(s);
+  return `
     <div class="fld"><label>地点名</label><input id="f-name" value="${esc(s.name)}"></div>
     <div class="fld"><label>📍 住所 / 座標（「緯度, 経度」で地図に反映）</label><input id="f-addr" value="${esc(s.addr||'')}">
       <div class="hint ${c?'ok':'warn'}" id="f-addr-hint">${c?`座標 ${c.lat.toFixed(5)}, ${c.lon.toFixed(5)} → 地図に表示中`:'住所テキスト（座標未確定・地図外）'}</div></div>
@@ -388,12 +438,16 @@ function renderEdit(){
     <div class="fld"><label>メモ</label><textarea id="f-note">${esc(s.note||'')}</textarea></div>
     <div class="fld"><label>給油</label><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2)"><input type="checkbox" id="f-fuel" ${s.fuel?'checked':''} style="width:auto"> ⛽ 給油ポイント</label></div>
     <div class="edit-actions"><button class="btn-save" id="f-do-save">保存</button><button class="btn-del" id="f-do-del" title="削除">🗑️</button></div>`;
-  document.getElementById('f-addr').addEventListener('input',e=>{const cc=parseCoord(e.target.value),h=document.getElementById('f-addr-hint');h.className='hint '+(cc?'ok':'warn');h.textContent=cc?`座標 ${cc.lat.toFixed(5)}, ${cc.lon.toFixed(5)} → 保存で地図に反映`:'住所テキスト（座標未確定・地図外）';});
+}
+/* renderList が innerHTML を流し込んだ後に呼ぶ：住所ヒント更新・メモのオートグロー・保存/削除を結線 */
+function wireEditForm(){
+  const addr=document.getElementById('f-addr'); if(!addr)return;
+  addr.addEventListener('input',e=>{const cc=parseCoord(e.target.value),h=document.getElementById('f-addr-hint');h.className='hint '+(cc?'ok':'warn');h.textContent=cc?`座標 ${cc.lat.toFixed(5)}, ${cc.lon.toFixed(5)} → 保存で地図に反映`:'住所テキスト（座標未確定・地図外）';});
   const noteEl=document.getElementById('f-note');const growNote=()=>{noteEl.style.height='auto';noteEl.style.height=noteEl.scrollHeight+'px';};growNote();noteEl.addEventListener('input',growNote);
   document.getElementById('f-do-save').onclick=saveStop;
   document.getElementById('f-do-del').onclick=delStop;
 }
-function render(){renderTabs();renderList();renderSummary();renderEdit();rebuildMap();document.getElementById('hd-title').textContent=data.title||'（無題の行程）';}
+function render(){renderTabs();renderList();renderSummary();rebuildMap();document.getElementById('hd-title').textContent=data.title||'（無題の行程）';}
 
 function select(id){selId=id;render();const m=markers[id];if(m)map.panTo(m.getLatLng());}
 function switchDay(i){if(i===curDay)return;curDay=i;selId=null;render();}
@@ -449,7 +503,14 @@ async function backfillOne(id,btn){
 
 /* イベント委譲 */
 document.getElementById('day-tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.add){alert('日程追加はスケルトン未実装（本実装で 06-day.addDay に接続）');return;}switchDay(+b.dataset.day);};
-document.getElementById('stop-list').onclick=e=>{const fb=e.target.closest('.row-fill');if(fb){e.stopPropagation();backfillOne(fb.dataset.fill,fb);return;}const r=e.target.closest('.stop-row');if(r)select(r.dataset.id);};
+document.getElementById('stop-list').onclick=e=>{
+  const fb=e.target.closest('.row-fill');if(fb){e.stopPropagation();backfillOne(fb.dataset.fill,fb);return;}
+  if(e.target.closest('.sr-edit'))return;                 // 編集フォーム内のクリックは再描画しない（入力フォーカス維持）
+  const head=e.target.closest('.sr-head');if(!head)return;
+  const id=head.closest('.stop-row').dataset.id;
+  if(id===selId){selId=null;render();}                    // 展開中の見出しを再クリック→閉じる
+  else select(id);
+};
 
 /* ── マウスでのドラッグ並べ替え（HTML5 DnD）。配列を入れ替えるだけ（時刻は絶対値のまま据え置き＝旅刻の設計に一致） ── */
 let dragId=null;
@@ -467,7 +528,6 @@ SL.addEventListener('dragstart',e=>{const r=e.target.closest('.stop-row');if(!r)
 SL.addEventListener('dragend',e=>{const r=e.target.closest('.stop-row');if(r)r.classList.remove('dragging');clearDropMark();dragId=null;});
 SL.addEventListener('dragover',e=>{if(!dragId)return;e.preventDefault();e.dataTransfer.dropEffect='move';const r=e.target.closest('.stop-row');if(!r||r.dataset.id===dragId){clearDropMark();return;}clearDropMark();r.classList.add(_isBefore(r,e)?'drop-before':'drop-after');});
 SL.addEventListener('drop',e=>{if(!dragId)return;e.preventDefault();const r=e.target.closest('.stop-row');const id=dragId;clearDropMark();if(!r||r.dataset.id===id)return;const to=(+r.dataset.idx)+(_isBefore(r,e)?0:1);moveStop(id,to);});
-document.getElementById('btn-close').onclick=()=>{selId=null;render();};
 document.getElementById('btn-load').onclick=()=>document.getElementById('file-in').click();
 document.getElementById('btn-save').onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${(data.title||'旅刻行程')}.json`;a.click();URL.revokeObjectURL(a.href);};
 document.getElementById('btn-share').onclick=()=>{navigator.clipboard?.writeText(JSON.stringify(data)).then(()=>alert('JSONをクリップボードにコピーしました'),()=>alert('コピーに失敗'));};
